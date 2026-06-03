@@ -29,7 +29,16 @@ Optional — limit redeploys to TargetLock changes only:
 |---------|--------|
 | **Watch paths** | `packages/starterkit/**` |
 
-Railway detects Node from `package.json` (`engines.node`: `>=20`) and runs the standalone Next.js server. No environment variables are required for v1.
+### Environment variables
+
+In **Variables**, set (recommended for Railway networking on port 8080):
+
+| Variable | Value |
+|----------|--------|
+| `PORT` | `8080` |
+| `HOSTNAME` | `0.0.0.0` |
+
+Railway also injects `PORT` automatically; `npm run start` runs [`scripts/start-railway.mjs`](../../packages/starterkit/scripts/start-railway.mjs), which sets the same defaults if variables are missing. Deploy logs should include a line like `[start-railway] Listening on http://0.0.0.0:8080 (standalone)` before Next.js reports ready.
 
 ## Generate a public URL
 
@@ -52,11 +61,13 @@ npm run build
 npm run start
 ```
 
-Then verify in a browser:
+Then verify in a browser (production start defaults to port **8080**):
 
-- `http://localhost:3000/` → redirects to `/targetlock`
+- `http://localhost:8080/` → redirects to `/targetlock`
 - TargetLock UI loads with styles
-- Static asset example: `http://localhost:3000/templates/hub-iq-planned-example.csv`
+- Static asset example: `http://localhost:8080/templates/hub-iq-planned-example.csv`
+
+On Windows you can override the port: `$env:PORT=8080; npm run start`
 
 ## v1 scope (explicitly out of scope)
 
