@@ -1,0 +1,4 @@
+hole_id,measured_depth_m,inclination_deg,azimuth_deg,survey_date
+DDH-0247,0,-60.0,125.0,2026-06-01
+DDH-0247,30,-59.7,126.1,2026-06-01
+DDH-0247,60,-59.3,127.5,2026-06-02

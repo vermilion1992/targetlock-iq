@@ -1,0 +1,97 @@
+══════════════════════════════════════════════════════════════
+  TARGETLOCK IQ — SHIFT HANDOVER REPORT
+══════════════════════════════════════════════════════════════
+
+Hole ID / name:             DDH-0247
+Site / project:             North Camp — Pilot
+Report generated:           Wed, 3 June 2026  09:17 am
+Latest survey depth:        390.0 m
+Overall status:             Correction needed
+Confidence:                 Medium
+
+HOLE POSITION AT LAST SURVEY
+──────────────────────────────────────────────────────────────
+Latest survey depth:        390.0 m
+Actual dip / azimuth:       -58.90° / 137.20°
+Offset from plan:           32.59 m
+
+TARGET DEFINITION
+──────────────────────────────────────────────────────────────
+Target MD:                  600.0 m
+Target offset (E / N / D):  E 224.14 / N -155.79 / D 534.11 m
+Target tolerance:           6.0 m (3D envelope)
+Max DLS (steering limit):   3.00° / 30 m
+Next survey interval:       30 m
+
+TRAJECTORY OUTLOOK (NO CORRECTION)
+──────────────────────────────────────────────────────────────
+Projected miss at target:   63.37 m
+Miss vector (E / N / D):    E -0.77 / N -59.76 / D -21.08 m
+DLS required to target:     2.44° / 30 m
+
+RECOMMENDED NEXT INTERVAL
+──────────────────────────────────────────────────────────────
+Aim dip:                    -61.12°  (Drop 2.2 deg)
+Aim azimuth:                133.15°  (Swing left 4.0 deg)
+
+Driller guidance:
+  Correct now. Drop 2.2 deg and swing left 4.0 deg from the current direction. The required DLS is inside the configured limit.
+
+RECOVERY GUIDANCE
+──────────────────────────────────────────────────────────────
+Current action:             Correct now
+Best method:                Apply the recommended aim over the next 30 m. Required DLS is within the configured limit.
+Next aim:                   Drop 2.2 deg, swing left 4.0 deg
+Confidence:                 Medium
+Escalation:                 Review by 420 m if the next survey does not improve.
+Point of no return:         390 m (estimate)
+Methods within assumptions: Parameter correction, Shorten survey interval, Motor / Navi review, DeviDrill review
+
+RECOVERY CAPABILITY ASSUMPTIONS (THIS HOLE)
+──────────────────────────────────────────────────────────────
+  Natural correction: 0–1.5°/30 m
+  Parameter correction: 0.5–2.5°/30 m
+  Motor / Navi: 1.5–5°/30 m
+  DeviDrill: 4–9°/30 m
+  Wedge / branch review when required DLS exceeds 2.5°/30 m
+  Shorten survey interval: risk control only (not a steering method).
+
+  These are configurable assumptions, not guaranteed tool performance.
+
+VALIDATION STATUS
+──────────────────────────────────────────────────────────────
+Assumptions:                Not validated
+  Recovery capability assumptions have not been reviewed or signed off for this hole.
+
+  Coordinate / survey conventions assumed:
+    - Dip sign: Negative downward (0° horizontal, −90° vertical down).
+    - Azimuth reference: Degrees clockwise from north, 0–360°. Magnetic vs true vs grid must match the plan.
+    - East / North axes: East = +X, North = +Y, right-handed in plan view.
+    - Down / TVD: Down is positive with increasing depth below collar.
+    - Coordinates: Collar-relative offsets (E/N/D from the collar), not mine grid coordinates.
+    - Desurvey method: Minimum curvature between survey stations.
+    - Units: Metres and degrees throughout.
+
+CORRECTION OPTIONS BY INTERVAL
+──────────────────────────────────────────────────────────────
+  1. 15 m               | Aim -60.0° / 135.2° | Turn 1.5° (3.00 DLS) | Partial correction
+  2. 30 m               | Aim -61.1° / 133.2° | Turn 3.0° (3.00 DLS) | Partial correction
+  3. 60 m               | Aim -63.2° / 128.5° | Turn 6.0° (3.00 DLS) | Partial correction
+  4. 210 m to target    | Aim -69.0° / 104.9° | Turn 17.1° (2.44 DLS) | Can point at target
+
+SURVEY QA / QC
+──────────────────────────────────────────────────────────────
+  [OK   ] Interval: Last survey interval is 30.0 m and inside the planned cadence.
+  [OK   ] DLS: Actual DLS is 0.36°/30 m.
+  [RISK ] Plan: Actual hole is 32.6 m from plan at MD 390 m.
+  [OK   ] Recover: Required DLS is 2.44°/30 m and inside the configured limit.
+  [RISK ] Target: No-action projection misses by 63.4 m against a 6.0 m envelope.
+
+RECENT DECISION HISTORY (THIS SESSION)
+──────────────────────────────────────────────────────────────
+  3 June, 09:17 am  Supervisor: Correct naturally at MD 390 m → Correct naturally
+  3 June, 09:17 am  Sample plan and actual surveys loaded → Load sample
+
+──────────────────────────────────────────────────────────────
+DECISION SUPPORT ONLY. STEERING FEASIBILITY DEPENDS ON SITE CONDITIONS, TOOL CAPABILITY, DRILLING CONTRACTOR, AND GEOLOGIST/SUPERVISOR APPROVAL. VERIFY ALL RECOMMENDATIONS AGAINST SITE PROCEDURES, INDEPENDENT DESURVEY, AND OPERATIONAL SIGN-OFF.
+══════════════════════════════════════════════════════════════

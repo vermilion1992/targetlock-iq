@@ -1,0 +1,4 @@
+hole_id,measured_depth_m,inclination_deg,azimuth_deg,tolerance_m,dip_tolerance_deg,azi_tolerance_deg
+DDH-0247,0,-60.0,125.0,2.0,2.0,3.0
+DDH-0247,30,-60.4,125.2,2.2,2.0,3.0
+DDH-0247,60,-60.8,125.5,2.4,2.0,3.0
