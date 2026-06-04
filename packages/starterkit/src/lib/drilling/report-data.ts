@@ -1,3 +1,9 @@
+import {
+  feasibilityEscalationNote,
+  nextIntervalAimExplainer,
+  NEXT_INTERVAL_AIM_STATION_NOTE,
+  recoveryLoopNotes,
+} from "./action-plan-copy";
 import { round, signed } from "./format";
 import { buildQaFlags } from "./qa";
 import {
@@ -64,6 +70,10 @@ export type HandoverReportData = {
   targetEnu: string;
   tolerance: string;
   nextInterval: string;
+  nextIntervalAimNote: string;
+  nextIntervalAimExplainer: string;
+  recoveryLoopNotes: string[];
+  feasibilityEscalationNote: string | null;
   drillerGuidance: string;
   correctionOptions: CorrectionOption[];
   qaFlags: QaFlag[];
@@ -158,6 +168,10 @@ export function buildHandoverReportData(
     targetEnu: `E ${round(reco.target.e, 2)} | N ${round(reco.target.n, 2)} | D ${round(reco.target.d, 2)} m`,
     tolerance: `${round(reco.tolerance, 1)} m`,
     nextInterval: `${round(reco.target.nextInterval, 0)} m`,
+    nextIntervalAimNote: NEXT_INTERVAL_AIM_STATION_NOTE,
+    nextIntervalAimExplainer: nextIntervalAimExplainer(reco.target.nextInterval),
+    recoveryLoopNotes: recoveryLoopNotes(reco),
+    feasibilityEscalationNote: feasibilityEscalationNote(reco, steering),
     drillerGuidance: actionSentence(reco),
     correctionOptions: buildCorrectionOptions(reco),
     qaFlags: buildQaFlags(reco, actualStations, options?.corridorStatus),

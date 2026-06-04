@@ -8,9 +8,11 @@ import {
   buildProjectFromSampleData,
   createLibraryWithHole,
   duplicateHole,
+  findHole,
   getActiveHole,
   migrateLegacyProject,
   removeHole,
+  resetActiveHoleInLibrary,
   setActiveHole,
   snapshotProject,
   uniqueHoleName,
@@ -25,11 +27,16 @@ import {
 import { planTargetFromStations } from "@/lib/drilling/recommendation";
 import {
   clearLibrary,
-  loadLibrary,
+  loadLibraryWithStatus,
   loadProject,
   saveLibrary,
+  slugifyHoleId,
   type SavedHoleProject,
 } from "@/lib/drilling/storage";
+import {
+  snapshotFingerprint,
+  type StorageLoadStatus,
+} from "@/lib/drilling/storage-health";
 import {
   DEFAULT_CAPABILITY_ASSUMPTIONS,
   normalizeCapabilityAssumptions,
@@ -50,6 +57,29 @@ import {
   normalizeSurveyToolProfile,
   type SurveyToolProfile,
 } from "@/lib/drilling/survey-tool-profile";
+import {
+  addTarget as libAddTarget,
+  archiveDaughter as libArchiveDaughter,
+  branchProgramViewModel,
+  createBranchProgramOnMother,
+  createDaughterFromKickoff,
+  importScenarioAsProgram,
+  removeTarget as libRemoveTarget,
+  setActiveDaughter as libSetActiveDaughter,
+  setDaughterStatus as libSetDaughterStatus,
+  setDaughterApproval as libSetDaughterApproval,
+  updateMotherBranchProgram,
+  updateTarget as libUpdateTarget,
+  type CreateDaughterInput,
+} from "@/lib/drilling/branch-program-library";
+import type { BranchApprovalSnapshot } from "@/lib/drilling/branch-program-approval";
+import { findBranchScenario } from "@/lib/drilling/branch-program-scenarios";
+import type {
+  BranchProgram,
+  BranchTarget,
+  PersistedBranchProgram,
+} from "@/lib/drilling/branch-program-types";
+import { targetFromPlanRecords } from "@/lib/drilling/synthetic-hole-builder";
 import {
   findScenario,
   scenarioTarget,
@@ -112,6 +142,10 @@ export function useTargetLockProject(suspendPersistence = false) {
   );
   const [assumptionSignOff, setAssumptionSignOff] = useState<AssumptionSignOff | null>(null);
   const [activeScenario, setActiveScenario] = useState<{ id: string; name: string } | null>(null);
+  const [branchProgram, setBranchProgram] = useState<BranchProgram | null>(null);
+  const [holeRole, setHoleRole] = useState<"standard" | "mother" | "daughter">("standard");
+  const [persistedBranchProgram, setPersistedBranchProgram] =
+    useState<PersistedBranchProgram | null>(null);
   const [planCorridor, setPlanCorridor] = useState<PlanCorridorConfig>({
     ...DEFAULT_PLAN_CORRIDOR,
   });
@@ -119,6 +153,8 @@ export function useTargetLockProject(suspendPersistence = false) {
     DEFAULT_SURVEY_TOOL_PROFILE
   );
   const [library, setLibrary] = useState<HoleLibrary | null>(null);
+  const [storageHealth, setStorageHealth] = useState<StorageLoadStatus>("missing");
+  const [storageError, setStorageError] = useState<string | null>(null);
   const libraryRef = useRef<HoleLibrary | null>(null);
   const skipSaveRef = useRef(true);
   const lastPersistedRef = useRef("");
@@ -189,24 +225,8 @@ export function useTargetLockProject(suspendPersistence = false) {
     [applySampleTarget, pushHistory]
   );
 
-  const currentSnapshot = useCallback(
-    (): SavedHoleProject =>
-      snapshotProject({
-        holeId,
-        holeName,
-        siteName,
-        planRecords,
-        actualRecords,
-        target,
-        mode,
-        history,
-        recoveryAssumptions,
-        assumptionSignOff,
-        activeScenario,
-        planCorridor,
-        surveyToolProfile,
-      }),
-    [
+  const currentSnapshot = useCallback((): SavedHoleProject => {
+    const base = snapshotProject({
       holeId,
       holeName,
       siteName,
@@ -220,8 +240,47 @@ export function useTargetLockProject(suspendPersistence = false) {
       activeScenario,
       planCorridor,
       surveyToolProfile,
-    ]
-  );
+      holeRole,
+      branchProgram: holeRole === "mother" ? persistedBranchProgram : null,
+    });
+    const activeInLib = libraryRef.current
+      ? findHole(libraryRef.current, holeId)
+      : undefined;
+    if (!activeInLib) return base;
+    return {
+      ...base,
+      programId: activeInLib.programId,
+      parentHoleId: activeInLib.parentHoleId,
+      parentHoleName: activeInLib.parentHoleName,
+      kickoffMd: activeInLib.kickoffMd,
+      kickoffE: activeInLib.kickoffE,
+      kickoffN: activeInLib.kickoffN,
+      kickoffD: activeInLib.kickoffD,
+      kickoffDip: activeInLib.kickoffDip,
+      kickoffAzimuth: activeInLib.kickoffAzimuth,
+      branchTargetId: activeInLib.branchTargetId,
+      branchMethod: activeInLib.branchMethod,
+      branchStatus: activeInLib.branchStatus,
+      branchProgram:
+        holeRole === "mother" ? persistedBranchProgram : activeInLib.branchProgram,
+    };
+  }, [
+    holeId,
+    holeName,
+    siteName,
+    planRecords,
+    actualRecords,
+    target,
+    mode,
+    history,
+    recoveryAssumptions,
+    assumptionSignOff,
+    activeScenario,
+    planCorridor,
+    surveyToolProfile,
+    holeRole,
+    persistedBranchProgram,
+  ]);
 
   const persistLibrary = useCallback(
     (nextLibrary: HoleLibrary) => {
@@ -233,69 +292,102 @@ export function useTargetLockProject(suspendPersistence = false) {
     [suspendPersistence]
   );
 
-  const applyHole = useCallback((project: SavedHoleProject) => {
+  const applyHole = useCallback(
+    (project: SavedHoleProject, lib?: HoleLibrary | null) => {
+      skipSaveRef.current = true;
+      const role = project.holeRole ?? "standard";
+      setHoleRole(role);
+      setPersistedBranchProgram(project.branchProgram ?? null);
+      const libNow = lib ?? libraryRef.current;
+      if (libNow && role === "mother" && project.branchProgram) {
+        setBranchProgram(branchProgramViewModel(libNow, project.holeId));
+      } else if (libNow && role === "daughter" && project.programId) {
+        const mother = libNow.holes.find(
+          (h) =>
+            h.holeRole === "mother" && h.branchProgram?.programId === project.programId
+        );
+        if (mother) setBranchProgram(branchProgramViewModel(libNow, mother.holeId));
+        else setBranchProgram(null);
+      } else {
+        setBranchProgram(null);
+      }
+      lastPersistedRef.current = snapshotFingerprint(project);
+      applyProjectToState(project, {
+        setHoleId,
+        setHoleName,
+        setSiteName,
+        setMode,
+        setPlanRecords,
+        setActualRecords,
+        setTarget,
+        setHistory,
+        setRecoveryAssumptions,
+        setAssumptionSignOff,
+        setActiveScenario,
+        setPlanCorridor,
+        setSurveyToolProfile,
+      });
+    },
+    []
+  );
+
+  const initFreshSampleLibrary = useCallback(() => {
+    const sample = buildProjectFromSampleData(
+      "DDH-0247",
+      "",
+      SAMPLE_PLAN_CSV,
+      SAMPLE_ACTUAL_CSV,
+      "ddh-0247"
+    );
+    const initialLibrary = createLibraryWithHole(sample);
+    saveLibrary(initialLibrary);
+    setLibrary(initialLibrary);
+    libraryRef.current = initialLibrary;
+    setStorageHealth("ok");
+    setStorageError(null);
+    const active = getActiveHole(initialLibrary);
+    if (active) applyHole(active, initialLibrary);
+    else loadSampleData(false);
     skipSaveRef.current = true;
-    lastPersistedRef.current = JSON.stringify({
-      holeId: project.holeId,
-      holeName: project.holeName,
-      siteName: project.siteName,
-      planRecords: project.planRecords,
-      actualRecords: project.actualRecords,
-      target: project.target,
-      mode: project.mode,
-      history: project.history ?? [],
-      recoveryAssumptions: normalizeCapabilityAssumptions(project.recoveryAssumptions),
-      assumptionSignOff: project.assumptionSignOff ?? null,
-      activeScenario: project.activeScenario ?? null,
-      planCorridor: project.planCorridor ?? null,
-      surveyToolProfile: project.surveyToolProfile ?? null,
-    });
-    applyProjectToState(project, {
-      setHoleId,
-      setHoleName,
-      setSiteName,
-      setMode,
-      setPlanRecords,
-      setActualRecords,
-      setTarget,
-      setHistory,
-      setRecoveryAssumptions,
-      setAssumptionSignOff,
-      setActiveScenario,
-      setPlanCorridor,
-      setSurveyToolProfile,
-    });
-  }, []);
+  }, [applyHole, loadSampleData]);
 
   useEffect(() => {
-    let initialLibrary = loadLibrary();
+    const loaded = loadLibraryWithStatus();
+    setStorageHealth(loaded.status);
+    setStorageError(loaded.error ?? null);
+
+    if (loaded.status === "corrupt") {
+      setLibrary(null);
+      libraryRef.current = null;
+      setHydrated(true);
+      return;
+    }
+
+    let initialLibrary = loaded.library ?? null;
     if (!initialLibrary) {
       const legacy = loadProject();
       if (legacy && legacy.planRecords.length > 0) {
         initialLibrary = migrateLegacyProject(legacy);
         saveLibrary(initialLibrary);
+        setStorageHealth("ok");
       } else {
-        const sample = buildProjectFromSampleData(
-          "DDH-0247",
-          "",
-          SAMPLE_PLAN_CSV,
-          SAMPLE_ACTUAL_CSV,
-          "ddh-0247"
-        );
-        initialLibrary = createLibraryWithHole(sample);
-        saveLibrary(initialLibrary);
+        initFreshSampleLibrary();
+        setHydrated(true);
+        return;
       }
     }
+
     const active = getActiveHole(initialLibrary);
     if (active) {
-      applyHole(active);
+      applyHole(active, initialLibrary);
     } else {
       loadSampleData(false);
     }
     setLibrary(initialLibrary);
+    libraryRef.current = initialLibrary;
     skipSaveRef.current = true;
     setHydrated(true);
-  }, [applyHole, loadSampleData]);
+  }, [applyHole, loadSampleData, initFreshSampleLibrary]);
 
   useEffect(() => {
     if (!hydrated || suspendPersistence || !libraryRef.current) return;
@@ -304,21 +396,7 @@ export function useTargetLockProject(suspendPersistence = false) {
       return;
     }
     const snapshot = currentSnapshot();
-    const fingerprint = JSON.stringify({
-      holeId: snapshot.holeId,
-      holeName: snapshot.holeName,
-      siteName: snapshot.siteName,
-      planRecords: snapshot.planRecords,
-      actualRecords: snapshot.actualRecords,
-      target: snapshot.target,
-      mode: snapshot.mode,
-      history: snapshot.history,
-      recoveryAssumptions: snapshot.recoveryAssumptions,
-      assumptionSignOff: snapshot.assumptionSignOff ?? null,
-      activeScenario: snapshot.activeScenario ?? null,
-      planCorridor: snapshot.planCorridor ?? null,
-      surveyToolProfile: snapshot.surveyToolProfile ?? null,
-    });
+    const fingerprint = snapshotFingerprint(snapshot);
     if (fingerprint === lastPersistedRef.current) return;
     lastPersistedRef.current = fingerprint;
 
@@ -343,6 +421,8 @@ export function useTargetLockProject(suspendPersistence = false) {
     activeScenario,
     planCorridor,
     surveyToolProfile,
+    holeRole,
+    persistedBranchProgram,
     suspendPersistence,
     currentSnapshot,
     persistLibrary,
@@ -361,7 +441,7 @@ export function useTargetLockProject(suspendPersistence = false) {
       const hole = getActiveHole(switched);
       if (!hole) return;
       persistLibrary(switched);
-      applyHole(hole);
+      applyHole(hole, switched);
     },
     [library, holeId, currentSnapshot, persistLibrary, applyHole]
   );
@@ -407,24 +487,23 @@ export function useTargetLockProject(suspendPersistence = false) {
   }, [library, currentSnapshot, holeId, persistLibrary, applyHole]);
 
   const resetHole = useCallback(() => {
-    clearLibrary();
-    const sample = buildProjectFromSampleData(
-      "DDH-0247",
-      "",
-      SAMPLE_PLAN_CSV,
-      SAMPLE_ACTUAL_CSV,
-      "ddh-0247"
-    );
-    const nextLibrary: HoleLibrary = createLibraryWithHole(sample);
-    saveLibrary(nextLibrary);
-    setLibrary(nextLibrary);
-    applyHole(sample);
+    if (!library) return;
+    const nextLibrary = resetActiveHoleInLibrary(library, holeId);
+    if (!nextLibrary) return;
+    persistLibrary(nextLibrary);
+    const hole = findHole(nextLibrary, holeId);
+    if (hole) {
+      applyHole(hole, nextLibrary);
+      setBranchProgram(null);
+      setPersistedBranchProgram(null);
+      setHoleRole("standard");
+    }
     pushHistory({
       type: "data_loaded",
-      summary: "Hole reset to sample package",
-      actionTaken: "Reset hole",
+      summary: `Active hole reset — surveys, target, corridor, and history cleared for ${hole?.holeName ?? "hole"}`,
+      actionTaken: "Reset active hole",
     });
-  }, [applyHole, pushHistory]);
+  }, [library, holeId, persistLibrary, applyHole, pushHistory]);
 
   const clearHistory = useCallback(() => {
     setHistory([]);
@@ -449,6 +528,7 @@ export function useTargetLockProject(suspendPersistence = false) {
         return "Unexpected: malformed CSV still parsed records.";
       }
 
+      setBranchProgram(null);
       const plan = parseSurveyCsv(scenario.planCsv);
       const actual = parseSurveyCsv(scenario.actualCsv);
       setHoleName(scenario.name);
@@ -469,8 +549,168 @@ export function useTargetLockProject(suspendPersistence = false) {
     [pushHistory]
   );
 
+  const loadBranchScenario = useCallback(
+    (scenarioId: string): string => {
+      const scenario = findBranchScenario(scenarioId);
+      if (!scenario) return "Unknown branch program scenario.";
+      if (!library) return "Library not ready.";
+
+      let nextLib = upsertHole(library, currentSnapshot());
+      const motherId = slugifyHoleId(scenario.mother.holeId);
+      const motherHole = findHole(nextLib, motherId) ?? findHole(nextLib, holeId);
+      const targetMotherId = motherHole?.holeId ?? holeId;
+
+      const motherProject: SavedHoleProject = {
+        ...(findHole(nextLib, targetMotherId) ?? currentSnapshot()),
+        holeId: targetMotherId,
+        holeName: scenario.mother.holeId,
+        siteName: scenario.site,
+        planRecords: scenario.mother.planRecords,
+        actualRecords: scenario.mother.actualRecords,
+        target: targetFromPlanRecords(scenario.mother.planRecords, {
+          maxDls: 3,
+          nextInterval: 30,
+        }),
+        holeRole: "mother",
+        activeScenario: {
+          id: scenario.id,
+          name: `Scenario lab · Branch · ${scenario.name}`,
+        },
+      };
+      nextLib = upsertHole(nextLib, motherProject);
+      const imported = importScenarioAsProgram(nextLib, targetMotherId, scenario);
+      if (!imported) return "Could not import branch program.";
+      nextLib = { ...imported, activeHoleId: targetMotherId };
+      persistLibrary(nextLib);
+      const active = getActiveHole(nextLib);
+      if (active) applyHole(active, nextLib);
+      pushHistory({
+        type: "data_loaded",
+        summary: `Branch program loaded — ${scenario.name}`,
+        detail: scenario.description ?? "",
+        actionTaken: "Load branch scenario",
+      });
+      return `${scenario.name} loaded — ${scenario.expectedInsight ?? ""}`;
+    },
+    [pushHistory, library, currentSnapshot, persistLibrary, applyHole, holeId]
+  );
+
+  const getMotherHoleId = useCallback((): string | null => {
+    if (!library) return null;
+    if (holeRole === "mother") return holeId;
+    if (holeRole === "daughter") {
+      const active = findHole(library, holeId);
+      return (
+        library.holes.find(
+          (h) =>
+            h.holeRole === "mother" &&
+            h.branchProgram?.programId === active?.programId
+        )?.holeId ?? null
+      );
+    }
+    return null;
+  }, [library, holeRole, holeId]);
+
+  const persistBranchProgram = useCallback(
+    (program: PersistedBranchProgram) => {
+      const motherId = getMotherHoleId();
+      if (!library || !motherId) return;
+      let nextLib = upsertHole(library, currentSnapshot());
+      nextLib = updateMotherBranchProgram(nextLib, motherId, program) ?? nextLib;
+      setPersistedBranchProgram(program);
+      setBranchProgram(branchProgramViewModel(nextLib, motherId));
+      persistLibrary(nextLib);
+    },
+    [library, getMotherHoleId, currentSnapshot, persistLibrary]
+  );
+
+  const initBranchProgram = useCallback(() => {
+    const motherId = holeRole === "mother" ? holeId : getMotherHoleId();
+    if (!library || !motherId) return;
+    let nextLib = upsertHole(library, currentSnapshot());
+    nextLib = createBranchProgramOnMother(nextLib, motherId, siteName) ?? nextLib;
+    persistLibrary(nextLib);
+    const m = findHole(nextLib, motherId);
+    if (m) applyHole(m, nextLib);
+  }, [library, holeId, holeRole, siteName, currentSnapshot, persistLibrary, applyHole, getMotherHoleId]);
+
+  const branchAddTarget = useCallback(
+    (target: Omit<BranchTarget, "id">) => {
+      const motherId = getMotherHoleId();
+      if (!library || !motherId) return;
+      let nextLib = upsertHole(library, currentSnapshot());
+      nextLib = libAddTarget(nextLib, motherId, target) ?? nextLib;
+      persistLibrary(nextLib);
+      const m = findHole(nextLib, motherId);
+      if (m) applyHole(m, nextLib);
+    },
+    [library, getMotherHoleId, currentSnapshot, persistLibrary, applyHole]
+  );
+
+  const branchSaveDaughter = useCallback(
+    (input: CreateDaughterInput) => {
+      const motherId = getMotherHoleId();
+      if (!library || !motherId) return null;
+      let nextLib = upsertHole(library, currentSnapshot());
+      const result = createDaughterFromKickoff(nextLib, motherId, input);
+      if (!result) return null;
+      persistLibrary(result.library);
+      const m = findHole(result.library, motherId);
+      if (m) applyHole(m, result.library);
+      return result.daughterHoleId;
+    },
+    [library, getMotherHoleId, currentSnapshot, persistLibrary, applyHole]
+  );
+
+  const branchSetActiveDaughter = useCallback(
+    (daughterHoleId: string | null) => {
+      const motherId = getMotherHoleId();
+      if (!library || !motherId) return;
+      let nextLib = upsertHole(library, currentSnapshot());
+      nextLib = libSetActiveDaughter(nextLib, motherId, daughterHoleId) ?? nextLib;
+      persistLibrary(nextLib);
+      const active = getActiveHole(nextLib);
+      if (active) applyHole(active, nextLib);
+    },
+    [library, getMotherHoleId, currentSnapshot, persistLibrary, applyHole]
+  );
+
+  const branchSetDaughterStatus = useCallback(
+    (daughterHoleId: string, status: import("@/lib/drilling/branch-program-types").DaughterStatus) => {
+      const motherId = getMotherHoleId();
+      if (!library || !motherId) return;
+      let nextLib = upsertHole(library, currentSnapshot());
+      nextLib = libSetDaughterStatus(nextLib, motherId, daughterHoleId, status) ?? nextLib;
+      persistLibrary(nextLib);
+      const m = findHole(nextLib, motherId);
+      if (m) applyHole(m, nextLib);
+    },
+    [library, getMotherHoleId, currentSnapshot, persistLibrary, applyHole]
+  );
+
+  const importSurveysToHole = useCallback(
+    (targetHoleId: string, type: "plan" | "actual", records: SurveyRecord[]) => {
+      if (!library) return;
+      let nextLib = upsertHole(library, currentSnapshot());
+      const hole = findHole(nextLib, targetHoleId);
+      if (!hole) return;
+      const updated =
+        type === "plan"
+          ? { ...hole, planRecords: records }
+          : { ...hole, actualRecords: records };
+      nextLib = upsertHole(nextLib, updated);
+      if (targetHoleId === holeId) {
+        if (type === "plan") setPlanRecords(records);
+        else setActualRecords(records);
+      }
+      persistLibrary(nextLib);
+    },
+    [library, currentSnapshot, holeId, persistLibrary]
+  );
+
   const loadSyntheticHole = useCallback(
     (params: SyntheticHoleParams): string => {
+      setBranchProgram(null);
       const project = syntheticHoleToProject({
         ...params,
         siteName: params.siteName ?? siteName,
@@ -504,6 +744,88 @@ export function useTargetLockProject(suspendPersistence = false) {
       setPlanCorridor(derivePlanCorridorFromPlan(plan, target.nextInterval));
     }
   }, [target.nextInterval]);
+
+  const branchUpdateTarget = useCallback(
+    (targetId: string, patch: Partial<BranchTarget>) => {
+      const motherId = getMotherHoleId();
+      if (!library || !motherId) return;
+      let nextLib = upsertHole(library, currentSnapshot());
+      nextLib = libUpdateTarget(nextLib, motherId, targetId, patch) ?? nextLib;
+      persistLibrary(nextLib);
+      const m = findHole(nextLib, motherId);
+      if (m) applyHole(m, nextLib);
+    },
+    [library, getMotherHoleId, currentSnapshot, persistLibrary, applyHole]
+  );
+
+  const branchRemoveTarget = useCallback(
+    (targetId: string) => {
+      const motherId = getMotherHoleId();
+      if (!library || !motherId) return;
+      let nextLib = upsertHole(library, currentSnapshot());
+      nextLib = libRemoveTarget(nextLib, motherId, targetId) ?? nextLib;
+      persistLibrary(nextLib);
+      const m = findHole(nextLib, motherId);
+      if (m) applyHole(m, nextLib);
+    },
+    [library, getMotherHoleId, currentSnapshot, persistLibrary, applyHole]
+  );
+
+  const branchArchiveDaughter = useCallback(
+    (daughterHoleId: string) => {
+      const motherId = getMotherHoleId();
+      if (!library || !motherId) return;
+      let nextLib = upsertHole(library, currentSnapshot());
+      nextLib = libArchiveDaughter(nextLib, motherId, daughterHoleId) ?? nextLib;
+      persistLibrary(nextLib);
+      const m = findHole(nextLib, motherId);
+      if (m) applyHole(m, nextLib);
+    },
+    [library, getMotherHoleId, currentSnapshot, persistLibrary, applyHole]
+  );
+
+  const resetAllLocalData = useCallback(() => {
+    clearLibrary();
+    setBranchProgram(null);
+    setPersistedBranchProgram(null);
+    setStorageHealth("missing");
+    setStorageError(null);
+    initFreshSampleLibrary();
+    setHydrated(true);
+  }, [initFreshSampleLibrary]);
+
+  const importHolePackage = useCallback(
+    (nextLibrary: HoleLibrary) => {
+      saveLibrary(nextLibrary);
+      setLibrary(nextLibrary);
+      libraryRef.current = nextLibrary;
+      setStorageHealth("ok");
+      setStorageError(null);
+      const active = getActiveHole(nextLibrary);
+      if (active) applyHole(active, nextLibrary);
+      skipSaveRef.current = true;
+    },
+    [applyHole]
+  );
+
+  const branchApproveDaughter = useCallback(
+    (daughterHoleId: string, snapshot: BranchApprovalSnapshot) => {
+      const motherId = getMotherHoleId();
+      if (!library || !motherId) return;
+      let nextLib = upsertHole(library, currentSnapshot());
+      nextLib = libSetDaughterApproval(nextLib, motherId, daughterHoleId, snapshot) ?? nextLib;
+      persistLibrary(nextLib);
+      const m = findHole(nextLib, motherId);
+      if (m) applyHole(m, nextLib);
+      pushHistory({
+        type: "supervisor_decision",
+        summary: `Branch plan approved — ${snapshot.approvedBy}`,
+        detail: `Kickoff MD ${snapshot.approvedKickoffMd} m`,
+        actionTaken: "Approve branch plan",
+      });
+    },
+    [library, getMotherHoleId, currentSnapshot, persistLibrary, applyHole, pushHistory]
+  );
 
   return {
     hydrated,
@@ -539,11 +861,33 @@ export function useTargetLockProject(suspendPersistence = false) {
     activeScenario,
     setActiveScenario,
     loadTestScenario,
+    loadBranchScenario,
     loadSyntheticHole,
+    branchProgram,
+    setBranchProgram,
+    holeRole,
+    persistedBranchProgram,
+    persistBranchProgram,
+    initBranchProgram,
+    branchAddTarget,
+    branchUpdateTarget,
+    branchRemoveTarget,
+    branchSaveDaughter,
+    branchSetActiveDaughter,
+    branchSetDaughterStatus,
+    branchArchiveDaughter,
+    branchApproveDaughter,
+    getMotherHoleId,
+    importSurveysToHole,
     planCorridor,
     setPlanCorridor,
     surveyToolProfile,
     setSurveyToolProfile,
     seedPlanCorridorFromPlan,
+    storageHealth,
+    storageError,
+    resetAllLocalData,
+    initFreshSampleLibrary,
+    importHolePackage,
   };
 }

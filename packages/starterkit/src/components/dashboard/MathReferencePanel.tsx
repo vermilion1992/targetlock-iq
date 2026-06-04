@@ -224,14 +224,15 @@ dip     = −asin(v_D / |v|)`}
           <p>
             The vector from the current position to the target is computed, then converted back into
             a required dip and azimuth. This is capped by the maximum dogleg over the next interval,
-            producing the aim direction and the driller instruction.
+            producing the next-interval aim. Feasibility depends on drill-string/rod and method
+            capability assumptions — not a single universal bend rating.
           </p>
           <Values
             rows={[
-              { label: "Required aim dip", value: r ? `${round(r.aimDip, 1)}°` : DASH },
-              { label: "Required aim azimuth", value: r ? `${round(r.aimAzimuth, 1)}°` : DASH },
+              { label: "Dip aim (next interval)", value: r ? `${round(r.aimDip, 1)}°` : DASH },
+              { label: "Azimuth aim (next interval)", value: r ? `${round(r.aimAzimuth, 1)}°` : DASH },
               {
-                label: "Driller instruction",
+                label: "Change from latest survey",
                 value: r
                   ? `${dipInstruction(r.dipChange)} · ${azimuthInstruction(r.aziChange)}`
                   : DASH,

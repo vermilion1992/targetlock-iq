@@ -92,7 +92,7 @@ export function CapabilityAssumptionsEditor({
         <button
           type="button"
           className="targetlock-btn targetlock-btn-sm"
-          onClick={onReset}
+          onClick={() => void onReset()}
           disabled={isDefault}
         >
           Reset to defaults

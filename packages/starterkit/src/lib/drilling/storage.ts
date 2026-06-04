@@ -1,10 +1,18 @@
+import { migrateLibrary } from "./branch-program-library";
 import type { HoleLibrary } from "./hole-library";
 import { LIBRARY_STORAGE_KEY } from "./hole-library";
+import { parseLibraryRaw, type StorageLoadResult } from "./storage-health";
 import type { DecisionHistoryEntry } from "./history";
 import type { CapabilityAssumptions } from "./capability-assumptions";
 import type { AssumptionSignOff } from "./validation";
 import type { PlanCorridorConfig } from "./plan-corridor";
 import type { SurveyToolProfile } from "./survey-tool-profile";
+import type { PersistedBranchProgram } from "./branch-program-types";
+import type {
+  BranchMethod,
+  DaughterStatus,
+  HoleRole,
+} from "./branch-program-types";
 import type { SurveyRecord, TargetConfig } from "./types";
 
 /** Legacy single-hole key (migrated into library on first load) */
@@ -34,6 +42,21 @@ export type SavedHoleProject = {
   /** Downhole survey tool accuracy profile (optional). */
   surveyToolProfile?: SurveyToolProfile | null;
   updatedAt: string;
+  /** Branch program lineage (v2). */
+  holeRole?: HoleRole;
+  programId?: string;
+  parentHoleId?: string;
+  parentHoleName?: string;
+  kickoffMd?: number;
+  kickoffE?: number;
+  kickoffN?: number;
+  kickoffD?: number;
+  kickoffDip?: number;
+  kickoffAzimuth?: number;
+  branchTargetId?: string;
+  branchMethod?: BranchMethod;
+  branchStatus?: DaughterStatus;
+  branchProgram?: PersistedBranchProgram | null;
 };
 
 export function slugifyHoleId(holeName: string): string {
@@ -94,20 +117,18 @@ export function clearProject(): void {
   window.localStorage.removeItem(STORAGE_KEY);
 }
 
+export function loadLibraryWithStatus(): StorageLoadResult {
+  if (typeof window === "undefined") return { status: "missing" };
+  const raw = window.localStorage.getItem(LIBRARY_STORAGE_KEY);
+  if (!raw) return { status: "missing" };
+  const result = parseLibraryRaw(raw);
+  if (result.status !== "ok" || !result.library) return result;
+  return { status: "ok", library: migrateLibrary(result.library) };
+}
+
 export function loadLibrary(): HoleLibrary | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(LIBRARY_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as HoleLibrary;
-    if (parsed.version !== 1 || !parsed.activeHoleId || !Array.isArray(parsed.holes)) {
-      return null;
-    }
-    if (parsed.holes.length === 0) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
+  const result = loadLibraryWithStatus();
+  return result.status === "ok" ? (result.library ?? null) : null;
 }
 
 export function saveLibrary(library: HoleLibrary): void {

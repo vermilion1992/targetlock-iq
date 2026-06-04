@@ -112,7 +112,11 @@ export function ValidationPanel({
                 <dd>{new Date(signOff.validatedAt).toLocaleString("en-AU")}</dd>
               </div>
             </dl>
-            <button type="button" className="targetlock-btn targetlock-btn-sm" onClick={onClearSignOff}>
+            <button
+              type="button"
+              className="targetlock-btn targetlock-btn-sm"
+              onClick={() => void onClearSignOff?.()}
+            >
               Clear sign-off
             </button>
           </div>

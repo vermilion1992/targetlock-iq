@@ -1,8 +1,8 @@
 # TargetLock IQ — Validation plan (math & historical holes)
 
-**Version:** v1.2  
+**Version:** v2 RC1  
 **Focus:** Verify calculation outputs against trusted desurvey tools and real (anonymized) hole data before pilot sign-off.  
-**Scope:** This document complements [risk-and-validation-plan.md](./risk-and-validation-plan.md) (broader operational and commercial risks).
+**Scope:** This document complements [risk-and-validation-plan.md](./risk-and-validation-plan.md) (broader operational and commercial risks). Golden cases and tolerances: [math-validation/README.md](./math-validation/README.md).
 
 ---
 
@@ -27,7 +27,7 @@ Demonstrate that TargetLock IQ outputs are **consistent enough for decision supp
 | Survey tool profile | Uncertainty note when miss is close to tolerance; profile on reports | Medium |
 | Reports | TXT/PDF fields match on-screen values | Medium |
 
-Automated regression: `npm run test` in `packages/starterkit` (79 tests at v1.2 release).
+Automated regression: `npm run test` in `packages/starterkit` (152+ tests at v2 RC1, including `math-validation.test.ts`).
 
 ---
 

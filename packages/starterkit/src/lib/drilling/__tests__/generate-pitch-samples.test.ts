@@ -63,6 +63,8 @@ describe("generate pitch samples", () => {
     expect(data.recoveryGuidance).not.toBeNull();
     const blob = await buildHandoverPdfBlob(data);
     const buffer = Buffer.from(await blob.arrayBuffer());
+    expect(buffer.length).toBeGreaterThan(500);
+    expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
     await writeFile(join(samplesDir, "DDH-0247-handover-md390.pdf"), buffer);
     await writeFile(publicPdf, buffer);
   });

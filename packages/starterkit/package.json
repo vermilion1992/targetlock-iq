@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "generate:samples": "vitest run -t \"generate pitch\"",
-    "capture:screenshots": "node scripts/capture-pitch-screenshots.mjs"
+    "capture:screenshots": "node scripts/capture-pitch-screenshots.mjs",
+    "smoke:pilot": "node scripts/pilot-gate-smoke.mjs"
   },
   "dependencies": {
     "@casl/ability": "6.8.1",

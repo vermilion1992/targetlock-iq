@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import { InfoTip } from "@/components/layout/InfoTip";
+import { useTargetLockConfirm } from "@/components/targetlock/TargetLockConfirmProvider";
+import { confirmDeleteHole } from "@/lib/drilling/confirm-actions";
 import type { SavedHoleProject } from "@/lib/drilling/storage";
 
 type Props = {
   holes: SavedHoleProject[];
   activeHoleId: string;
+  canDelete?: boolean;
   onSwitch: (holeId: string) => void;
   onNewSample: () => void;
   onNewBlank: () => void;
@@ -17,26 +19,21 @@ type Props = {
 export function HoleLibraryPanel({
   holes,
   activeHoleId,
+  canDelete = true,
   onSwitch,
   onNewSample,
   onNewBlank,
   onDuplicate,
   onDelete,
 }: Props) {
-  const [message, setMessage] = useState<string | null>(null);
+  const { confirm } = useTargetLockConfirm();
 
-  const handleDelete = () => {
-    if (holes.length <= 1) {
-      setMessage("Keep at least one hole in the library.");
-      return;
-    }
+  const handleDelete = async () => {
+    if (!canDelete) return;
     const hole = holes.find((h) => h.holeId === activeHoleId);
     const label = hole?.holeName ?? "this hole";
-    if (!window.confirm(`Delete ${label}? Surveys and history for this hole will be removed.`)) {
-      return;
-    }
-    const ok = onDelete();
-    setMessage(ok ? `Deleted ${label}.` : "Could not delete hole.");
+    if (!(await confirm(confirmDeleteHole(label)))) return;
+    onDelete();
   };
 
   return (
@@ -89,16 +86,21 @@ export function HoleLibraryPanel({
         <button type="button" className="targetlock-btn" onClick={onDuplicate}>
           Duplicate
         </button>
-        <button type="button" className="targetlock-btn" onClick={handleDelete}>
+        <button
+          type="button"
+          className="targetlock-btn targetlock-btn-danger"
+          onClick={() => void handleDelete()}
+          disabled={!canDelete}
+          title={
+            canDelete
+              ? "Remove this hole from the library"
+              : "Keep at least one hole in the library"
+          }
+          aria-label={canDelete ? "Delete active hole" : "Delete disabled — one hole remains"}
+        >
           Delete
         </button>
       </div>
-
-      {message ? (
-        <p className="targetlock-panel-footnote" role="status" aria-live="polite">
-          {message}
-        </p>
-      ) : null}
       <p className="targetlock-panel-footnote">
         Rename the active hole in the fields above. Exports use the active hole only.
       </p>

@@ -55,9 +55,13 @@ TargetLock IQ is designed to sit beside—not replace—field data platforms:
 
 A **4–8 week site pilot** on one or two deep exploration holes: measure survey-to-decision time, plan offset trends, and geologist/supervisor acceptance. Success = faster decisions, documented handovers, and agreement on v2 priorities (multi-hole program use, live import, formal sign-off).
 
+## v2 differentiation — Branch Program
+
+TargetLock IQ v2 adds an institutional **Branch Program** module for mother holes and daughter holes (branch/sidetrack/multilateral programs): kickoff from **actual** mother surveys, target assignment, kickoff depth ranking, required dogleg, separation review, and read-only program visualization in Scenario lab. Phase 2 adds editable branch planning, formal approval gates, toolface estimates, and Branch Planning Report PDF. See [branch-program.md](./branch-program.md).
+
 ## Investment framing
 
-v1 proves **workflow and math**. Commercial product adds validated integrations, multi-user governance, and deployment options (see [commercial-model-options.md](./commercial-model-options.md) and [feature-roadmap.md](./feature-roadmap.md)).
+v1 proves **workflow and math**. Commercial product adds validated integrations, multi-user governance, Branch Program field workflows, and deployment options (see [commercial-model-options.md](./commercial-model-options.md) and [feature-roadmap.md](./feature-roadmap.md)).
 
 ---
 

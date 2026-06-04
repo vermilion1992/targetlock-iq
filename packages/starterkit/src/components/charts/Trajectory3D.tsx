@@ -14,6 +14,7 @@ import {
   VIEW_PRESETS,
   type View3D,
 } from "./chart-3d";
+import type { BranchChartOverlay } from "./chart-branch-overlay";
 import type { StationMarkerHit } from "./chart-hit";
 
 type Props = {
@@ -22,6 +23,7 @@ type Props = {
   recommendation: Recommendation | null;
   className?: string;
   corridorStatus?: PlanCorridorStatus | null;
+  branchOverlay?: BranchChartOverlay | null;
 };
 
 const ZOOM_MIN = 0.45;
@@ -47,6 +49,7 @@ export function Trajectory3D({
   recommendation,
   className,
   corridorStatus,
+  branchOverlay,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -82,7 +85,8 @@ export function Trajectory3D({
       planStations,
       actualStations,
       recommendation,
-      view
+      view,
+      branchOverlay
     );
     markersRef.current = scene.actualMarkers;
 
@@ -94,9 +98,9 @@ export function Trajectory3D({
       actualStations,
       recommendation,
       view,
-      { highlightMd }
+      { highlightMd, branchOverlay }
     );
-  }, [planStations, actualStations, recommendation, view, highlightMd]);
+  }, [planStations, actualStations, recommendation, view, highlightMd, branchOverlay]);
 
   useEffect(() => {
     redraw();

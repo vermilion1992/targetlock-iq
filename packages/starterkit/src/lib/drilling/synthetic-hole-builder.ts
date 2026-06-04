@@ -47,7 +47,7 @@ export type SyntheticHoleParams = {
 };
 
 export const DEFAULT_SYNTHETIC_PARAMS: SyntheticHoleParams = {
-  holeName: "Test Lab hole",
+  holeName: "Scenario Lab hole",
   siteName: "Synthetic test suite",
   startDip: -60,
   startAzimuth: 125,

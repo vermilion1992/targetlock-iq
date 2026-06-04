@@ -4,10 +4,24 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Trajectory3D } from "@/components/charts/Trajectory3D";
 import { TrajectoryCanvas } from "@/components/charts/TrajectoryCanvas";
 import { DecisionHistoryPanel } from "@/components/dashboard/DecisionHistoryPanel";
+import { HoleDetailsFields } from "@/components/dashboard/HoleDetailsFields";
 import { HoleLibraryPanel } from "@/components/dashboard/HoleLibraryPanel";
 import { ActionPlanPanel } from "@/components/dashboard/ActionPlanPanel";
+import { BranchProgramPanel } from "@/components/dashboard/BranchProgramPanel";
+import { BranchProgramSimpleStrip } from "@/components/dashboard/BranchProgramSimpleStrip";
+import { SurveyImportTargetModal } from "@/components/dashboard/SurveyImportTargetModal";
+import {
+  CsvImportAssistantModal,
+  type ImportSummary,
+} from "@/components/dashboard/CsvImportAssistantModal";
+import {
+  listImportTargets,
+  type CreateDaughterInput,
+} from "@/lib/drilling/branch-program-library";
+import { findHole } from "@/lib/drilling/hole-library";
 import { CapabilityAssumptionsEditor } from "@/components/dashboard/CapabilityAssumptionsEditor";
 import { MathReferencePanel } from "@/components/dashboard/MathReferencePanel";
+import { MethodPurposePanel } from "@/components/dashboard/MethodPurposePanel";
 import { QaPanel } from "@/components/dashboard/QaPanel";
 import { ValidationPanel } from "@/components/dashboard/ValidationPanel";
 import { PlanCorridorEditor } from "@/components/dashboard/PlanCorridorEditor";
@@ -17,12 +31,16 @@ import { SteeringFeasibilityPanel } from "@/components/dashboard/SteeringFeasibi
 import { SupervisorApprovalPanel } from "@/components/dashboard/SupervisorApprovalPanel";
 import { InfoTip } from "@/components/layout/InfoTip";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { GuideModal } from "@/components/pitch/GuideModal";
-import { GuideTour, guideFocusClass } from "@/components/pitch/GuideTour";
-import { usePitchMode } from "@/hooks/use-pitch-mode";
+import { GuideCenterModal } from "@/components/pitch/GuideCenterModal";
+import { GuideTour } from "@/components/pitch/GuideTour";
+import { useTargetLockConfirm } from "@/components/targetlock/TargetLockConfirmProvider";
+import { useGuideMode } from "@/hooks/use-guide-mode";
 import { useTargetLockProject } from "@/hooks/use-targetlock-project";
-import type { PitchHighlight } from "@/lib/drilling/pitch-scenario";
-import { parseSurveyCsv } from "@/lib/drilling/csv";
+import { guideFocusClass, resolveGuideTab } from "@/lib/drilling/guide-flows";
+import type { AdvancedTab, GuideFlowId, GuideHighlight } from "@/lib/drilling/guide-types";
+import { downloadCsvTestPack } from "@/lib/drilling/csv-test-pack";
+import type { ImportKind } from "@/lib/drilling/csv-import-assistant";
+import type { PlanCorridorConfig } from "@/lib/drilling/plan-corridor";
 import { computeHole } from "@/lib/drilling/compute";
 import { buildStations } from "@/lib/drilling/desurvey";
 import { round } from "@/lib/drilling/format";
@@ -36,7 +54,23 @@ import { entryForSurvey } from "@/lib/drilling/history";
 import { buildCorridorStatus } from "@/lib/drilling/plan-corridor";
 import { buildQaFlags } from "@/lib/drilling/qa";
 import { assessSurveyUncertainty } from "@/lib/drilling/survey-tool-profile";
+import { findBranchScenario } from "@/lib/drilling/branch-program-scenarios";
+import { findScenario } from "@/lib/drilling/test-scenarios";
 import type { SyntheticHoleParams } from "@/lib/drilling/synthetic-hole-builder";
+import {
+  confirmClearAssumptionsSignOff,
+  confirmClearDecisionHistory,
+  confirmImportHolePackage,
+  confirmResetActiveHole as resetActiveHoleConfirm,
+  confirmResetAllLocalData as resetAllLocalDataConfirm,
+  confirmResetRecoveryAssumptions,
+} from "@/lib/drilling/confirm-actions";
+import {
+  describeDestructiveScenarioLoad,
+  describeGuideDemoExitConfirm,
+  describeGuideDemoRestartConfirm,
+  describeImportTargetCancelConfirm,
+} from "@/lib/drilling/workspace-action-contract";
 import {
   buildCorrectionOptions,
   planTargetFromStations,
@@ -47,35 +81,36 @@ import {
 } from "@/lib/drilling/validation";
 import { downloadReportPdf } from "@/lib/drilling/report-pdf";
 import { downloadReport } from "@/lib/drilling/report";
+import { TARGETLOCK_APP_VERSION } from "@/lib/drilling/app-version";
+import { downloadHolePackage, readHolePackageFile } from "@/lib/drilling/hole-package";
+import {
+  buildImportUndoSnapshot,
+  describeImportUndo,
+} from "@/lib/drilling/sidebar-import-undo";
+import {
+  canValidateManualSurveyInput,
+  hasPlanTargetAtMd,
+  sanitizePlanCorridorField,
+  sanitizeTargetField,
+  validateManualSurvey,
+} from "@/lib/drilling/sidebar-input-validation";
 import type { SurveyRecord, TargetConfig } from "@/lib/drilling/types";
-
-type AdvancedTab =
-  | "trajectory"
-  | "steering"
-  | "qaqc"
-  | "decisions"
-  | "math"
-  | "validation"
-  | "setup";
 
 const ADVANCED_TABS: { id: AdvancedTab; label: string }[] = [
   { id: "trajectory", label: "Trajectory" },
+  { id: "branch-program", label: "Branch program" },
   { id: "steering", label: "Steering feasibility" },
   { id: "qaqc", label: "QA/QC" },
   { id: "decisions", label: "Decisions" },
   { id: "math", label: "Math reference" },
+  { id: "method-purpose", label: "Method & Purpose" },
   { id: "validation", label: "Validation" },
   { id: "setup", label: "Setup / assumptions" },
 ];
 
-const HIGHLIGHT_TAB: Record<string, AdvancedTab | undefined> = {
-  charts: "trajectory",
-  "qa-panel": "qaqc",
-  history: "decisions",
-};
-
 export default function TargetLockApp() {
-  const [pitchPersistenceOff, setPitchPersistenceOff] = useState(false);
+  const [guidePersistenceOff, setGuidePersistenceOff] = useState(false);
+  const { confirm } = useTargetLockConfirm();
 
   const {
     hydrated,
@@ -110,20 +145,48 @@ export default function TargetLockApp() {
     activeScenario,
     setActiveScenario,
     loadTestScenario,
+    loadBranchScenario,
     loadSyntheticHole,
+    branchProgram,
+    holeId,
+    holeRole,
+    initBranchProgram,
+    branchAddTarget,
+    branchUpdateTarget,
+    branchRemoveTarget,
+    branchSaveDaughter,
+    branchSetActiveDaughter,
+    branchSetDaughterStatus,
+    branchArchiveDaughter,
+    branchApproveDaughter,
+    importSurveysToHole,
     planCorridor,
     setPlanCorridor,
     surveyToolProfile,
     setSurveyToolProfile,
     seedPlanCorridorFromPlan,
-  } = useTargetLockProject(pitchPersistenceOff);
+    storageHealth,
+    storageError,
+    resetAllLocalData,
+    initFreshSampleLibrary,
+    importHolePackage,
+  } = useTargetLockProject(guidePersistenceOff);
 
-  const pitch = usePitchMode({
-    setPlanRecords,
-    setActualRecords,
-    setTarget,
+  const [advancedTab, setAdvancedTab] = useState<AdvancedTab>("steering");
+
+  const guide = useGuideMode({
     setMode,
-    onActiveChange: setPitchPersistenceOff,
+    setAdvancedTab,
+    onActiveChange: setGuidePersistenceOff,
+    onRestoreSnapshot: (snap) => {
+      if (snap.library) {
+        importHolePackage(snap.library);
+      } else {
+        setPlanRecords(snap.planRecords);
+        setActualRecords(snap.actualRecords);
+        setTarget(snap.target);
+      }
+    },
   });
 
   const modeFromUrlApplied = useRef(false);
@@ -135,20 +198,36 @@ export default function TargetLockApp() {
       modeFromUrlApplied.current = true;
     }
   }, [hydrated, setMode]);
+  const [pendingImport, setPendingImport] = useState<{
+    type: "plan" | "actual";
+    fileName: string;
+    records: SurveyRecord[];
+    summary?: ImportSummary;
+  } | null>(null);
+  const [csvAssistant, setCsvAssistant] = useState<ImportKind | null>(null);
+  const [importUndo, setImportUndo] = useState<{
+    kind: ImportKind;
+    previousPlan: SurveyRecord[];
+    previousActual: SurveyRecord[];
+    previousCorridor: PlanCorridorConfig;
+  } | null>(null);
 
-  const [advancedTab, setAdvancedTab] = useState<AdvancedTab>("steering");
+  const activeHoleMeta = useMemo(() => {
+    if (!library) return null;
+    return findHole(library, holeId) ?? null;
+  }, [library, holeId]);
 
-  const ph = (id: PitchHighlight) =>
-    guideFocusClass(pitch.currentStep.highlight, id, pitch.pitchActive);
+  const ph = (id: GuideHighlight) =>
+    guideFocusClass(guide.currentStep.highlight, id, guide.guideActive);
 
   useEffect(() => {
-    if (!pitch.pitchActive) return;
-    const tab = HIGHLIGHT_TAB[pitch.currentStep.highlight ?? ""];
+    if (!guide.guideActive) return;
+    const tab = resolveGuideTab(guide.currentStep);
     if (tab) setAdvancedTab(tab);
-  }, [pitch.pitchActive, pitch.pitchStepIndex, pitch.currentStep.highlight]);
+  }, [guide.guideActive, guide.stepIndex, guide.currentStep]);
 
   useEffect(() => {
-    if (!pitch.pitchActive || !pitch.currentStep.highlight) return;
+    if (!guide.guideActive || !guide.currentStep.highlight) return;
     const frame = requestAnimationFrame(() => {
       document.querySelector(".guide-focus")?.scrollIntoView({
         behavior: "smooth",
@@ -157,7 +236,7 @@ export default function TargetLockApp() {
       });
     });
     return () => cancelAnimationFrame(frame);
-  }, [pitch.pitchActive, pitch.pitchStepIndex, pitch.currentStep.highlight]);
+  }, [guide.guideActive, guide.stepIndex, guide.currentStep.highlight]);
 
   const [manualMd, setManualMd] = useState("");
   const [manualDip, setManualDip] = useState("");
@@ -166,6 +245,9 @@ export default function TargetLockApp() {
     "Add the next survey as it comes off the camera."
   );
   const [dataMessage, setDataMessage] = useState<string | null>(null);
+  const setAppMessage = useCallback((message: string | null) => {
+    setDataMessage(message);
+  }, []);
   const [scenarioLabOpen, setScenarioLabOpen] = useState(false);
   const { planStations, actualStations, recommendation, steering } = useMemo(
     () =>
@@ -208,6 +290,20 @@ export default function TargetLockApp() {
     [planStations, target]
   );
 
+  const planFinalMd = planStations[planStations.length - 1]?.md;
+
+  const canFillFromPlan = !!recommendation;
+  const canUndoSurvey = actualRecords.length > 1;
+  const canUsePlanTarget = hasPlanTargetAtMd(planStations, target.md);
+  const canAddSurvey = canValidateManualSurveyInput(
+    manualMd,
+    manualDip,
+    manualAzimuth,
+    actualRecords,
+    target.md,
+    planFinalMd
+  );
+
   const validationStatus = useMemo(
     () => assumptionsValidationStatus(assumptionSignOff, recoveryAssumptions),
     [assumptionSignOff, recoveryAssumptions]
@@ -229,14 +325,15 @@ export default function TargetLockApp() {
     [recoveryAssumptions, setAssumptionSignOff, pushHistory]
   );
 
-  const clearAssumptionsSignOff = useCallback(() => {
+  const clearAssumptionsSignOff = useCallback(async () => {
+    if (!(await confirm(confirmClearAssumptionsSignOff()))) return;
     setAssumptionSignOff(null);
     pushHistory({
       type: "supervisor_decision",
       summary: "Recovery assumptions sign-off cleared",
       actionTaken: "Clear validation",
     });
-  }, [setAssumptionSignOff, pushHistory]);
+  }, [confirm, setAssumptionSignOff, pushHistory]);
 
   const applyPlanTarget = useCallback(
     (requestedMd?: number) => {
@@ -276,10 +373,19 @@ export default function TargetLockApp() {
   }, [recommendation]);
 
   const loadSample = useCallback(() => {
+    if (
+      !window.confirm(
+        `Load sample plan and surveys into ${holeName}? This replaces the active hole's current plan and survey data.`
+      )
+    ) {
+      return;
+    }
     loadSampleData(true);
-    setManualMessage("Sample plan and actual surveys loaded.");
+    setDataMessage("Sample plan and actual surveys loaded.");
+    setManualMessage("Add the next survey as it comes off the camera.");
+    setImportUndo(null);
     setTimeout(fillNextSurveyFromAim, 0);
-  }, [fillNextSurveyFromAim, loadSampleData]);
+  }, [fillNextSurveyFromAim, loadSampleData, holeName]);
 
   useEffect(() => {
     if (hydrated && recommendation && !manualMd) {
@@ -298,35 +404,159 @@ export default function TargetLockApp() {
     [pushHistory, recommendation, target.nextInterval, setTarget]
   );
 
-  if (!hydrated) {
-    return (
-      <div className="targetlock-app flex min-h-screen items-center justify-center">
-        <div className="targetlock-loading" role="status" aria-live="polite">
-          <span className="targetlock-spinner" aria-hidden />
-          <p className="m-0 text-sm font-medium">Loading hole package…</p>
-        </div>
-      </div>
-    );
-  }
+  const finishImport = useCallback(
+    (
+      targetHoleId: string,
+      type: "plan" | "actual",
+      records: SurveyRecord[],
+      fileName: string,
+      summary?: ImportSummary
+    ) => {
+      const label = type === "plan" ? "Planned" : "Actual";
+      importSurveysToHole(targetHoleId, type, records);
+      setActiveScenario(null);
+      if (type === "plan") {
+        if (targetHoleId === holeId) seedPlanCorridorFromPlan(records);
+        const stations = buildStations(records);
+        const finalPlan = stations[stations.length - 1];
+        pushHistory({
+          type: "data_loaded",
+          summary: `Planned trajectory imported (${records.length} stations)`,
+          actionTaken: `File: ${fileName}`,
+        });
+        if (targetHoleId === holeId && finalPlan) applyPlanTarget(finalPlan.md);
+      } else {
+        pushHistory({
+          type: "data_loaded",
+          summary: `Actual surveys imported (${records.length} stations)`,
+          actionTaken: `File: ${fileName} → ${targetHoleId}`,
+        });
+        if (targetHoleId === holeId) {
+          const { recommendation: newReco } = computeHole(planRecords, records, target);
+          logRecommendation(newReco, "Import survey results");
+        }
+      }
+      const imported = summary?.stationsImported ?? records.length;
+      const skipped = summary?.skippedCount ?? 0;
+      let msg = `${label} CSV loaded — ${imported} station${imported === 1 ? "" : "s"} imported`;
+      if (skipped > 0) {
+        msg += ` (${skipped} row${skipped === 1 ? "" : "s"} skipped)`;
+      }
+      setDataMessage(msg);
+      setPendingImport(null);
+      setCsvAssistant(null);
+    },
+    [
+      importSurveysToHole,
+      holeId,
+      seedPlanCorridorFromPlan,
+      pushHistory,
+      applyPlanTarget,
+      planRecords,
+      target,
+      logRecommendation,
+    ]
+  );
+
+  const handleCsvAssistantImport = useCallback(
+    (records: SurveyRecord[], fileName: string, summary: ImportSummary) => {
+      if (!csvAssistant) return;
+      const type = csvAssistant;
+      setImportUndo(
+        buildImportUndoSnapshot({
+          kind: type,
+          planRecords,
+          actualRecords,
+          planCorridor,
+        })
+      );
+      const targets = library ? listImportTargets(library, holeId) : [];
+      if (targets.length > 1) {
+        setPendingImport({ type, fileName, records, summary });
+        setCsvAssistant(null);
+        return;
+      }
+      finishImport(targets[0]?.holeId ?? holeId, type, records, fileName, summary);
+    },
+    [
+      csvAssistant,
+      planRecords,
+      actualRecords,
+      planCorridor,
+      library,
+      holeId,
+      finishImport,
+    ]
+  );
+
+  const undoLastImport = useCallback(() => {
+    if (!importUndo) return;
+    if (!window.confirm(`${describeImportUndo(importUndo)} Continue?`)) return;
+    importSurveysToHole(holeId, "plan", importUndo.previousPlan);
+    importSurveysToHole(holeId, "actual", importUndo.previousActual);
+    setPlanCorridor(importUndo.previousCorridor);
+    const kind = importUndo.kind;
+    setImportUndo(null);
+    setDataMessage("Import undone — previous hole surveys restored.");
+    pushHistory({
+      type: "data_loaded",
+      summary: `Undid ${kind === "plan" ? "plan" : "actual"} CSV import`,
+      actionTaken: "Undo import",
+    });
+  }, [importUndo, holeId, importSurveysToHole, setPlanCorridor, pushHistory]);
+
+  const handleClearHistory = useCallback(async () => {
+    if (!(await confirm(confirmClearDecisionHistory()))) return;
+    clearHistory();
+    setAppMessage("Decision history cleared for this hole.");
+  }, [clearHistory, confirm, setAppMessage]);
+
+  const handleResetRecoveryAssumptions = useCallback(async () => {
+    if (!(await confirm(confirmResetRecoveryAssumptions()))) return;
+    resetRecoveryAssumptions();
+    setAppMessage("Recovery assumptions reset to defaults.");
+  }, [resetRecoveryAssumptions, confirm, setAppMessage]);
+
+  const handleBranchSaveDaughter = useCallback(
+    (input: CreateDaughterInput) => {
+      const daughterHoleId = branchSaveDaughter(input);
+      if (daughterHoleId) {
+        setAppMessage(`Daughter ${input.daughterId.trim()} saved as draft plan.`);
+      } else {
+        setAppMessage(
+          "Could not save daughter — check mother actual surveys, target, and kickoff MD."
+        );
+      }
+      return daughterHoleId;
+    },
+    [branchSaveDaughter, setAppMessage]
+  );
 
   const addManualSurvey = () => {
     const md = Number(manualMd);
     const dip = Number(manualDip);
     const azimuth = Number(manualAzimuth);
 
-    if (!Number.isFinite(md) || !Number.isFinite(dip) || !Number.isFinite(azimuth)) {
-      setManualMessage("Enter MD, dip, and azimuth before adding a survey.");
+    const validation = validateManualSurvey({
+      md,
+      dip,
+      azimuth,
+      actualRecords,
+      targetMd: target.md,
+      planFinalMd: planFinalMd,
+    });
+    if (!validation.ok) {
+      setManualMessage(validation.error ?? "Invalid survey values.");
       return;
     }
 
-    const last = actualRecords[actualRecords.length - 1];
-    const existingIndex = actualRecords.findIndex(
-      (record) => Math.abs(record.md - md) < 0.001
-    );
-    if (existingIndex === -1 && last && md <= last.md) {
-      setManualMessage(
-        `Next survey MD must be greater than the current ${round(last.md, 1)} m survey.`
-      );
+    const existingIndex = validation.replacingIndex;
+    if (
+      existingIndex >= 0 &&
+      !window.confirm(
+        `Replace the existing survey at MD ${round(md, 1)} m? The previous reading will be overwritten.`
+      )
+    ) {
       return;
     }
 
@@ -350,7 +580,9 @@ export default function TargetLockApp() {
     );
     const { recommendation: newReco } = computeHole(planRecords, next, target);
     logRecommendation(newReco, "Add survey");
-    setManualMessage(message);
+    setManualMessage(
+      validation.warning ? `${message} ${validation.warning}` : message
+    );
     setTimeout(fillNextSurveyFromAim, 0);
   };
 
@@ -377,58 +609,41 @@ export default function TargetLockApp() {
     setTimeout(fillNextSurveyFromAim, 0);
   };
 
-  const readCsvFile = async (file: File, type: "plan" | "actual") => {
-    const label = type === "plan" ? "Planned" : "Actual";
-    let text: string;
-    try {
-      text = await file.text();
-    } catch {
-      setDataMessage(`Could not read ${file.name}. Check the file and try again.`);
-      return;
-    }
-    const records = parseSurveyCsv(text);
-    if (records.length === 0) {
-      setDataMessage(
-        `No valid surveys found in ${file.name}. Expected columns: MD, dip, azimuth (see the example template).`
-      );
-      return;
-    }
-    if (type === "plan") {
-      setPlanRecords(records);
-      setActiveScenario(null);
-      seedPlanCorridorFromPlan(records);
-      const stations = buildStations(records);
-      const finalPlan = stations[stations.length - 1];
-      pushHistory({
-        type: "data_loaded",
-        summary: `Planned trajectory imported (${records.length} stations)`,
-        actionTaken: `File: ${file.name}`,
-      });
-      if (finalPlan) applyPlanTarget(finalPlan.md);
-    } else {
-      setActualRecords(records);
-      setActiveScenario(null);
-      pushHistory({
-        type: "data_loaded",
-        summary: `Actual surveys imported (${records.length} stations)`,
-        actionTaken: `File: ${file.name}`,
-      });
-      const { recommendation: newReco } = computeHole(planRecords, records, target);
-      logRecommendation(newReco, "Import actual CSV");
-    }
-    setDataMessage(`${label} CSV loaded — ${records.length} survey${records.length === 1 ? "" : "s"}.`);
-  };
-
   const handleLoadTestScenario = (scenarioId: string) => {
+    const scenario = findScenario(scenarioId);
+    const label = scenario?.name.replace(/^TEST · /, "") ?? scenarioId;
+    if (
+      !window.confirm(describeDestructiveScenarioLoad(label))
+    ) {
+      return;
+    }
     const message = loadTestScenario(scenarioId);
-    setDataMessage(message);
+    setAppMessage(message);
     setManualMessage("Add the next survey as it comes off the camera.");
     fillNextSurveyFromAim();
   };
 
+  const handleLoadBranchScenario = (scenarioId: string) => {
+    const scenario = findBranchScenario(scenarioId);
+    const label = scenario?.name ?? scenarioId;
+    if (!window.confirm(describeDestructiveScenarioLoad(label))) {
+      return;
+    }
+    const message = loadBranchScenario(scenarioId);
+    setAppMessage(message);
+    setManualMessage("Branch program loaded — review Branch program tab (Advanced).");
+    setMode("advanced");
+    setAdvancedTab("branch-program");
+    fillNextSurveyFromAim();
+  };
+
   const handleLoadSyntheticHole = (params: SyntheticHoleParams): string => {
+    const label = params.holeName.trim() || "Custom scenario";
+    if (!window.confirm(describeDestructiveScenarioLoad(label))) {
+      return "Load cancelled.";
+    }
     const message = loadSyntheticHole(params);
-    setDataMessage(message);
+    setAppMessage(message);
     setManualMessage("Synthetic hole loaded — add surveys or review action plan.");
     fillNextSurveyFromAim();
     return message;
@@ -455,6 +670,7 @@ export default function TargetLockApp() {
       surveyAssessment,
       corridorStatus,
     });
+    setDataMessage("Text handover report downloaded.");
   };
 
   const handleExportPdf = async () => {
@@ -479,72 +695,289 @@ export default function TargetLockApp() {
         md: recommendation.current.md,
         actionTaken: "Export PDF",
       });
+      setDataMessage("PDF handover report downloaded.");
     } catch {
-      setManualMessage("PDF export failed. Try the text report or refresh the page.");
+      const err = "PDF export failed. Try the text report or refresh the page.";
+      setDataMessage(err);
+      setManualMessage(err);
     }
   };
 
-  const confirmResetHole = () => {
-    if (
-      !window.confirm(
-        "Reset the active hole? Surveys, target, and decision history will be cleared. This cannot be undone."
-      )
-    ) {
+  const handleResetAllLocalData = async () => {
+    if (!(await confirm(resetAllLocalDataConfirm()))) return;
+    resetAllLocalData();
+    setDataMessage("All local TargetLock data cleared. Sample hole loaded.");
+  };
+
+  const handleExportHolePackage = () => {
+    if (!library) {
+      setDataMessage("No hole library to export.");
       return;
     }
+    downloadHolePackage(library);
+    pushHistory({
+      type: "report_exported",
+      summary: "Full hole package exported (JSON)",
+      actionTaken: "Export hole package",
+    });
+    setDataMessage("Hole package downloaded — keep this file as a backup.");
+  };
+
+  const handleImportHolePackage = async (file: File) => {
+    const result = await readHolePackageFile(file);
+    if (!result.ok) {
+      setDataMessage(result.error);
+      return;
+    }
+    const holeCount = result.package.library.holes.length;
+    if (!(await confirm(confirmImportHolePackage(file.name, holeCount)))) return;
+    importHolePackage(result.package.library);
+    pushHistory({
+      type: "data_loaded",
+      summary: `Hole package imported (${result.package.library.holes.length} holes)`,
+      actionTaken: `File: ${file.name}`,
+    });
+    setDataMessage(
+      `Imported ${result.package.library.holes.length} hole(s) from package. Active hole restored.`
+    );
+  };
+
+  const handleResetActiveHole = async () => {
+    if (!(await confirm(resetActiveHoleConfirm(holeName)))) return;
     resetHole();
-    setDataMessage("Hole reset. Load a sample or import CSVs to start again.");
+    setDataMessage(`${holeName} reset. Load a sample or import CSVs to start again.`);
     setManualMessage("Add the next survey as it comes off the camera.");
+    setImportUndo(null);
   };
 
   const updateTargetField = (field: keyof TargetConfig, value: number) => {
-    setTarget((prev) => ({ ...prev, [field]: value }));
+    setTarget((prev) => ({
+      ...prev,
+      [field]: sanitizeTargetField(field, value, prev),
+    }));
   };
 
-  const startPitchWalkthrough = () => {
-    pitch.startPitch({
-      planRecords,
-      actualRecords,
-      target,
-      mode,
-      history,
+  const handleSwitchHole = (id: string) => {
+    const prev = holeName;
+    const hole = library ? findHole(library, id) : null;
+    switchHole(id);
+    setDataMessage(hole ? `Switched to ${hole.holeName}.` : "Hole switched.");
+    setImportUndo(null);
+    if (hole && hole.holeName !== prev) {
+      pushHistory({
+        type: "data_loaded",
+        summary: `Active hole switched to ${hole.holeName}`,
+        actionTaken: "Select saved hole",
+      });
+    }
+  };
+
+  const handleNewSampleHole = () => {
+    createNewHole(true);
+    setDataMessage("New test hole created with sample plan and surveys.");
+    setImportUndo(null);
+    pushHistory({
+      type: "data_loaded",
+      summary: "New test hole created",
+      actionTaken: "New test hole",
     });
   };
+
+  const handleNewBlankHole = () => {
+    createNewHole(false);
+    setDataMessage("New blank hole created.");
+    setImportUndo(null);
+    pushHistory({
+      type: "data_loaded",
+      summary: "New blank hole created",
+      actionTaken: "New blank hole",
+    });
+  };
+
+  const handleDuplicateHole = () => {
+    duplicateCurrentHole();
+    setDataMessage(`Duplicated ${holeName}.`);
+    setImportUndo(null);
+    pushHistory({
+      type: "data_loaded",
+      summary: `Duplicated ${holeName}`,
+      actionTaken: "Duplicate hole",
+    });
+  };
+
+  const handleDeleteHole = useCallback(() => {
+    const ok = deleteCurrentHole();
+    if (ok) {
+      setDataMessage("Hole deleted.");
+      setImportUndo(null);
+      pushHistory({
+        type: "data_loaded",
+        summary: "Hole removed from library",
+        actionTaken: "Delete hole",
+      });
+    }
+    return ok;
+  }, [deleteCurrentHole, pushHistory, setDataMessage]);
+
+  const buildGuideSnapshot = () => ({
+    planRecords,
+    actualRecords,
+    target,
+    mode,
+    advancedTab,
+    history,
+    library: library ? structuredClone(library) : null,
+  });
+
+  const startSelectedGuide = () => {
+    const flow = guide.pendingFlowId ?? guide.flowId;
+    if (!flow) return;
+    guide.startGuide(flow, buildGuideSnapshot());
+  };
+
+  const handleExitGuide = () => {
+    if (guide.demoLoaded && !window.confirm(describeGuideDemoExitConfirm())) {
+      return;
+    }
+    guide.exitGuide();
+  };
+
+  const handleRestartGuide = () => {
+    if (guide.demoLoaded && !window.confirm(describeGuideDemoRestartConfirm())) {
+      return;
+    }
+    guide.restartGuide();
+  };
+
+  const handleLoadGuideDemo = () => {
+    const action = guide.currentStep.demoAction;
+    if (!action) return;
+    const ok = window.confirm(
+      "Load a demo scenario for this guide step? Your current data will be restored when you exit or restart the guide."
+    );
+    if (!ok) return;
+    if (action.kind === "builtin-scenario") {
+      const message = loadTestScenario(action.scenarioId);
+      setAppMessage(message);
+    } else {
+      const message = loadBranchScenario(action.scenarioId);
+      setAppMessage(message);
+      setMode("advanced");
+      setAdvancedTab("branch-program");
+    }
+    guide.setDemoLoaded(true);
+    fillNextSurveyFromAim();
+  };
+
+  if (!hydrated) {
+    return (
+      <div className="targetlock-app flex min-h-screen items-center justify-center">
+        <div className="targetlock-loading" role="status" aria-live="polite">
+          <span className="targetlock-spinner" aria-hidden />
+          <p className="m-0 text-sm font-medium">Loading hole package…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (storageHealth === "corrupt") {
+    return (
+      <div className="targetlock-app flex min-h-screen items-center justify-center p-6">
+        <div className="targetlock-panel max-w-lg w-full" role="alert">
+          <h1 className="text-lg font-semibold m-0">Stored data could not be loaded</h1>
+          <p className="targetlock-helper mt-2">
+            Browser storage for TargetLock appears damaged or incompatible. The app will not
+            overwrite it automatically. Load the sample hole to start fresh, reset all local data,
+            or import a previously exported hole package.
+          </p>
+          {storageError ? (
+            <p className="targetlock-error-detail text-xs text-[var(--tl-muted)] mt-2 font-mono break-words">
+              {storageError}
+            </p>
+          ) : null}
+          <div className="targetlock-btn-row mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="targetlock-btn targetlock-btn-primary"
+              onClick={() => {
+                initFreshSampleLibrary();
+              }}
+            >
+              Load sample hole
+            </button>
+            <button
+              type="button"
+              className="targetlock-btn targetlock-btn-sm targetlock-btn-danger"
+              onClick={() => void handleResetAllLocalData()}
+            >
+              Reset all local TargetLock data
+            </button>
+            <label className="targetlock-btn targetlock-btn cursor-pointer">
+              Import hole package
+              <input
+                type="file"
+                accept=".json,application/json"
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleImportHolePackage(file);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          </div>
+          <p className="targetlock-version-tag mt-4 mb-0">{TARGETLOCK_APP_VERSION}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <TooltipProvider delayDuration={280}>
       <div
-        className={`targetlock-app targetlock-mode-${mode}${pitch.pitchActive ? " pitch-active" : ""}`}
+        className={`targetlock-app targetlock-mode-${mode}${guide.guideActive ? " pitch-active" : ""}`}
         data-mode={mode}
       >
-      {pitch.pitchActive && (
+      {guide.guideActive && (
         <div className="guide-active-banner pitch-active-banner" role="status">
-          Guided tour — sample data only (not saved to your hole)
+          {guide.demoLoaded
+            ? "Guide active — demo scenario loaded (restore on exit)"
+            : "Guide active — your hole data is unchanged"}
         </div>
       )}
-      <GuideModal
-        open={pitch.summaryOpen}
-        tourActive={pitch.pitchActive}
-        tourStep={pitch.pitchStepIndex}
-        tourStepCount={pitch.pitchStepCount}
-        onClose={() => pitch.setSummaryOpen(false)}
-        onStartTour={startPitchWalkthrough}
+      <GuideCenterModal
+        open={guide.centerOpen}
+        guideActive={guide.guideActive}
+        selectedFlowId={guide.pendingFlowId ?? guide.flowId}
+        onSelectFlow={(id: GuideFlowId) => guide.setPendingFlowId(id)}
+        tourStep={guide.stepIndex}
+        tourStepCount={guide.stepCount}
+        flowTitle={guide.flowMeta?.title}
+        onClose={() => guide.setCenterOpen(false)}
+        onStartGuide={startSelectedGuide}
+        onRestartGuide={handleRestartGuide}
+        onExitGuide={handleExitGuide}
       />
       <ScenarioLabModal
         open={scenarioLabOpen}
         onClose={() => setScenarioLabOpen(false)}
         onLoadScenario={handleLoadTestScenario}
+        onLoadBranchScenario={handleLoadBranchScenario}
         onGenerateScenario={handleLoadSyntheticHole}
       />
       <GuideTour
-        active={pitch.pitchActive}
-        step={pitch.currentStep}
-        stepIndex={pitch.pitchStepIndex}
-        stepCount={pitch.pitchStepCount}
-        onPrev={pitch.prevPitchStep}
-        onNext={pitch.nextPitchStep}
-        onExit={pitch.exitPitch}
-        onOpenGuide={() => pitch.setSummaryOpen(true)}
+        active={guide.guideActive}
+        step={guide.currentStep}
+        stepIndex={guide.stepIndex}
+        stepCount={guide.stepCount}
+        flowTitle={guide.flowMeta?.title}
+        onPrev={guide.prevStep}
+        onNext={guide.nextStep}
+        onExit={handleExitGuide}
+        onRestart={handleRestartGuide}
+        onOpenGuideCenter={() => guide.setCenterOpen(true)}
+        onOpenTab={guide.openTabForCurrentStep}
+        onLoadDemo={guide.currentStep.demoAction ? handleLoadGuideDemo : undefined}
       />
       <div className="targetlock-shell">
         <aside className="targetlock-sidebar">
@@ -557,40 +990,30 @@ export default function TargetLockApp() {
               height={1024}
               decoding="async"
             />
+            <p className="targetlock-version-tag m-0 mt-2">{TARGETLOCK_APP_VERSION}</p>
           </div>
 
-          <div className="targetlock-project-meta advanced-only">
+          <div className={`targetlock-project-meta advanced-only ${ph("hole-details")}`}>
             <h2 className="targetlock-sidebar-section-title">Hole details</h2>
-            <label>
-              <span>Hole ID / name</span>
-              <input
-                type="text"
-                value={holeName}
-                onChange={(e) => setHoleName(e.target.value)}
-                aria-label="Hole ID or name"
-              />
-            </label>
-            <label>
-              <span>Site / project</span>
-              <input
-                type="text"
-                value={siteName}
-                onChange={(e) => setSiteName(e.target.value)}
-                placeholder="e.g. North Camp — Phase 2"
-                aria-label="Site or project name"
-              />
-            </label>
+            <HoleDetailsFields
+              activeHoleId={library?.activeHoleId ?? holeId}
+              holeName={holeName}
+              siteName={siteName}
+              onHoleNameChange={setHoleName}
+              onSiteNameChange={setSiteName}
+            />
           </div>
 
           {library ? (
             <HoleLibraryPanel
               holes={library.holes}
               activeHoleId={library.activeHoleId}
-              onSwitch={switchHole}
-              onNewSample={() => createNewHole(true)}
-              onNewBlank={() => createNewHole(false)}
-              onDuplicate={duplicateCurrentHole}
-              onDelete={deleteCurrentHole}
+              canDelete={library.holes.length > 1}
+              onSwitch={handleSwitchHole}
+              onNewSample={handleNewSampleHole}
+              onNewBlank={handleNewBlankHole}
+              onDuplicate={handleDuplicateHole}
+              onDelete={handleDeleteHole}
             />
           ) : null}
 
@@ -601,60 +1024,89 @@ export default function TargetLockApp() {
               <InfoTip tip="Upload planned trajectory and downhole survey files. CSV is a stand-in for survey-tool or HUB-IQ imports." />
             </h2>
             <div className="targetlock-stack">
-              <label>
-                <span>
-                  Hole plan{" "}
-                  <InfoTip tip="Planned trajectory, target and tolerance data." />
-                </span>
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  aria-label="Hole plan CSV file"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void readCsvFile(file, "plan");
-                  }}
-                />
-              </label>
-              <label>
-                <span>
-                  Survey results{" "}
-                  <InfoTip tip="Downhole survey readings from camera/gyro." />
-                </span>
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  aria-label="Survey results CSV file"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void readCsvFile(file, "actual");
-                  }}
-                />
-              </label>
+              <div className="targetlock-csv-upload-grid">
+                <div className={`targetlock-csv-upload-row ${ph("hole-plan-upload")}`}>
+                  <div className="targetlock-csv-upload-label">
+                    <span>Hole plan</span>
+                    <InfoTip tip="Planned trajectory, target and tolerance data." />
+                  </div>
+                  <button
+                    type="button"
+                    className="targetlock-btn targetlock-btn-primary"
+                    onClick={() => setCsvAssistant("plan")}
+                    aria-label="Upload hole plan CSV"
+                  >
+                    Upload
+                  </button>
+                </div>
+                <div className={`targetlock-csv-upload-row ${ph("survey-upload")}`}>
+                  <div className="targetlock-csv-upload-label">
+                    <span>Survey results</span>
+                    <InfoTip tip="Downhole survey readings from camera/gyro." />
+                  </div>
+                  <button
+                    type="button"
+                    className="targetlock-btn targetlock-btn-primary"
+                    onClick={() => setCsvAssistant("actual")}
+                    aria-label="Upload survey results CSV"
+                  >
+                    Upload
+                  </button>
+                </div>
+              </div>
+              <div className="targetlock-sidebar-util-actions">
+                <button
+                  type="button"
+                  className="targetlock-btn targetlock-btn-sm"
+                  onClick={() => downloadCsvTestPack()}
+                >
+                  Download CSV test pack
+                </button>
+                <button
+                  type="button"
+                  className="targetlock-btn targetlock-btn-sm targetlock-btn-danger"
+                  onClick={() => void handleResetAllLocalData()}
+                  title="Remove all holes and branch programs from this browser. Export a hole package first if you need a backup."
+                  aria-label="Reset all local TargetLock data"
+                >
+                  Reset all local data
+                </button>
+              </div>
               <details className="targetlock-csv-format-help">
                 <summary>CSV format help</summary>
                 <p className="targetlock-csv-format-help-lead">
-                  Each file needs depth (MD), dip, and azimuth. Common HUB-IQ column names are
-                  accepted.
+                  Use the import assistant for templates, preview, and validation. Each file needs
+                  depth (MD), dip, and azimuth in metres and degrees.
                 </p>
                 <ul className="targetlock-csv-format-help-links">
                   <li>
+                    <a href="/templates/targetlock-plan-template.csv" download>
+                      TargetLock plan template
+                    </a>
+                  </li>
+                  <li>
+                    <a href="/templates/targetlock-survey-template.csv" download>
+                      TargetLock survey template
+                    </a>
+                  </li>
+                  <li>
                     <a href="/templates/hub-iq-planned-example.csv" download>
-                      Hole plan example CSV
+                      HUB-IQ plan example (extended)
                     </a>
                   </li>
                   <li>
                     <a href="/templates/hub-iq-actual-example.csv" download>
-                      Survey results example CSV
+                      HUB-IQ survey example (extended)
                     </a>
                   </li>
                 </ul>
               </details>
-              <div className={`targetlock-btn-row ${ph("export")}`}>
+              <div className={`targetlock-btn-row targetlock-btn-row--hole-actions ${ph("export")}`}>
                 <button
                   type="button"
-                  className="targetlock-btn targetlock-btn-primary"
+                  className="targetlock-btn"
                   onClick={loadSample}
+                  title="Load demo plan and surveys into the active hole (replaces current data)"
                 >
                   Load sample hole
                 </button>
@@ -673,7 +1125,7 @@ export default function TargetLockApp() {
                 </button>
                 <button
                   type="button"
-                  className="targetlock-btn targetlock-btn-primary"
+                  className="targetlock-btn"
                   onClick={() => void handleExportPdf()}
                   disabled={!recommendation}
                   title={
@@ -686,17 +1138,29 @@ export default function TargetLockApp() {
                 </button>
                 <button
                   type="button"
-                  className="targetlock-btn targetlock-btn-secondary"
-                  onClick={confirmResetHole}
-                  title="Clear surveys, target, and history for the active hole only"
+                  className="targetlock-btn targetlock-btn-danger"
+                  onClick={() => void handleResetActiveHole()}
+                  title="Clear surveys, target, corridor, and history for this hole only; other saved holes unchanged"
+                  aria-label="Reset active hole"
                 >
                   Reset active hole
                 </button>
               </div>
               {dataMessage ? (
-                <p className="targetlock-helper" role="status" aria-live="polite">
-                  {dataMessage}
-                </p>
+                <div className="csv-import-undo-row" role="status" aria-live="polite">
+                  <p className="targetlock-helper m-0">{dataMessage}</p>
+                  {importUndo ? (
+                    <button
+                      type="button"
+                      className="targetlock-btn targetlock-btn-sm"
+                      onClick={undoLastImport}
+                      title={describeImportUndo(importUndo)}
+                      aria-label={describeImportUndo(importUndo)}
+                    >
+                      Undo import
+                    </button>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           </section>
@@ -712,8 +1176,10 @@ export default function TargetLockApp() {
                 <input
                   type="number"
                   step={0.1}
+                  min={0}
                   value={manualMd}
                   onChange={(e) => setManualMd(e.target.value)}
+                  aria-label="Survey measured depth in metres"
                 />
               </label>
               <label>
@@ -721,8 +1187,11 @@ export default function TargetLockApp() {
                 <input
                   type="number"
                   step={0.1}
+                  min={-90}
+                  max={90}
                   value={manualDip}
                   onChange={(e) => setManualDip(e.target.value)}
+                  aria-label="Survey dip in degrees"
                 />
               </label>
               <label className="col-span-2">
@@ -730,23 +1199,52 @@ export default function TargetLockApp() {
                 <input
                   type="number"
                   step={0.1}
+                  min={0}
+                  max={360}
                   value={manualAzimuth}
                   onChange={(e) => setManualAzimuth(e.target.value)}
+                  aria-label="Survey azimuth in degrees"
                 />
               </label>
             </div>
             <div className="targetlock-btn-row">
-              <button type="button" className="targetlock-btn" onClick={fillNextSurveyFromAim}>
+              <button
+                type="button"
+                className={`targetlock-btn ${ph("fill-from-action-plan")}`}
+                onClick={fillNextSurveyFromAim}
+                disabled={!canFillFromPlan}
+                title={
+                  canFillFromPlan
+                    ? "Copy next MD and aim dip/azimuth from the action plan"
+                    : "Load a plan and actual surveys before filling from the action plan"
+                }
+              >
                 Fill from action plan
               </button>
               <button
                 type="button"
                 className="targetlock-btn targetlock-btn-primary"
                 onClick={addManualSurvey}
+                disabled={!canAddSurvey}
+                title={
+                  canAddSurvey
+                    ? "Add or replace a survey at this measured depth"
+                    : "Enter valid MD, dip, and azimuth before adding"
+                }
               >
                 Add survey
               </button>
-              <button type="button" className="targetlock-btn" onClick={undoLatestSurvey}>
+              <button
+                type="button"
+                className="targetlock-btn"
+                onClick={undoLatestSurvey}
+                disabled={!canUndoSurvey}
+                title={
+                  canUndoSurvey
+                    ? "Remove the latest actual survey"
+                    : "Keep at least the collar survey in the actual path"
+                }
+              >
                 Undo last survey
               </button>
             </div>
@@ -810,9 +1308,8 @@ export default function TargetLockApp() {
                   type="number"
                   value={target.tolerance}
                   step={0.1}
-                  onChange={(e) =>
-                    updateTargetField("tolerance", Math.max(0.1, Number(e.target.value)))
-                  }
+                  min={0.1}
+                  onChange={(e) => updateTargetField("tolerance", Number(e.target.value))}
                 />
               </label>
               <label>
@@ -824,9 +1321,8 @@ export default function TargetLockApp() {
                   type="number"
                   value={target.maxDls}
                   step={0.1}
-                  onChange={(e) =>
-                    updateTargetField("maxDls", Math.max(0.1, Number(e.target.value)))
-                  }
+                  min={0.1}
+                  onChange={(e) => updateTargetField("maxDls", Number(e.target.value))}
                 />
               </label>
               <label className="col-span-2">
@@ -838,9 +1334,8 @@ export default function TargetLockApp() {
                   type="number"
                   value={target.nextInterval}
                   step={1}
-                  onChange={(e) =>
-                    updateTargetField("nextInterval", Math.max(1, Number(e.target.value)))
-                  }
+                  min={1}
+                  onChange={(e) => updateTargetField("nextInterval", Number(e.target.value))}
                 />
               </label>
             </div>
@@ -848,14 +1343,23 @@ export default function TargetLockApp() {
               type="button"
               className="targetlock-btn"
               onClick={() => applyPlanTarget()}
+              disabled={!canUsePlanTarget}
+              title={
+                canUsePlanTarget
+                  ? "Set target E/N/D from the planned trajectory at target MD"
+                  : "Import a hole plan with a station at the target MD first"
+              }
             >
               Use planned target
             </button>
-            <PlanCorridorEditor
-              corridor={planCorridor}
-              status={corridorStatus}
-              onChange={setPlanCorridor}
-            />
+            <div className={ph("plan-corridor")}>
+              <PlanCorridorEditor
+                corridor={planCorridor}
+                status={corridorStatus}
+                onChange={setPlanCorridor}
+                sanitizeField={sanitizePlanCorridorField}
+              />
+            </div>
           </section>
         </aside>
 
@@ -868,12 +1372,17 @@ export default function TargetLockApp() {
             <div className="targetlock-topbar-actions">
               <button
                 type="button"
-                className={`guide-topbar-btn pitch-topbar-btn${pitch.pitchActive ? " guide-topbar-btn--active" : ""}`}
-                onClick={() => pitch.setSummaryOpen(true)}
-                aria-expanded={pitch.summaryOpen}
+                className={`guide-topbar-btn pitch-topbar-btn${guide.guideActive ? " guide-topbar-btn--active" : ""}`}
+                onClick={() => {
+                  if (!guide.pendingFlowId && !guide.flowId) {
+                    guide.setPendingFlowId("standard");
+                  }
+                  guide.setCenterOpen(true);
+                }}
+                aria-expanded={guide.centerOpen}
               >
-                {pitch.pitchActive
-                  ? `Guide · step ${pitch.pitchStepIndex + 1}/${pitch.pitchStepCount}`
+                {guide.guideActive && guide.flowMeta
+                  ? `Guide · ${guide.flowMeta.title} · ${guide.stepIndex + 1}/${guide.stepCount}`
                   : "Guide"}
               </button>
               <button
@@ -885,7 +1394,11 @@ export default function TargetLockApp() {
               >
                 Scenario lab
               </button>
-              <div className="targetlock-mode-switch" role="tablist" aria-label="Display mode">
+              <div
+                className={`targetlock-mode-switch ${ph("mode-toggle")}`}
+                role="tablist"
+                aria-label="Display mode"
+              >
                 <button
                   type="button"
                   role="tab"
@@ -929,6 +1442,16 @@ export default function TargetLockApp() {
               </div>
             </div>
           </header>
+
+          {dataMessage ? (
+            <p
+              className="targetlock-workspace-status"
+              role="status"
+              aria-live="polite"
+            >
+              {dataMessage}
+            </p>
+          ) : null}
 
           <section className={`targetlock-kpi-grid ${ph("kpis")} ${ph("miss-vector")}`}>
             <article className="targetlock-metric">
@@ -977,7 +1500,23 @@ export default function TargetLockApp() {
             </article>
           </section>
 
-          <div className={`${ph("recommendation")} ${ph("recovery-guidance")}`}>
+          {branchProgram ? (
+            <BranchProgramSimpleStrip
+              program={branchProgram}
+              actualRecords={actualRecords}
+              recommendation={recommendation}
+              holeRole={holeRole}
+              holeName={holeName}
+              activeHoleId={holeId}
+              parentHoleName={activeHoleMeta?.parentHoleName}
+              kickoffMd={activeHoleMeta?.kickoffMd}
+              branchTargetId={activeHoleMeta?.branchTargetId}
+            />
+          ) : null}
+
+          <div
+            className={`${ph("action-plan")} ${ph("recommendation")} ${ph("recovery-guidance")}`}
+          >
             <ActionPlanPanel
               recommendation={recommendation}
               steering={steering}
@@ -1166,8 +1705,59 @@ export default function TargetLockApp() {
               </div>
             ) : null}
 
+            {advancedTab === "branch-program" && branchProgram ? (
+              <div className={`targetlock-tabpanel ${ph("branch-program")}`} role="tabpanel">
+                <BranchProgramPanel
+                  program={branchProgram}
+                  guideSectionClass={ph}
+                  planStations={planStations}
+                  actualStations={actualStations}
+                  recommendation={recommendation}
+                  holeRole={holeRole}
+                  activeHoleId={holeId}
+                  recoveryAssumptions={recoveryAssumptions}
+                  onInitProgram={holeRole === "mother" ? initBranchProgram : undefined}
+                  onAddTarget={branchAddTarget}
+                  onUpdateTarget={branchUpdateTarget}
+                  onRemoveTarget={branchRemoveTarget}
+                  onSaveDaughter={handleBranchSaveDaughter}
+                  onSetActiveDaughter={branchSetActiveDaughter}
+                  onArchiveDaughter={branchArchiveDaughter}
+                  onStatusChange={branchSetDaughterStatus}
+                  onApprove={branchApproveDaughter}
+                />
+              </div>
+            ) : null}
+
+            {advancedTab === "branch-program" && !branchProgram ? (
+              <div className={`targetlock-tabpanel ${ph("branch-program")}`} role="tabpanel">
+                <article className="targetlock-panel">
+                  <div className="targetlock-panel-title">
+                    <h2>Branch program</h2>
+                  </div>
+                  <p className="targetlock-panel-copy">
+                    Start a branch program on the active mother hole, or load a preset from{" "}
+                    <strong>Scenario lab → Branch programs</strong>.
+                  </p>
+                  {holeRole === "mother" ? (
+                    <button
+                      type="button"
+                      className="targetlock-btn targetlock-btn-primary"
+                      onClick={initBranchProgram}
+                    >
+                      Start branch program
+                    </button>
+                  ) : (
+                    <p className="branch-program-muted">
+                      Switch to a mother hole or load a branch scenario to begin.
+                    </p>
+                  )}
+                </article>
+              </div>
+            ) : null}
+
             {advancedTab === "steering" ? (
-              <div className="targetlock-tabpanel" role="tabpanel">
+              <div className={`targetlock-tabpanel ${ph("steering-panel")}`} role="tabpanel">
                 {steering ? (
                   <SteeringFeasibilityPanel
                     steering={steering}
@@ -1242,19 +1832,25 @@ export default function TargetLockApp() {
                   onDecision={handleSupervisorDecision}
                 />
                 <div className={ph("history")}>
-                  <DecisionHistoryPanel entries={history} onClear={clearHistory} />
+                  <DecisionHistoryPanel entries={history} onClear={handleClearHistory} />
                 </div>
               </div>
             ) : null}
 
             {advancedTab === "math" ? (
-              <div className="targetlock-tabpanel" role="tabpanel">
+              <div className={`targetlock-tabpanel ${ph("math-panel")}`} role="tabpanel">
                 <MathReferencePanel recommendation={recommendation} steering={steering} />
               </div>
             ) : null}
 
-            {advancedTab === "validation" ? (
+            {advancedTab === "method-purpose" ? (
               <div className="targetlock-tabpanel" role="tabpanel">
+                <MethodPurposePanel />
+              </div>
+            ) : null}
+
+            {advancedTab === "validation" ? (
+              <div className={`targetlock-tabpanel ${ph("validation-panel")}`} role="tabpanel">
                 <ValidationPanel
                   sanity={planSanity}
                   planStations={planStations}
@@ -1268,24 +1864,104 @@ export default function TargetLockApp() {
             ) : null}
 
             {advancedTab === "setup" ? (
-              <div className="targetlock-tabpanel" role="tabpanel">
+              <div className={`targetlock-tabpanel ${ph("setup-panel")}`} role="tabpanel">
+                <article className={`targetlock-panel ${ph("hole-package")}`}>
+                  <div className="targetlock-panel-title">
+                    <h2>
+                      Hole package backup{" "}
+                      <InfoTip tip="JSON backup of all holes, branch programs, and settings on this browser. Import replaces local data — export before reset or shared-machine use." />
+                    </h2>
+                  </div>
+                  <p className="targetlock-helper">
+                    Export the full multi-hole library (branch programs, daughters, approvals,
+                    assumptions) as JSON. Import restores everything on this browser — decision
+                    support only; validate before field use.
+                  </p>
+                  <div className="targetlock-btn-row">
+                    <button
+                      type="button"
+                      className="targetlock-btn targetlock-btn-primary"
+                      onClick={handleExportHolePackage}
+                      disabled={!library}
+                    >
+                      Export full hole package
+                    </button>
+                    <label className="targetlock-btn targetlock-btn cursor-pointer">
+                      Import hole package
+                      <input
+                        type="file"
+                        accept=".json,application/json"
+                        className="sr-only"
+                        aria-label="Import hole package JSON"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) void handleImportHolePackage(file);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+                </article>
                 <CapabilityAssumptionsEditor
                   assumptions={recoveryAssumptions}
                   onChange={setRecoveryAssumptions}
-                  onReset={resetRecoveryAssumptions}
+                  onReset={handleResetRecoveryAssumptions}
                   validationStatus={validationStatus}
                 />
-                <SurveyToolProfilePanel
-                  profile={surveyToolProfile}
-                  assessment={surveyAssessment}
-                  onChange={setSurveyToolProfile}
-                />
+                <div className={ph("survey-tool-profile")}>
+                  <SurveyToolProfilePanel
+                    profile={surveyToolProfile}
+                    assessment={surveyAssessment}
+                    onChange={setSurveyToolProfile}
+                  />
+                </div>
               </div>
             ) : null}
           </section>
         </main>
       </div>
-    </div>
+
+      {csvAssistant ? (
+        <CsvImportAssistantModal
+          open
+          importKind={csvAssistant}
+          activeHoleId={holeId}
+          activeHoleName={holeName}
+          existingPlanRecords={planRecords}
+          existingActualRecords={actualRecords}
+          onClose={() => setCsvAssistant(null)}
+          onImport={handleCsvAssistantImport}
+        />
+      ) : null}
+
+      {library && pendingImport ? (
+      <SurveyImportTargetModal
+        open
+        library={library}
+        activeHoleId={holeId}
+        importType={pendingImport?.type ?? "actual"}
+        fileName={pendingImport?.fileName ?? ""}
+        onSelect={(targetHoleId) => {
+          if (!pendingImport) return;
+          finishImport(
+            targetHoleId,
+            pendingImport.type,
+            pendingImport.records,
+            pendingImport.fileName,
+            pendingImport.summary
+          );
+        }}
+        onCancel={() => {
+          if (importUndo && !window.confirm(describeImportTargetCancelConfirm())) {
+            return;
+          }
+          setPendingImport(null);
+          setImportUndo(null);
+          setAppMessage("Import cancelled — no survey data changed.");
+        }}
+      />
+      ) : null}
+      </div>
     </TooltipProvider>
   );
 }

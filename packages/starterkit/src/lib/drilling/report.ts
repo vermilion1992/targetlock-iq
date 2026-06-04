@@ -70,17 +70,26 @@ export function buildReportText(
   );
 
   lines.push(
-    ...section("Recommended next interval", [
-      padLabel("Aim dip:") + `${data.aimDip}  (${data.dipCorrection})`,
-      padLabel("Aim azimuth:") + `${data.aimAzimuth}  (${data.aziCorrection})`,
+    ...section("Next interval aim", [
+      `  ${data.nextIntervalAimNote}`,
+      `  ${data.nextIntervalAimExplainer}`,
       "",
-      "Driller guidance:",
+      padLabel("Dip aim (next interval):") + `${data.aimDip}  (${data.dipCorrection})`,
+      padLabel("Azimuth aim (next interval):") + `${data.aimAzimuth}  (${data.aziCorrection})`,
+      "",
+      "Advisory summary:",
       `  ${data.drillerGuidance}`,
     ])
   );
 
   if (data.recoveryGuidance) {
     const rg = data.recoveryGuidance;
+    const recoveryExtra = [
+      ...data.recoveryLoopNotes.map((note) => `  ${note}`),
+      ...(data.feasibilityEscalationNote
+        ? [`  ${data.feasibilityEscalationNote}`]
+        : []),
+    ];
     lines.push(
       ...section("Recovery guidance", [
         padLabel("Current action:") + rg.currentAction,
@@ -90,6 +99,9 @@ export function buildReportText(
         padLabel("Escalation:") + rg.escalation,
         padLabel("Point of no return:") + rg.pointOfNoReturn,
         padLabel("Methods within assumptions:") + rg.methodSummary,
+        "",
+        "Recovery loop:",
+        ...recoveryExtra,
       ])
     );
   }

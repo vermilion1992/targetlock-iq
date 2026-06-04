@@ -27,6 +27,15 @@ describe("approval", () => {
     expect(entry.actionTaken).toBe("Steer");
   });
 
+  it("omits notes line when notes are empty", () => {
+    const plan = parseSurveyCsv(SAMPLE_PLAN_CSV);
+    const actual = parseSurveyCsv(SAMPLE_ACTUAL_CSV);
+    const { recommendation } = computeHole(plan, actual, DEFAULT_TARGET);
+    const entry = entryForSupervisorDecision("continue", recommendation, "   ");
+    expect(entry.detail).not.toContain("Notes:");
+    expect(entry.detail).not.toContain("undefined");
+  });
+
   it("halves survey interval for shorten_interval", () => {
     expect(suggestedNextInterval(30, "shorten_interval")).toBe(15);
     expect(suggestedNextInterval(12, "shorten_interval")).toBe(10);

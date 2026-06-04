@@ -8,6 +8,7 @@ import {
   type DriftPattern,
   type SyntheticHoleParams,
 } from "@/lib/drilling/synthetic-hole-builder";
+import { validateSyntheticHoleParams } from "@/lib/drilling/workspace-action-contract";
 
 type Props = {
   onGenerate: (params: SyntheticHoleParams) => string;
@@ -18,6 +19,8 @@ export function ScenarioCustomBuilder({ onGenerate }: Props) {
     ...DEFAULT_SYNTHETIC_PARAMS,
   });
   const [preview, setPreview] = useState<string | null>(null);
+  const validation = validateSyntheticHoleParams(params);
+  const canGenerate = validation.ok;
 
   const update = <K extends keyof SyntheticHoleParams>(
     key: K,
@@ -34,6 +37,7 @@ export function ScenarioCustomBuilder({ onGenerate }: Props) {
   };
 
   const handleGenerate = () => {
+    if (!canGenerate) return;
     const message = onGenerate(params);
     setPreview(message);
   };
@@ -192,6 +196,12 @@ export function ScenarioCustomBuilder({ onGenerate }: Props) {
         </p>
       ) : null}
 
+      {!canGenerate ? (
+        <p className="scenario-lab-custom-status scenario-lab-custom-status--error" role="alert">
+          {validation.ok ? null : validation.error}
+        </p>
+      ) : null}
+
       <div className="scenario-lab-custom-actions">
         <button type="button" className="targetlock-btn" onClick={handlePreview}>
           Preview
@@ -200,6 +210,8 @@ export function ScenarioCustomBuilder({ onGenerate }: Props) {
           type="button"
           className="targetlock-btn targetlock-btn-primary"
           onClick={handleGenerate}
+          disabled={!canGenerate}
+          title={canGenerate ? undefined : validation.ok ? undefined : validation.error}
         >
           Generate scenario
         </button>

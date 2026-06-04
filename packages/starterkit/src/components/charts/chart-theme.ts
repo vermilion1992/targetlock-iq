@@ -32,6 +32,8 @@ export const CHART = {
   collar: "#475569",
   current: "#1d5bb8",
   hint: "#8493a0",
+  kickoff: "#dc2626",
+  branchTarget: "#be185d",
 } as const;
 
 export type PlotRect = {

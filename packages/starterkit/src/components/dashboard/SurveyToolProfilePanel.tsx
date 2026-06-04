@@ -120,7 +120,10 @@ export function SurveyToolProfilePanel({ profile, assessment, onChange }: Props)
         {custom ? (
           <div className="targetlock-survey-field-row">
             <label className="targetlock-survey-field">
-              <span>Azimuth ± (°)</span>
+              <span>
+                Azimuth ± (°){" "}
+                <InfoTip tip="Typical azimuth uncertainty for this tool — used for survey uncertainty messaging, not certified QC." />
+              </span>
               <input
                 type="number"
                 step={0.01}
@@ -131,7 +134,10 @@ export function SurveyToolProfilePanel({ profile, assessment, onChange }: Props)
               />
             </label>
             <label className="targetlock-survey-field">
-              <span>Dip ± (°)</span>
+              <span>
+                Dip ± (°){" "}
+                <InfoTip tip="Typical dip uncertainty for this tool — informs caution on close tolerance decisions." />
+              </span>
               <input
                 type="number"
                 step={0.01}

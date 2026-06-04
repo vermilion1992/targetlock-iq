@@ -68,7 +68,7 @@ export function DecisionHistoryPanel({ entries, onClear }: Props) {
         <button
           type="button"
           className="targetlock-btn targetlock-btn-after-stack"
-          onClick={onClear}
+          onClick={() => void onClear?.()}
           aria-label="Clear decision history for this session"
         >
           Clear history

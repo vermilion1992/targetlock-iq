@@ -47,7 +47,7 @@ Ask one at a time. **Stay quiet** after each — let silence do the work. Note e
 
 | # | Phase | Prompt | What to watch |
 |---|-------|--------|---------------|
-| 1 | Simple | “This is Simple mode. **Without me explaining anything, what is the app telling you to do?**” | Do they find the Action plan first? Read current action + driller instruction unprompted? |
+| 1 | Simple | “This is Simple mode. **Without me explaining anything, what is the app telling you to do?**” | Do they find the Action plan first? Read current action + next interval aim unprompted? |
 | 2 | Simple | “**Would you trust this enough to start a conversation with the geo or supervisor?** Why / why not?” | Trust signals; what they’d want before acting; any “I’d ring them anyway”. |
 | 3 | Simple | “What do the numbers up top (latest survey, dip/azi, plan offset, projected miss) tell you?” | Are KPIs read correctly without help? Any confusion vs the Action plan? |
 | 4 | Advanced | “Now switch to **Advanced**. **Where would you go to understand *why* it gave that recommendation?**” | Do they reach for the tabs? Which tab first? Do they find Steering feasibility? |

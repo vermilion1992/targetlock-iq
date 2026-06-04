@@ -11,6 +11,12 @@ import type { CapabilityAssumptions } from "./capability-assumptions";
 import type { PlanCorridorConfig } from "./plan-corridor";
 import type { SurveyToolProfile } from "./survey-tool-profile";
 import type { AssumptionSignOff } from "./validation";
+import type { PersistedBranchProgram } from "./branch-program-types";
+import type {
+  BranchMethod,
+  DaughterStatus,
+  HoleRole,
+} from "./branch-program-types";
 import type { SurveyRecord, TargetConfig } from "./types";
 import { DEFAULT_TARGET } from "./compute";
 
@@ -174,6 +180,20 @@ export function snapshotProject(fields: {
   activeScenario?: { id: string; name: string } | null;
   planCorridor?: PlanCorridorConfig | null;
   surveyToolProfile?: SurveyToolProfile | null;
+  holeRole?: HoleRole;
+  programId?: string;
+  parentHoleId?: string;
+  parentHoleName?: string;
+  kickoffMd?: number;
+  kickoffE?: number;
+  kickoffN?: number;
+  kickoffD?: number;
+  kickoffDip?: number;
+  kickoffAzimuth?: number;
+  branchTargetId?: string;
+  branchMethod?: BranchMethod;
+  branchStatus?: DaughterStatus;
+  branchProgram?: PersistedBranchProgram | null;
 }): SavedHoleProject {
   return touchProject({
     version: 1,
@@ -190,6 +210,20 @@ export function snapshotProject(fields: {
     activeScenario: fields.activeScenario ?? null,
     planCorridor: fields.planCorridor ?? null,
     surveyToolProfile: fields.surveyToolProfile ?? null,
+    holeRole: fields.holeRole,
+    programId: fields.programId,
+    parentHoleId: fields.parentHoleId,
+    parentHoleName: fields.parentHoleName,
+    kickoffMd: fields.kickoffMd,
+    kickoffE: fields.kickoffE,
+    kickoffN: fields.kickoffN,
+    kickoffD: fields.kickoffD,
+    kickoffDip: fields.kickoffDip,
+    kickoffAzimuth: fields.kickoffAzimuth,
+    branchTargetId: fields.branchTargetId,
+    branchMethod: fields.branchMethod,
+    branchStatus: fields.branchStatus,
+    branchProgram: fields.branchProgram ?? null,
     updatedAt: new Date().toISOString(),
   });
 }
@@ -200,4 +234,42 @@ export function uniqueHoleName(library: HoleLibrary, baseName: string): string {
   let n = 2;
   while (names.has(`${baseName}-${n}`.toLowerCase())) n += 1;
   return `${baseName}-${n}`;
+}
+
+/** Clears surveys, target, history, and branch/corridor state for one hole; other library holes unchanged. */
+export function resetActiveHoleInLibrary(
+  library: HoleLibrary,
+  holeId: string
+): HoleLibrary | null {
+  const existing = findHole(library, holeId);
+  if (!existing) return null;
+  const blank = buildBlankProject(
+    existing.holeName,
+    existing.siteName ?? "",
+    existing.holeId
+  );
+  const reset: SavedHoleProject = {
+    ...blank,
+    mode: existing.mode,
+    planCorridor: null,
+    surveyToolProfile: null,
+    recoveryAssumptions: undefined,
+    assumptionSignOff: null,
+    activeScenario: null,
+    holeRole: "standard",
+    programId: undefined,
+    parentHoleId: undefined,
+    parentHoleName: undefined,
+    kickoffMd: undefined,
+    kickoffE: undefined,
+    kickoffN: undefined,
+    kickoffD: undefined,
+    kickoffDip: undefined,
+    kickoffAzimuth: undefined,
+    branchTargetId: undefined,
+    branchMethod: undefined,
+    branchStatus: undefined,
+    branchProgram: null,
+  };
+  return upsertHole(library, reset);
 }

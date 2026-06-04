@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseSurveyCsv } from "../csv";
+import { parseSurveyCsvDetailed } from "../csv-import-assistant";
 import { SAMPLE_ACTUAL_CSV, SAMPLE_PLAN_CSV } from "@/lib/sample-data";
 
 describe("csv", () => {
@@ -67,5 +68,22 @@ DDH-0247,30,-59.5,126,2.2`;
   it("omits optional tolerances when columns are absent", () => {
     const records = parseSurveyCsv(SAMPLE_ACTUAL_CSV);
     expect(records[0].tolerance).toBeUndefined();
+  });
+
+  it("parses md_m header alias", () => {
+    const text = `md_m,dip_deg,azimuth_deg
+0,-60,125
+30,-59,126`;
+    const records = parseSurveyCsv(text);
+    expect(records).toHaveLength(2);
+    expect(records[1].md).toBe(30);
+  });
+
+  it("detects hole_id in detailed parse without storing on records", () => {
+    const detailed = parseSurveyCsvDetailed(
+      `hole_id,md_m,dip_deg,azimuth_deg\nDDH-0247,0,-60,125`
+    );
+    expect(detailed.detectedHoleIds).toEqual(["DDH-0247"]);
+    expect(detailed.records[0]).not.toHaveProperty("holeId");
   });
 });

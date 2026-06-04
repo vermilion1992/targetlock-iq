@@ -48,7 +48,7 @@ Phrases are cautious, e.g. “Motor/Navi **may be** required…” not “Use mo
 
 - Current action (On track / Watch / Correct now / Steering review / Wedge or branch review)  
 - Best method (tentative wording)  
-- Driller instruction (lift/drop + swing left/right chips)  
+- Next interval aim (lift/drop + swing left/right chips; re-survey each interval)  
 - Aim dip / aim azimuth, DLS required vs limit, projected miss  
 - Escalation depth / wording  
 

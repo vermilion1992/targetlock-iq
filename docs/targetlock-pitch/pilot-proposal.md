@@ -20,7 +20,7 @@
 
 | Item | Detail |
 |------|--------|
-| Holes | 1–2 deep diamond holes (e.g. parent + daughter), planned trajectory + actual surveys |
+| Holes | 1–2 deep diamond holes (e.g. mother + daughter branch program), planned trajectory + actual surveys per leg |
 | Users | 2 drillers, 1 geologist, 1 drilling supervisor (minimum) |
 | Modes | Simple (rig) + Advanced (office review) |
 | Outputs | Decision history, TXT/PDF handover per significant survey |

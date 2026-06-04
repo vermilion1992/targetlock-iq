@@ -28,7 +28,12 @@ async function advanceTourToTitle(page, titlePattern, maxSteps = 12) {
       const text = (await title.textContent()) ?? "";
       if (titlePattern.test(text)) return;
     }
-    await page.getByRole("button", { name: /^Next$/i }).click();
+    const next = page.getByRole("button", { name: /^Next$/i });
+    if (await next.isVisible().catch(() => false)) {
+      await next.click();
+    } else {
+      await page.getByRole("button", { name: /^Finish guide$/i }).click();
+    }
     await page.waitForTimeout(500);
   }
   throw new Error(`Tour did not reach step matching ${titlePattern}`);
@@ -94,23 +99,16 @@ async function main() {
 
   await page.getByRole("button", { name: /^Guide$/i }).click();
   await page.waitForTimeout(700);
-  const closeModal = page.locator(".pitch-modal-backdrop button.pitch-modal-close");
-  if (await closeModal.isVisible()) {
-    await closeModal.click();
-    await page.waitForTimeout(400);
-  }
-  const startTour = page.getByRole("button", { name: /Start tour/i });
-  if (await startTour.isVisible()) {
-    await startTour.click();
-    await page.waitForTimeout(500);
-  }
-  await advanceTourToTitle(page, /Driller-friendly correction/i);
+  await page.getByRole("button", { name: /Standard hole workflow/i }).click();
+  await page.getByRole("button", { name: /Start guide/i }).click();
+  await page.waitForTimeout(500);
+  await advanceTourToTitle(page, /Understand the Action Plan/i);
   await screenshot(page, "06-pitch-correction-step.png");
 
-  await advanceTourToTitle(page, /Recovery guidance/i);
+  await advanceTourToTitle(page, /Understand the Action Plan/i);
   await screenshot(page, "09-action-plan.png");
 
-  await page.getByRole("button", { name: /End tour/i }).click().catch(() => {});
+  await page.getByRole("button", { name: /Exit guide/i }).click().catch(() => {});
   await page.waitForTimeout(400);
 
   await page.getByRole("button", { name: /Export PDF/i }).scrollIntoViewIfNeeded();

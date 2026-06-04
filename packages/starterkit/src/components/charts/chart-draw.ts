@@ -27,6 +27,10 @@ import {
   STATION_DOT,
 } from "./chart-theme";
 import type { StationMarkerHit } from "./chart-hit";
+import {
+  branchTrajectoryColors,
+  type BranchChartOverlay,
+} from "./chart-branch-overlay";
 
 export { bounds, makeScale } from "./chart-scale";
 
@@ -34,7 +38,49 @@ type Point = Record<string, number>;
 
 export type ChartDrawOptions = {
   highlightMd?: number | null;
+  branchOverlay?: BranchChartOverlay | null;
 };
+
+function drawBranchPlanOverlay(
+  ctx: CanvasRenderingContext2D,
+  toXY: (point: Point) => { x: number; y: number },
+  overlay?: BranchChartOverlay | null
+) {
+  if (!overlay) return;
+  overlay.extraTrajectories?.forEach((traj, i) => {
+    const colors = branchTrajectoryColors(traj, i);
+    drawTrajectory(ctx, traj.stations, toXY, colors.stroke, colors.glow, 2.5, [4, 4], false);
+  });
+  overlay.kickoffMarkers?.forEach((k) => {
+    const xy = toXY(k.station);
+    drawMarker(ctx, xy.x, xy.y, CHART.kickoff, k.label, 5);
+  });
+  overlay.targetMarkers?.forEach((t) => {
+    const xy = toXY({ e: t.e, n: t.n });
+    drawMarker(ctx, xy.x, xy.y, CHART.branchTarget, t.label, 5);
+  });
+}
+
+function drawBranchSectionOverlay(
+  ctx: CanvasRenderingContext2D,
+  toXY: (point: Point) => { x: number; y: number },
+  overlay: BranchChartOverlay | null | undefined,
+  defaultMd: number
+) {
+  if (!overlay) return;
+  overlay.extraTrajectories?.forEach((traj, i) => {
+    const colors = branchTrajectoryColors(traj, i);
+    drawTrajectory(ctx, traj.stations, toXY, colors.stroke, colors.glow, 2.5, [4, 4], false);
+  });
+  overlay.kickoffMarkers?.forEach((k) => {
+    const xy = toXY(k.station);
+    drawMarker(ctx, xy.x, xy.y, CHART.kickoff, k.label, 5);
+  });
+  overlay.targetMarkers?.forEach((t) => {
+    const md = overlay.kickoffMarkers?.[0]?.md ?? defaultMd;
+    drawMarker(ctx, toXY({ md, d: t.d }).x, toXY({ md, d: t.d }).y, CHART.branchTarget, t.label, 5);
+  });
+}
 
 function drawSurveyStationDots(
   ctx: CanvasRenderingContext2D,
@@ -113,7 +159,14 @@ export function drawPlanView(
   reco: Recommendation | null,
   options?: ChartDrawOptions
 ) {
-  const layout = buildPlanViewLayout(width, height, planStations, actualStations, reco);
+  const layout = buildPlanViewLayout(
+    width,
+    height,
+    planStations,
+    actualStations,
+    reco,
+    options?.branchOverlay
+  );
   const scaleMap = renderChartFrame(
     ctx,
     width,
@@ -164,6 +217,7 @@ export function drawPlanView(
     );
   }
 
+  drawBranchPlanOverlay(ctx, toXY, options?.branchOverlay);
   drawChartHint(ctx, width, height, "Plan view · looking down");
 }
 
@@ -176,7 +230,14 @@ export function drawSectionView(
   reco: Recommendation | null,
   options?: ChartDrawOptions
 ) {
-  const layout = buildSectionViewLayout(width, height, planStations, actualStations, reco);
+  const layout = buildSectionViewLayout(
+    width,
+    height,
+    planStations,
+    actualStations,
+    reco,
+    options?.branchOverlay
+  );
   const scaleMap = renderChartFrame(
     ctx,
     width,
@@ -219,6 +280,8 @@ export function drawSectionView(
     );
   }
 
+  const defaultMd = actualStations[actualStations.length - 1]?.md ?? 0;
+  drawBranchSectionOverlay(ctx, toXY, options?.branchOverlay, defaultMd);
   drawChartHint(ctx, width, height, "Vertical section");
 }
 

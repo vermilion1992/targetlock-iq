@@ -94,7 +94,7 @@ describe("recommendation", () => {
         confidence: "High",
       },
     };
-    expect(actionSentence(onTrack)).toContain("Continue drilling");
+    expect(actionSentence(onTrack)).toContain("target envelope");
     expect(actionSentence(reco!)).toBeTruthy();
   });
 });

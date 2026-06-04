@@ -1,8 +1,8 @@
 # TargetLock IQ — Demo runbook (5 minutes)
 
 **Audience:** Drilling superintendent, exploration manager, geologist, IMDEX stakeholder  
-**Version:** v1.2  
-**Format:** Live browser demo at `/targetlock` using the in-app **Guide** (10-step tour)  
+**Version:** v1.3  
+**Format:** Live browser demo at `/targetlock` using **Guide Center → Standard hole workflow** (or **Quick orientation** for a 2-minute layout-only pass)  
 **Backup:** Static demo `targetlock-iq-demo/index.html` if Next app unavailable  
 
 ---
@@ -14,12 +14,14 @@
 | App running | `npm run dev` in `packages/starterkit` |
 | URL | http://localhost:3000/targetlock |
 | Browser | Zoom 100%; close unrelated tabs |
-| Tour | Click **Guide** → **Start tour** (or **Guide** again if restarting) |
-| Data | Tour loads sample data only — banner: *not saved to your hole* |
+| Guide | **Guide** → select **Standard hole workflow** → **Start guide** |
+| Data | Banner: *Guide active — your hole data is unchanged* (use **Load demo** on a step only if needed) |
 | Export | Confirm PDF download is not blocked |
 | Backup | Have [samples/DDH-0247-handover-md390.pdf](./samples/DDH-0247-handover-md390.pdf) open if live export fails |
 
-Optional: open **Guide → Overview** first for executive audiences (45 seconds).
+Optional: **Quick orientation** (6 steps) for executives who only need layout and modes.
+
+Full step list: [pilot-testing-kit/guide-center.md](./pilot-testing-kit/guide-center.md).
 
 ---
 
@@ -29,95 +31,71 @@ Optional: open **Guide → Overview** first for executive audiences (45 seconds)
 
 > “Every survey is a decision point. Today that decision is often delayed — spreadsheet, email, or waiting for the geologist. TargetLock IQ closes the loop at the rig: plan versus actual, projected miss at target, recovery guidance, and what to aim for on the next interval.”
 
-**Show:** Guide overview modal → **Start tour**, or **Guide** directly.
+**Show:** **Guide** → **Standard hole workflow** → **Start guide**.
 
-**Step:** *Welcome* (step 1)
-
----
-
-## Minute 0:30–0:50 — Scenario Lab (Step 2)
-
-**Step:** *Scenario Lab*
-
-**Say:**
-
-> “Before we interpret a live hole, Scenario lab loads synthetic cases for training, validation, and demos — no real survey files. Built-in scenarios cover on-plan, drift, correction, Motor/Navi and wedge review, QA jumps, and bad imports; Custom builds a test hole from dip, azimuth, target, drift, and noise. Loaded runs show a simulated badge; exports record the scenario name. Use this to learn the UI — not as a substitute for validation with real client or historical data.”
-
-**Point to:** Top-bar **Scenario lab** button (highlighted). Optional: open it after the tour.
+**Step:** *Welcome to TargetLock IQ*
 
 ---
 
-## Minute 0:50–1:25 — On plan (Steps 3–4)
+## Minute 0:30–1:00 — Layout and data (Steps 2–5)
 
-**Steps:** *On plan at collar* → *Surveys start drifting*
+**Steps:** *Simple vs Advanced* → *Hole details* → *Upload a hole plan* → *Upload survey results*
 
 **Say:**
 
-> “Early in the hole we’re on plan — status on track, small plan offset. As drilling continues, azimuth and dip drift; plan offset grows but the hole may still be recoverable.”
+> “Sidebar holds hole identity and CSV imports — plan trajectory and survey results. The main workspace is for decisions after data is loaded. If you’re demoing without client files, use **Load demo** on the KPI step or open **Scenario lab** after the guide.”
 
-**Point to:** Status badge, KPI row, overlapping then diverging charts.
-
-**Mode:** Simple only.
+**Point to:** Sidebar hole fields and file inputs (highlighted on each step).
 
 ---
 
-## Minute 1:25–2:05 — Miss and correction (Steps 5–6)
+## Minute 1:00–2:05 — KPIs and action plan (Steps 6–7)
 
-**Steps:** *Projected target miss* → *Driller-friendly correction*
+**Steps:** *Read the four key KPIs* → *Understand the Action Plan*
 
 **Say:**
 
-> “If we keep drilling without correction, we project a miss at target depth. The app recommends next-interval dip and azimuth, limited by max dogleg — lift or drop, swing left or right.”
+> “Four KPIs: latest survey, dip/azimuth, offset from plan, and projected miss at target. The Action plan states current status, best recovery method, next interval aim, and when to escalate — advisory wording, not a motor order.”
 
-**Point to:** **Projected miss** KPI, **Next interval aim** panel, instruction chips.
+**Point to:** KPI row, Action plan panel.
+
+**Optional:** **Load demo: gradual drift** on step 6 if the hole is empty.
 
 ---
 
-## Minute 2:05–2:50 — Recovery guidance (Step 7) ★ v1.2 highlight
+## Minute 2:05–2:50 — Charts and Advanced (Steps 10–12)
 
-**Step:** *Recovery guidance*
+**Steps:** *Check Plan / Section / Deviation charts* → *Open Advanced mode* → *Review Steering Feasibility*
 
 **Say:**
 
-> “This is the shift from trajectory calculator to decision support. Recovery guidance answers: what’s the current action, what recovery method might work, what to aim for next, and when to escalate — without telling the driller to ‘use a motor now.’ Wording stays tentative because ground, rig, and tools vary.”
+> “Charts confirm what the numbers show. Advanced adds steering feasibility — natural, motor/Navi, wedge/branch — against editable capability assumptions.”
 
-**Point to:** Recovery guidance panel — **Current action**, **Best method**, **Escalate by**.
-
-**Do not:** Read every Advanced panel yet.
+**Point to:** Simple charts or **Open Steering feasibility** from the guide panel.
 
 ---
 
-## Minute 2:50–3:35 — Geologist / supervisor (Step 8)
+## Minute 2:50–3:35 — Governance (Steps 13–14)
 
-**Step:** *QA/QC flags target risk* (switches to **Advanced** automatically)
+**Steps:** *Review QA/QC flags* → *Check Math Reference*
 
 **Say:**
 
-> “Advanced mode is for the geologist or supervisor: interval checks, DLS, steering feasibility, method assumptions, and supervisor sign-off. Same hole — more governance.”
+> “QA/QC flags interval and target risks. Math reference shows the geometry behind the recommendation for geologist or contractor review.”
 
-**Point to:** **Steering feasibility** panel, **Recovery capability assumptions**, **Survey QA/QC**, **Supervisor decision**.
-
-**Optional:** Scroll **3D trajectory** — “preview only, not rig control.”
+**Use:** **Open QA/QC** / **Open Math reference** buttons in the guide footer.
 
 ---
 
-## Minute 3:35–4:20 — Survey in, handover out (Steps 9–10)
+## Minute 3:35–4:20 — Survey in, handover out (Steps 8–9, 18)
 
-**Step:** *Add the next survey*
-
-**Say:**
-
-> “When the survey comes off the camera, enter MD, dip, and azimuth — or preload from aim. Decision history records what was recommended and what was done.”
-
-**Do:** **Use aim** → **Add survey** (if time permits).
-
-**Step:** *PDF shift handover*
+**Steps:** *Add a new survey manually* → *Fill from action plan* → *Export handover PDF*
 
 **Say:**
 
-> “End of shift: export PDF with status, recovery guidance, capability assumptions, QA flags, and history. TXT is available for plain-text workflows.”
+> “Enter the next camera survey or fill from the action plan. End of shift: export PDF with status, recovery context, QA flags, and history.”
 
-**Do:** Click **Export PDF**; show recovery sections in the file.
+**Do:** **Fill from action plan** → **Add survey** (if time); **Export PDF**.
 
 ---
 
@@ -125,11 +103,13 @@ Optional: open **Guide → Overview** first for executive audiences (45 seconds)
 
 **Say:**
 
-> “v1.2 is local-first: CSV and HUB-IQ templates, multi-hole library, steering feasibility with editable assumptions, and PDF handover. We’re ready for a short pilot — measure time saved, export discipline, and whether drillers trust the wording. TargetLock IQ is decision support; site procedures and geologist sign-off still apply.”
+> “v1.3 adds Guide Center: quick orientation, full hole workflow, and a branch/daughter guide for multi-leg programs. Local-first CSV, multi-hole library, steering feasibility, and PDF handover. Ready for pilot — measure time to decision and export discipline. TargetLock IQ is decision support; site procedures and geologist sign-off still apply.”
 
-**End tour** to restore the user’s hole data.
+**Exit guide** to restore pre-guide state (including any demo data).
 
-**Offer:** [executive-summary.md](./executive-summary.md), [pilot-proposal.md](./pilot-proposal.md), [field-feedback-form.md](./field-feedback-form.md).
+**Offer:** [executive-summary.md](./executive-summary.md), [pilot-proposal.md](./pilot-proposal.md), [pilot-testing-kit/feedback-form.md](./pilot-testing-kit/feedback-form.md).
+
+**Branch demo:** **Guide** → **Branch / daughter hole workflow** — see [pilot-testing-kit/branch-program-guide.md](./pilot-testing-kit/branch-program-guide.md).
 
 ---
 
@@ -148,13 +128,12 @@ Optional: open **Guide → Overview** first for executive audiences (45 seconds)
 
 ## Presenter checklist
 
-- [ ] Guide tour tested once before meeting  
-- [ ] Step 2 (Scenario lab) highlights top-bar button  
-- [ ] Step 7 (recovery guidance) highlight visible  
-- [ ] Advanced mode shows steering + assumptions panels  
-- [ ] PDF export includes recovery sections  
+- [ ] Standard hole guide tested once before meeting  
+- [ ] Optional demo loads on steps 6 / 12 / 18 if hole is empty  
+- [ ] Action plan highlight visible on step 7  
+- [ ] Advanced steering + QA accessible via **Open [tab]**  
+- [ ] PDF export works  
 - [ ] Pilot one-pager or executive summary link ready  
-- [ ] Field feedback form printed or shared for follow-up  
 
 ---
 
@@ -162,7 +141,6 @@ Optional: open **Guide → Overview** first for executive audiences (45 seconds)
 
 1. Capture screenshots per [screenshots/README.md](./screenshots/README.md).  
 2. Send handover sample PDF from [samples/](./samples/).  
-3. Schedule driller/geologist review using [field-feedback-form.md](./field-feedback-form.md).  
-4. Log any wording or workflow issues — **feedback before new features**.
+3. Schedule review using [pilot-testing-kit/feedback-form.md](./pilot-testing-kit/feedback-form.md).  
 
-**Related:** [demo-script.md](./demo-script.md) (legacy v1.1 script — superseded by this runbook for v1.2).
+**Related:** [pilot-testing-kit/guide-center.md](./pilot-testing-kit/guide-center.md) · [demo-script.md](./demo-script.md) (legacy v1.1 script).

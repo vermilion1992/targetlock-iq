@@ -2,15 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ScenarioBuiltInList } from "@/components/dashboard/ScenarioBuiltInList";
+import { ScenarioBranchList } from "@/components/dashboard/ScenarioBranchList";
 import { ScenarioCustomBuilder } from "@/components/dashboard/ScenarioCustomBuilder";
 import type { SyntheticHoleParams } from "@/lib/drilling/synthetic-hole-builder";
+import { downloadCsvTestPack } from "@/lib/drilling/csv-test-pack";
 
-type TabId = "builtin" | "custom";
+type TabId = "builtin" | "custom" | "branch";
 
 type Props = {
   open: boolean;
   onClose: () => void;
   onLoadScenario: (scenarioId: string) => void;
+  onLoadBranchScenario: (scenarioId: string) => void;
   onGenerateScenario: (params: SyntheticHoleParams) => string;
 };
 
@@ -18,6 +21,7 @@ export function ScenarioLabModal({
   open,
   onClose,
   onLoadScenario,
+  onLoadBranchScenario,
   onGenerateScenario,
 }: Props) {
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -37,6 +41,11 @@ export function ScenarioLabModal({
 
   const handleLoadScenario = (scenarioId: string) => {
     onLoadScenario(scenarioId);
+    onClose();
+  };
+
+  const handleLoadBranchScenario = (scenarioId: string) => {
+    onLoadBranchScenario(scenarioId);
     onClose();
   };
 
@@ -101,6 +110,17 @@ export function ScenarioLabModal({
             >
               Custom scenario
             </button>
+            <button
+              type="button"
+              role="tab"
+              id="scenario-lab-tab-branch"
+              aria-selected={tab === "branch"}
+              aria-controls={tabPanelId("branch")}
+              className={`tl-modal-segment${tab === "branch" ? " tl-modal-segment--active" : ""}`}
+              onClick={() => setTab("branch")}
+            >
+              Branch programs
+            </button>
           </div>
         </header>
 
@@ -125,7 +145,29 @@ export function ScenarioLabModal({
               <ScenarioCustomBuilder onGenerate={handleGenerateScenario} />
             ) : null}
           </div>
+          <div
+            role="tabpanel"
+            id={tabPanelId("branch")}
+            aria-labelledby="scenario-lab-tab-branch"
+            hidden={tab !== "branch"}
+          >
+            {tab === "branch" ? (
+              <ScenarioBranchList onLoad={handleLoadBranchScenario} />
+            ) : null}
+          </div>
         </div>
+        <footer className="tl-modal-footer">
+          <button
+            type="button"
+            className="targetlock-btn targetlock-btn-sm"
+            onClick={() => downloadCsvTestPack()}
+          >
+            Download CSV test pack
+          </button>
+          <button type="button" className="targetlock-btn" onClick={onClose}>
+            Close
+          </button>
+        </footer>
       </div>
     </div>
   );

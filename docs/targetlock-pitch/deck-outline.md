@@ -2,7 +2,7 @@
 
 Professional pitch deck structure for exploration drilling audiences. Full copy: [deck.md](./deck.md). Captures: [screenshots/README.md](./screenshots/README.md).
 
-**Presenter flow:** [demo-runbook.md](./demo-runbook.md) (10-step **Guide** tour in the app).
+**Presenter flow:** [demo-runbook.md](./demo-runbook.md) (**Guide Center** → Standard hole workflow in the app).
 
 ---
 

@@ -50,7 +50,7 @@ The dashboard was given a presentation polish. When capturing, take advantage of
 
 - **Recovery guidance panel** — Simple mode; scan-friendly Current action / Best method /
   Escalate by (`09-recovery-guidance.png`). Hero for v1.2 decision-support story.
-- **Driller instruction block** — the *Next interval aim* panel leads with large
+- **Next interval aim block** — the panel leads with large
   Lift/Drop / Swing left/right chips. Hero for driller value (`03-recommendation-aim.png`).
 - **Status badge with status dot** — top-right pill (colored by hole status) reads well at
   thumbnail size for `14-status-correction-needed.png`.

@@ -1,6 +1,7 @@
 "use client";
 
 import { TEST_SCENARIOS } from "@/lib/drilling/test-scenarios";
+import { canLoadBuiltInScenario } from "@/lib/drilling/workspace-action-contract";
 
 type Props = {
   onLoad: (scenarioId: string) => void;
@@ -21,7 +22,9 @@ export function ScenarioBuiltInList({ onLoad }: Props) {
   return (
     <div className="scenario-lab-builtin">
       <ul className="scenario-lab-card-grid" role="list">
-        {TEST_SCENARIOS.map((scenario) => (
+        {TEST_SCENARIOS.map((scenario) => {
+          const loadable = canLoadBuiltInScenario(scenario);
+          return (
           <li key={scenario.id}>
             <article className="scenario-lab-card">
               <h3 className="scenario-lab-card-title">{displayScenarioName(scenario.name)}</h3>
@@ -38,20 +41,29 @@ export function ScenarioBuiltInList({ onLoad }: Props) {
               </dl>
               {scenario.kind === "invalid-import" ? (
                 <p className="scenario-lab-card-note">
-                  No hole is loaded — check the Hole data status line after loading.
+                  Download the CSV test pack and upload invalid-example.csv via Upload hole plan or
+                  Survey results to see the Import Assistant validation messages.
                 </p>
               ) : null}
-              <button
-                type="button"
-                className="targetlock-btn targetlock-btn-sm targetlock-btn-primary scenario-lab-card-action"
-                onClick={() => onLoad(scenario.id)}
-                aria-label={`Load scenario: ${displayScenarioName(scenario.name)}`}
-              >
-                Load scenario
-              </button>
+              {loadable ? (
+                <button
+                  type="button"
+                  className="targetlock-btn targetlock-btn-sm targetlock-btn-primary scenario-lab-card-action"
+                  onClick={() => onLoad(scenario.id)}
+                  aria-label={`Load scenario: ${displayScenarioName(scenario.name)}`}
+                >
+                  Load scenario
+                </button>
+              ) : (
+                <p className="scenario-lab-card-note scenario-lab-card-action-hint">
+                  Use <strong>Download CSV test pack</strong> in the footer, then import via the
+                  sidebar Upload controls.
+                </p>
+              )}
             </article>
           </li>
-        ))}
+        );
+        })}
       </ul>
     </div>
   );

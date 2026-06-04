@@ -24,6 +24,7 @@ import {
   drawSectionView,
   type ChartDrawOptions,
 } from "./chart-draw";
+import type { BranchChartOverlay } from "./chart-branch-overlay";
 
 type ChartKind = "plan" | "section" | "deviation";
 
@@ -41,6 +42,7 @@ type Props = {
   recommendation: Recommendation | null;
   className?: string;
   corridorStatus?: PlanCorridorStatus | null;
+  branchOverlay?: BranchChartOverlay | null;
 };
 
 type HoverState = {
@@ -56,6 +58,7 @@ export function TrajectoryCanvas({
   recommendation,
   className,
   corridorStatus,
+  branchOverlay,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -65,7 +68,7 @@ export function TrajectoryCanvas({
   const latestActualMd = actualStations[actualStations.length - 1]?.md;
 
   const highlightMd = hover?.marker.md ?? null;
-  const drawOptions: ChartDrawOptions = { highlightMd };
+  const drawOptions: ChartDrawOptions = { highlightMd, branchOverlay };
 
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;

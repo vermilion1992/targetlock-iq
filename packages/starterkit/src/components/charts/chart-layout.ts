@@ -1,6 +1,7 @@
 import { buildDeviationSeries } from "@/lib/drilling/desurvey";
 import type { Recommendation, SurveyStation } from "@/lib/drilling/types";
 import type { StationMarkerHit } from "./chart-hit";
+import type { BranchChartOverlay } from "./chart-branch-overlay";
 import { bounds, makeScale, type ChartScaleMap } from "./chart-scale";
 
 type Point = Record<string, number>;
@@ -22,14 +23,23 @@ function stationMarkers(
   });
 }
 
+function appendBranchPlanPoints(points: Point[], overlay?: BranchChartOverlay | null) {
+  if (!overlay) return;
+  overlay.extraTrajectories?.forEach((t) => points.push(...t.stations));
+  overlay.targetMarkers?.forEach((t) => points.push({ e: t.e, n: t.n }));
+  overlay.kickoffMarkers?.forEach((k) => points.push(k.station));
+}
+
 export function buildPlanViewLayout(
   width: number,
   height: number,
   planStations: SurveyStation[],
   actualStations: SurveyStation[],
-  reco: Recommendation | null
+  reco: Recommendation | null,
+  branchOverlay?: BranchChartOverlay | null
 ): ChartViewLayout {
   const points: Point[] = [...planStations, ...actualStations];
+  appendBranchPlanPoints(points, branchOverlay);
   if (reco) {
     points.push({ e: reco.target.e, n: reco.target.n });
     points.push({ e: reco.projection.e, n: reco.projection.n });
@@ -52,12 +62,25 @@ export function buildSectionViewLayout(
   height: number,
   planStations: SurveyStation[],
   actualStations: SurveyStation[],
-  reco: Recommendation | null
+  reco: Recommendation | null,
+  branchOverlay?: BranchChartOverlay | null
 ): ChartViewLayout {
   const points: Point[] = [...planStations, ...actualStations].map((point) => ({
     md: point.md,
     d: point.d,
   }));
+  if (branchOverlay) {
+    branchOverlay.extraTrajectories?.forEach((t) =>
+      t.stations.forEach((s) => points.push({ md: s.md, d: s.d }))
+    );
+    branchOverlay.targetMarkers?.forEach((t) => {
+      const md =
+        branchOverlay.kickoffMarkers?.[0]?.md ??
+        actualStations[actualStations.length - 1]?.md ??
+        0;
+      points.push({ md, d: t.d });
+    });
+  }
   if (reco) {
     points.push({ md: reco.target.md, d: reco.target.d });
     points.push({ md: reco.target.md, d: reco.projection.d });

@@ -94,7 +94,7 @@ Minimum curvature desurvey · QA/QC flags · TXT/PDF shift handover
 |-------|---------|
 | Current action | Correct now |
 | Best method | “Parameter correction may be sufficient if ground and rig allow.” |
-| Driller instruction | Drop 1.1°, swing left 2.0° |
+| Next interval aim | Drop 1.1°, swing left 2.0° (next survey interval only) |
 | Aim / DLS / miss | Aim dip/azi · DLS required vs limit · projected miss |
 | Escalate by | Review by 405 m if the next survey does not improve |
 
@@ -127,7 +127,7 @@ Minimum curvature desurvey · QA/QC flags · TXT/PDF shift handover
 
 - **Survey QA/QC** — interval, DLS, plan offset, recovery, target risk  
 - **Supervisor decision** — continue, correct naturally, shorten interval, steer, stop hole  
-- **Hole library** — multiple holes on one device (program / daughter holes)  
+- **Hole library** — multiple holes on one device (program holes; **v2 Branch Program** adds mother–daughter lineage and kickoff from actual survey)  
 - **Decision history** — surveys, recommendations, supervisor actions, exports  
 
 **Visual:** `02-advanced-dashboard.png` · `04-supervisor-decision.png` · `03-hole-library.png`
@@ -181,12 +181,29 @@ Minimum curvature desurvey · QA/QC flags · TXT/PDF shift handover
 
 **v1.2 shipped:** Steering feasibility · recovery guidance · capability assumptions · multi-hole library · HUB-IQ CSV templates · supervisor log · 79 automated tests  
 
-**After pilot:** Live HUB-IQ/SURVEY-IQ · formal sign-off · offline sync · hosted deployment  
+**After pilot:** Live HUB-IQ/SURVEY-IQ · formal sign-off · offline sync · hosted deployment · **v2 Branch Program** (editable kickoff, approval gate, branch PDF)
+
+**v2 preview:** Branch Program — mother hole, daughter holes, kickoff from actual survey, target ranking, separation review (read-only demo in Scenario lab)  
 
 **Visual:** Text + QR or URL to demo · contact / pilot champion  
 
 **Disclaimer (footer on all slides):**  
 *TargetLock IQ provides decision support only. Steering feasibility depends on site conditions, tool capability, drilling contractor, and geologist/supervisor approval. Verify all recommendations against site procedures, independent desurvey where required, and operational sign-off.*
+
+---
+
+## Appendix B — v2 Branch Program (vision)
+
+**Advanced module:** Branch Program — *Mother hole, daughter holes, targets, and kickoff control*
+
+- Daughter holes branch from **actual** surveyed mother path (not plan-only kickoff)
+- Kickoff depth ranking, required DLS, method suitability, centre-to-centre separation
+- Simple mode stays calm: active hole context, target, on-track, directional review flag
+- Full editable planner, toolface, approval gate, and Branch Planning Report PDF — post-pilot Phase 2
+
+**Visual:** `12-branch-program-readonly.png` (Scenario lab → Branch programs → Mother + 2 daughters)
+
+**Speaker note:** Makes TargetLock a drill-program intelligence platform, not only a single-hole survey calculator.
 
 ---
 
@@ -207,6 +224,7 @@ Minimum curvature desurvey · QA/QC flags · TXT/PDF shift handover
 | `06-pitch-correction-step.png` | Slides 2, 5 (fallback) |
 | `07-export-handover-buttons.png` | Slide 10 |
 | `08-pdf-handover-preview.png` | Slide 10 |
+| `12-branch-program-readonly.png` | Appendix B — Branch Program |
 
 **Regenerate screenshots:** `npm run dev` in `packages/starterkit`, then `npm run capture:screenshots`. See [screenshots/README.md](./screenshots/README.md).
 

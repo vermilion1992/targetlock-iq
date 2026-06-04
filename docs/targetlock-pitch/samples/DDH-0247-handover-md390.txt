@@ -4,7 +4,7 @@
 
 Hole ID / name:             DDH-0247
 Site / project:             North Camp — Pilot
-Report generated:           Wed, 3 June 2026  09:17 am
+Report generated:           Fri, 5 June 2026  03:20 am
 Latest survey depth:        390.0 m
 Overall status:             Correction needed
 Confidence:                 Medium
@@ -29,23 +29,31 @@ Projected miss at target:   63.37 m
 Miss vector (E / N / D):    E -0.77 / N -59.76 / D -21.08 m
 DLS required to target:     2.44° / 30 m
 
-RECOMMENDED NEXT INTERVAL
+NEXT INTERVAL AIM
 ──────────────────────────────────────────────────────────────
-Aim dip:                    -61.12°  (Drop 2.2 deg)
-Aim azimuth:                133.15°  (Swing left 4.0 deg)
+  Next-interval aim. Re-survey and recalculate at the next station.
+  Use this as the aim for the next survey interval. Re-survey and recalculate at the next station. Aim for the next 30 m, then update TargetLock with the next survey.
 
-Driller guidance:
-  Correct now. Drop 2.2 deg and swing left 4.0 deg from the current direction. The required DLS is inside the configured limit.
+Dip aim (next interval):    -61.12°  (Drop 2.2 deg)
+Azimuth aim (next interval):133.15°  (Swing left 4.0 deg)
+
+Advisory summary:
+  A correction is advisable within the configured DLS window: Drop 2.2 deg and swing left 4.0 deg from the current direction. Confirm with site procedures before applying at the rig.
 
 RECOVERY GUIDANCE
 ──────────────────────────────────────────────────────────────
 Current action:             Correct now
-Best method:                Apply the recommended aim over the next 30 m. Required DLS is within the configured limit.
+Best method:                Aim over the next 30 m within the configured dogleg limit, then resurvey and recalculate.
 Next aim:                   Drop 2.2 deg, swing left 4.0 deg
 Confidence:                 Medium
 Escalation:                 Review by 420 m if the next survey does not improve.
 Point of no return:         390 m (estimate)
 Methods within assumptions: Parameter correction, Shorten survey interval, Motor / Navi review, DeviDrill review
+
+Recovery loop:
+  Recovery is a repeated survey-control process: aim the next interval, survey again, then recalculate.
+  If the next survey does not improve the trend, shorten the interval or request steering review.
+  Correction appears within configured capability assumptions.
 
 RECOVERY CAPABILITY ASSUMPTIONS (THIS HOLE)
 ──────────────────────────────────────────────────────────────
@@ -89,8 +97,8 @@ SURVEY QA / QC
 
 RECENT DECISION HISTORY (THIS SESSION)
 ──────────────────────────────────────────────────────────────
-  3 June, 09:17 am  Supervisor: Correct naturally at MD 390 m → Correct naturally
-  3 June, 09:17 am  Sample plan and actual surveys loaded → Load sample
+  5 June, 03:20 am  Supervisor: Correct naturally at MD 390 m → Correct naturally
+  5 June, 03:20 am  Sample plan and actual surveys loaded → Load sample
 
 ──────────────────────────────────────────────────────────────
 DECISION SUPPORT ONLY. STEERING FEASIBILITY DEPENDS ON SITE CONDITIONS, TOOL CAPABILITY, DRILLING CONTRACTOR, AND GEOLOGIST/SUPERVISOR APPROVAL. VERIFY ALL RECOMMENDATIONS AGAINST SITE PROCEDURES, INDEPENDENT DESURVEY, AND OPERATIONAL SIGN-OFF.

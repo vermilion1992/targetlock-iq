@@ -41,7 +41,7 @@ Roadmap from **v1 / v1.1 prototype** (shipped) to **commercial field product**. 
 | **Steering feasibility** panel (Advanced) | ✅ | Rejoin DLS, methods, point-of-no-return estimate |
 | Configurable **capability profiles** | ✅ | Defaults in `capability-profiles.ts` |
 | Handover TXT/PDF **recovery section** | ✅ | With feasibility disclaimer |
-| Guide (replaces separate pitch/summary buttons) | ✅ | Overview + tour |
+| Guide Center (quick · standard · branch walkthroughs) | ✅ | Non-destructive steps; optional demo load; tab/highlight navigation |
 | Docs | ✅ | [steering-feasibility.md](./steering-feasibility.md) |
 
 ---
@@ -68,6 +68,37 @@ Roadmap from **v1 / v1.1 prototype** (shipped) to **commercial field product**. 
 | Print-friendly PDF tweaks from site feedback | 📋 | Baseline PDF exists |
 | Real pitch **screenshots** + **sample exports** in repo | ✅ | `screenshots/01–08`; `npm run capture:screenshots` |
 | Bug fixes from pilot log | 🔄 | Ongoing |
+
+---
+
+## v2 — Branch Program (institutional module) 🔄
+
+**Mother hole, daughter holes, targets, and kickoff control.** Full spec: [branch-program.md](./branch-program.md).
+
+### Phase 1 — Foundation (shipped in prototype)
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Branch Program vision doc | ✅ | [branch-program.md](./branch-program.md) |
+| Kickoff from **actual** mother survey | ✅ | `branch-program.ts` |
+| DLS mother→daughter, kickoff ranking, C2C separation | ✅ | Unit tests |
+| Scenario Lab — 5 branch demos | ✅ | `branch-program-scenarios.ts` |
+| Advanced **Branch program** tab (read-only) | ✅ | Program map, branch table, kickoff comparison |
+| Simple mode branch summary strip | ✅ | Mother context, target, on-track, directional review flag |
+
+### Phase 2 — Full branch planning ✅
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Persist branch program in hole library | ✅ | Mother `branchProgram`, daughter lineage |
+| Editable targets + kickoff planner | ✅ | Rank with mother/sibling separation |
+| Active daughter + survey import routing | ✅ | Import modal; daughter-aware simple strip |
+| Approval gate + stale detection | ✅ | Snapshot on daughter ref |
+| Toolface planning estimate | ✅ | Planner + PDF; planning disclaimer |
+| Branch Planning Report PDF | ✅ | Export from Branch program tab |
+| Scenario Lab Phase 2 presets (5) | ✅ | `branch-p2-*` demos |
+| Anti-collision advanced (ellipse, separation factor) | 📋 | Phase 3 |
+| Scenario Lab custom branch builder | 📋 | Beyond presets |
 
 ---
 
@@ -103,7 +134,7 @@ Roadmap from **v1 / v1.1 prototype** (shipped) to **commercial field product**. 
 | Item | Priority | Notes |
 |------|----------|-------|
 | **3D trajectory enhancements** | High | Toolface, envelope solids, export frame |
-| **Steering modes** | High | DeviDrill, motor, wedge, branch workflows |
+| **Steering modes** | High | DeviDrill, motor, wedge capability integration (mother–daughter genealogy in [Branch Program](./branch-program.md)) |
 | **Toolface / dogleg capability** | Medium | Match recommendation to tooling |
 | **Target envelope editing** | Medium | Geologist tuning with audit |
 | **Integration: Seequent / acQuire / Micromine** | Medium | Export intercept context |

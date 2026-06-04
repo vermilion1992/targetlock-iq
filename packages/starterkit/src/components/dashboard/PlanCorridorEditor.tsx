@@ -7,11 +7,19 @@ type Props = {
   corridor: PlanCorridorConfig;
   status: PlanCorridorStatus | null;
   onChange: (next: PlanCorridorConfig) => void;
+  sanitizeField?: (
+    field: keyof PlanCorridorConfig,
+    raw: number,
+    previous: PlanCorridorConfig
+  ) => number;
 };
 
-export function PlanCorridorEditor({ corridor, status, onChange }: Props) {
+export function PlanCorridorEditor({ corridor, status, onChange, sanitizeField }: Props) {
   const set = (field: keyof PlanCorridorConfig, value: number) => {
-    onChange({ ...corridor, [field]: value });
+    const next = sanitizeField
+      ? sanitizeField(field, value, corridor)
+      : value;
+    onChange({ ...corridor, [field]: next });
   };
 
   return (
@@ -27,7 +35,7 @@ export function PlanCorridorEditor({ corridor, status, onChange }: Props) {
             type="number"
             value={corridor.intervalM}
             step={1}
-            onChange={(e) => set("intervalM", Math.max(1, Number(e.target.value)))}
+            onChange={(e) => set("intervalM", Number(e.target.value))}
           />
         </label>
         <label>
@@ -54,7 +62,7 @@ export function PlanCorridorEditor({ corridor, status, onChange }: Props) {
             type="number"
             step={0.05}
             value={corridor.allowedDipDevDeg}
-            onChange={(e) => set("allowedDipDevDeg", Math.max(0.05, Number(e.target.value)))}
+            onChange={(e) => set("allowedDipDevDeg", Number(e.target.value))}
           />
         </label>
         <label>
@@ -63,7 +71,7 @@ export function PlanCorridorEditor({ corridor, status, onChange }: Props) {
             type="number"
             step={0.05}
             value={corridor.allowedAziDevDeg}
-            onChange={(e) => set("allowedAziDevDeg", Math.max(0.05, Number(e.target.value)))}
+            onChange={(e) => set("allowedAziDevDeg", Number(e.target.value))}
           />
         </label>
         <label>
@@ -72,7 +80,7 @@ export function PlanCorridorEditor({ corridor, status, onChange }: Props) {
             type="number"
             step={0.1}
             value={corridor.positionOffsetM}
-            onChange={(e) => set("positionOffsetM", Math.max(0.1, Number(e.target.value)))}
+            onChange={(e) => set("positionOffsetM", Number(e.target.value))}
           />
         </label>
         <label>
@@ -81,7 +89,7 @@ export function PlanCorridorEditor({ corridor, status, onChange }: Props) {
             type="number"
             step={0.1}
             value={corridor.positionWidenPer100m ?? 0}
-            onChange={(e) => set("positionWidenPer100m", Math.max(0, Number(e.target.value)))}
+            onChange={(e) => set("positionWidenPer100m", Number(e.target.value))}
           />
         </label>
       </div>

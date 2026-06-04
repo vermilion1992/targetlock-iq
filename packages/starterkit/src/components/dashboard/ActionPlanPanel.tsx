@@ -3,6 +3,16 @@
 import { InfoTip } from "@/components/layout/InfoTip";
 import { round } from "@/lib/drilling/format";
 import {
+  ACTION_PLAN_PANEL_TIP,
+  actionGuidanceTip,
+  changeFromLatestSurveyLabel,
+  formatRecoveryActionDisplay,
+  NEXT_INTERVAL_AIM_HEADING,
+  nextCheckDepthMd,
+  nextIntervalAimExplainer,
+  nextIntervalAimTooltip,
+} from "@/lib/drilling/action-plan-copy";
+import {
   actionSentence,
   azimuthInstruction,
   dipInstruction,
@@ -24,8 +34,10 @@ function actionClass(action: string): string {
     case "On track":
       return "action-on-track";
     case "Watch":
+    case "Shorten interval":
       return "action-watch";
     case "Correct now":
+    case "Correction advisable":
       return "action-correct";
     case "Steering review":
       return "action-steer";
@@ -34,50 +46,46 @@ function actionClass(action: string): string {
   }
 }
 
-function actionGuidanceTip(action: string): string {
-  switch (action) {
-    case "On track":
-      return "Latest survey and projected miss are within target tolerance — no correction required.";
-    case "Watch":
-      return "Early warning: confirm trend on the next survey before committing to a full correction.";
-    case "Correct now":
-      return "Off plan but recoverable within configured dogleg limits — apply the recommended aim.";
-    case "Steering review":
-      return "Correction likely needs directional tooling — involve supervisor or directional crew.";
-    default:
-      return "Smooth recovery is unlikely — review wedge, branch, or revised hole objective.";
-  }
-}
-
 function InstructionChip({
-  axis,
   delta,
   text,
 }: {
-  axis: "dip" | "azimuth";
   delta: number;
   text: string;
 }) {
   const hold = !Number.isFinite(delta) || Math.abs(delta) < 0.05;
   const variant = hold
     ? "hold"
-    : axis === "dip"
-      ? delta < 0
-        ? "drop"
-        : "lift"
-      : delta < 0
-        ? "left"
-        : "right";
-  const arrow = hold ? "→" : axis === "dip" ? (delta < 0 ? "↘" : "↗") : delta < 0 ? "↰" : "↱";
+    : delta < 0
+      ? "drop"
+      : "lift";
+  const arrow = hold ? "→" : delta < 0 ? "↘" : "↗";
   return (
     <div className={`targetlock-instruction-chip instruction-${variant}`}>
       <span className="targetlock-instruction-arrow" aria-hidden>
         {arrow}
       </span>
-      <span>
-        <span className="targetlock-instruction-axis">{axis}</span>
-        <span className="targetlock-instruction-text">{text}</span>
+      <span className="targetlock-instruction-text">{text}</span>
+    </div>
+  );
+}
+
+function AzimuthChip({
+  delta,
+  text,
+}: {
+  delta: number;
+  text: string;
+}) {
+  const hold = !Number.isFinite(delta) || Math.abs(delta) < 0.05;
+  const variant = hold ? "hold" : delta < 0 ? "left" : "right";
+  const arrow = hold ? "→" : delta < 0 ? "↰" : "↱";
+  return (
+    <div className={`targetlock-instruction-chip instruction-${variant}`}>
+      <span className="targetlock-instruction-arrow" aria-hidden>
+        {arrow}
       </span>
+      <span className="targetlock-instruction-text">{text}</span>
     </div>
   );
 }
@@ -117,7 +125,7 @@ export function ActionPlanPanel({
         <div className="targetlock-panel-title">
           <h2>
             Action plan{" "}
-            <InfoTip tip="The next move for the driller: what to do, how to aim, and when to escalate." />
+            <InfoTip tip={ACTION_PLAN_PANEL_TIP} />
           </h2>
         </div>
         <div className="targetlock-empty">
@@ -131,9 +139,18 @@ export function ActionPlanPanel({
     );
   }
 
-  const currentAction = steering?.simple.currentAction ?? recommendation.classification.label;
+  const internalAction = steering?.simple.currentAction ?? recommendation.classification.label;
+  const currentAction = formatRecoveryActionDisplay(
+    internalAction,
+    steering?.bestMethodId
+  );
   const bestMethod = steering?.simple.bestMethod;
   const escalation = steering?.simple.escalation;
+  const nextAimTip = nextIntervalAimTooltip(recommendation, steering);
+  const changeLabel = changeFromLatestSurveyLabel(
+    recommendation.dipChange,
+    recommendation.aziChange
+  );
   const missDetail =
     recommendation.miss <= recommendation.tolerance
       ? `Inside ${round(recommendation.tolerance, 1)} m envelope`
@@ -147,7 +164,7 @@ export function ActionPlanPanel({
       <div className="targetlock-panel-title">
         <h2>
           Action plan{" "}
-          <InfoTip tip="The next move for the driller: what to do, how to aim, and when to escalate. Decision support only — site approval applies." />
+          <InfoTip tip={ACTION_PLAN_PANEL_TIP} />
         </h2>
         <span className="targetlock-mini-tag">
           {recommendation.classification.confidence} confidence
@@ -157,26 +174,33 @@ export function ActionPlanPanel({
       <div className={`targetlock-action-hero ${actionClass(currentAction)}`}>
         <div className="targetlock-action-hero-head">
           <span className="targetlock-action-hero-label">Current action</span>
-          <strong className="targetlock-action-hero-value">{currentAction}</strong>
+          <strong className="targetlock-action-hero-value">
+            {currentAction}
+          </strong>
         </div>
         {bestMethod ? (
-          <p className="targetlock-action-hero-method">
+          <div className="targetlock-action-hero-method">
             {bestMethod}{" "}
-            <InfoTip tip={actionGuidanceTip(currentAction)} />
-          </p>
+            <InfoTip tip={actionGuidanceTip(internalAction)} />
+          </div>
         ) : null}
       </div>
 
       <div className="targetlock-instruction targetlock-action-instruction">
-        <span className="targetlock-instruction-label">Driller instruction</span>
+        <span className="targetlock-instruction-label">
+          {NEXT_INTERVAL_AIM_HEADING}
+          <InfoTip tip={nextAimTip} />
+        </span>
+        <p className="targetlock-instruction-explainer">
+          {nextIntervalAimExplainer(recommendation.target.nextInterval)}
+        </p>
+        <span className="targetlock-instruction-sublabel">Change from latest survey</span>
         <div className="targetlock-instruction-chips">
           <InstructionChip
-            axis="dip"
             delta={recommendation.dipChange}
             text={dipInstruction(recommendation.dipChange)}
           />
-          <InstructionChip
-            axis="azimuth"
+          <AzimuthChip
             delta={recommendation.aziChange}
             text={azimuthInstruction(recommendation.aziChange)}
           />
@@ -186,14 +210,20 @@ export function ActionPlanPanel({
       <div className="targetlock-metrics-strip targetlock-action-metrics">
         <div className="targetlock-metrics-strip-grid" role="group" aria-label="Aim and risk metrics">
           <MetricCell
-            label="Aim dip"
+            label="Dip aim for next interval"
             amount={`${round(recommendation.aimDip, 1)}°`}
-            detail={dipInstruction(recommendation.dipChange)}
           />
           <MetricCell
-            label="Aim azimuth"
+            label="Azimuth aim for next interval"
             amount={`${round(recommendation.aimAzimuth, 1)}°`}
-            detail={azimuthInstruction(recommendation.aziChange)}
+          />
+          <MetricCell
+            label="Next check depth"
+            amount={nextCheckDepthMd(
+              recommendation.current.md,
+              recommendation.target.nextInterval
+            )}
+            tip="Depth to resurvey after drilling the next interval — then update TargetLock with the new station."
           />
           <MetricCell
             label="DLS required"
@@ -207,6 +237,7 @@ export function ActionPlanPanel({
             detail={missDetail}
           />
         </div>
+        <p className="targetlock-metric-change-detail">{changeLabel}</p>
       </div>
 
       {(corridorStatus?.outsidePlannedCorridor ||

@@ -1,4 +1,4 @@
-# TargetLock IQ — Screenshots (v1.2)
+# TargetLock IQ — Screenshots (v1.3)
 
 PNG captures for the pitch deck, leave-behind, and website.
 
@@ -15,9 +15,9 @@ PNG captures for the pitch deck, leave-behind, and website.
 | # | Filename | App state | Used on deck slide |
 |---|----------|-----------|-------------------|
 | 1 | `01-simple-dashboard.png` | Simple mode, sample loaded, **Action plan** visible | 1, 3 |
-| 2 | `02-simple-projected-miss.png` | Guide step 5 (*Projected target miss*); projected miss KPI accented | 4 |
-| 3 | `03-recommendation-aim.png` | Guide step 6; Action plan driller-instruction chips | 5 |
-| 4 | `09-action-plan.png` | Guide step 7 (*Recovery guidance*); full Action plan panel | 6 |
+| 2 | `02-simple-projected-miss.png` | Standard guide · step *Read the four key KPIs* (`kpis`); projected miss KPI accented | 4 |
+| 3 | `03-recommendation-aim.png` | Standard guide · step *Understand the Action Plan* (`action-plan`); aim chips | 5 |
+| 4 | `09-action-plan.png` | Standard guide · step *Understand the Action Plan*; full Action plan panel | 6 |
 | 5 | `10-steering-feasibility.png` | Advanced → **Steering feasibility** tab (verdict summary) | 7 |
 | 6 | `11-capability-assumptions.png` | Advanced → **Setup / assumptions** tab | 7 |
 | 7 | `02-advanced-dashboard.png` | Advanced; tab bar + active tab content | 8 |
@@ -25,6 +25,8 @@ PNG captures for the pitch deck, leave-behind, and website.
 | 9 | `05-trajectory-3d.png` | Advanced → **Trajectory** tab; 3D after slight drag | 9 |
 | 10 | `07-export-handover-buttons.png` | Sidebar Export TXT + Export PDF | 10 |
 | 11 | `08-pdf-handover-preview.png` | Open `/pitch-handover-preview.html` or exported PDF page 1 | 10 |
+
+| 12 | `12-branch-program-readonly.png` | Advanced → **Branch program** tab; Scenario lab → **Mother + 2 daughters** | Appendix B |
 
 **Legacy names** (still useful): `03-hole-library.png`, `06-pitch-correction-step.png`, `06-decision-history.png`.
 
@@ -41,19 +43,19 @@ PNG captures for the pitch deck, leave-behind, and website.
 
 ### 02 — Projected miss
 
-1. **Guide** → start tour  
-2. **Next** to step 5 (*Projected target miss*) — one extra **Next** after step 2 (*Scenario Lab*)  
+1. **Guide** → **Standard hole workflow** → **Start guide**  
+2. **Next** to *Read the four key KPIs* (step 6) — optional **Load demo: gradual drift**  
 3. Capture viewport; projected miss KPI should show status accent  
-4. Prefer capture **without** blue tour highlight for static deck (pause tour or crop)  
+4. Prefer capture **without** blue guide highlight for static deck (Exit guide or crop)  
 
 ### 03 — Recommendation aim
 
-1. Tour step 6 (*Driller-friendly correction*)  
+1. Standard guide step *Understand the Action Plan* (step 7)  
 2. Crop to *Next interval aim* panel if needed for slide 5  
 
 ### 09 — Action plan ★ hero
 
-1. Tour step 7 (*Recovery guidance*)  
+1. Standard guide step *Understand the Action Plan*  
 2. Full-width capture of the **Action plan** panel  
 3. Verify: Current action (hero), Best method (tentative phrase), driller chips, aim/DLS/miss metrics, Escalate by  
 
@@ -70,13 +72,13 @@ PNG captures for the pitch deck, leave-behind, and website.
 
 ### 06 — Decision history (governance slide)
 
-1. Tour step 9 (*Add the next survey*)  
-2. **Use aim** → **Add survey**  
+1. Standard guide steps *Add a new survey manually* / *Fill from action plan*  
+2. **Fill from action plan** → **Add survey**  
 3. Advanced → **Decisions** tab → Decision history with new entry  
 
 ### 07–08 — Export
 
-1. **End tour**  
+1. **Exit guide**  
 2. Sidebar → Export buttons  
 3. PDF preview: http://localhost:3000/pitch-handover-preview.html — confirm **Recovery guidance** and **Recovery capability assumptions** sections visible  
 
@@ -87,8 +89,8 @@ PNG captures for the pitch deck, leave-behind, and website.
 | Filename | App state |
 |----------|-----------|
 | `03-hole-library.png` | Sidebar hole library with 2+ holes |
-| `06-pitch-correction-step.png` | Tour step 6 full dashboard |
-| `12-guide-tour-step7.png` | Tour chrome + recovery panel (for “live demo” slide) |
+| `06-pitch-correction-step.png` | Standard guide · *Understand the Action Plan* full dashboard |
+| `12-guide-tour-step7.png` | Guide chrome + action plan (for “live demo” slide) |
 | `13-correction-options-table.png` | Advanced correction options |
 | `14-deviation-chart.png` | Advanced deviation chart |
 | `15-manual-survey-entry.png` | Sidebar manual survey with aim filled |

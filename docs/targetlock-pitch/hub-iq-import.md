@@ -35,8 +35,8 @@ Same as planned for `md`, `dip`/`inclination`, `azimuth`. Tolerance columns are 
 ## Import workflow
 
 1. Export planned trajectory and actual surveys from HUB-IQ / SURVEY-IQ (or use company CSV standard).  
-2. In TargetLock IQ, **Planned CSV** → select planned file.  
-3. **Actual CSV** → select actual file.  
+2. In TargetLock IQ, **Hole plan** → select planned file.  
+3. **Survey results** → select actual file.  
 4. **Use planned target** to snap target MD/position from plan.  
 5. Review recommendation and log supervisor decision (Advanced).
 

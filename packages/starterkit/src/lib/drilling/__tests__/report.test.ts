@@ -57,6 +57,17 @@ describe("report", () => {
     expect(text).toContain("RECOVERY GUIDANCE");
     expect(text).toContain("Current action:");
     expect(text).toContain("Best method:");
+    expect(text).toContain("Recovery loop:");
+    expect(text).toContain("repeated survey-control process");
+  });
+
+  it("uses next interval aim section in text report", () => {
+    const text = buildReportText(reco, sampleActualStations, {
+      holeName: "DDH-0247",
+    });
+    expect(text).toContain("NEXT INTERVAL AIM");
+    expect(text).toContain("Re-survey and recalculate at the next station");
+    expect(text).not.toContain("Driller guidance:");
   });
 
   it("includes recovery capability assumptions in text report", () => {

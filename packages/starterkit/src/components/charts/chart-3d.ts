@@ -1,5 +1,9 @@
 import type { Recommendation, SurveyStation } from "@/lib/drilling/types";
 import {
+  branchTrajectoryColors,
+  type BranchChartOverlay,
+} from "./chart-branch-overlay";
+import {
   CHART,
   CHART_FONT_AXIS,
   drawCanvasBackdrop,
@@ -163,12 +167,20 @@ export function buildScene3D(
   planStations: SurveyStation[],
   actualStations: SurveyStation[],
   recommendation: Recommendation | null,
-  view: View3D
+  view: View3D,
+  branchOverlay?: BranchChartOverlay | null
 ): { layout: Scene3DLayout; actualMarkers: StationMarkerHit[] } {
   const points: Point3[] = [
     ...planStations.map((s) => ({ e: s.e, n: s.n, d: s.d })),
     ...actualStations.map((s) => ({ e: s.e, n: s.n, d: s.d })),
   ];
+  branchOverlay?.extraTrajectories?.forEach((t) =>
+    t.stations.forEach((s) => points.push({ e: s.e, n: s.n, d: s.d }))
+  );
+  branchOverlay?.targetMarkers?.forEach((t) => points.push({ e: t.e, n: t.n, d: t.d }));
+  branchOverlay?.kickoffMarkers?.forEach((k) =>
+    points.push({ e: k.station.e, n: k.station.n, d: k.station.d })
+  );
   if (recommendation) {
     points.push({
       e: recommendation.target.e,
@@ -387,6 +399,7 @@ function drawPathStationDots(
 
 export type Draw3DOptions = {
   highlightMd?: number | null;
+  branchOverlay?: BranchChartOverlay | null;
 };
 
 export function drawTrajectory3D(
@@ -420,7 +433,8 @@ export function drawTrajectory3D(
     planStations,
     actualStations,
     recommendation,
-    view
+    view,
+    options?.branchOverlay
   );
   const bound = layout.bound;
 
@@ -485,6 +499,35 @@ export function drawTrajectory3D(
     CHART.actual,
     options?.highlightMd
   );
+
+  options?.branchOverlay?.extraTrajectories?.forEach((traj, i) => {
+    const colors = branchTrajectoryColors(traj, i);
+    drawPath3D(
+      ctx,
+      traj.stations.map((s) => ({ e: s.e, n: s.n, d: s.d })),
+      view,
+      layout,
+      colors.stroke,
+      colors.glow,
+      2.5
+    );
+  });
+  const { centerX: cx, centerY: cy, scale: sc, origin: org } = layout;
+  options?.branchOverlay?.kickoffMarkers?.forEach((k) => {
+    const p = projectPoint(
+      { e: k.station.e, n: k.station.n, d: k.station.d },
+      view,
+      cx,
+      cy,
+      sc,
+      org
+    );
+    drawMarker(ctx, p.x, p.y, CHART.kickoff, k.label, 5);
+  });
+  options?.branchOverlay?.targetMarkers?.forEach((t) => {
+    const p = projectPoint({ e: t.e, n: t.n, d: t.d }, view, cx, cy, sc, org);
+    drawMarker(ctx, p.x, p.y, CHART.branchTarget, t.label, 5);
+  });
 
   if (recommendation) {
     const { centerX, centerY, scale, origin } = layout;

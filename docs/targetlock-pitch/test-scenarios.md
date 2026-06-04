@@ -105,11 +105,43 @@ Use this to build holes without confidential data when the seven presets are not
 
 ---
 
+## Branch program scenarios
+
+**Load in app:** Top bar → **Scenario lab** → **Branch programs** tab → **Load scenario**.
+
+Each demo loads the **mother hole** into the library (plan, actual, target) and **imports a persisted branch program** with daughter hole entries. Exports show `Scenario lab · Branch · {name}` when active.
+
+### Phase 1 demos
+
+| # | Scenario | Teaching goal | Inspect |
+|---|----------|---------------|---------|
+| 1 | **Mother + 2 daughters** | Easy vs marginal DLS to two targets | Branch program tab, branch table |
+| 2 | **Bad kickoff selection** | Shallow vs deep kickoff rank differs | Kickoff planner top-3 cards |
+| 3 | **Daughter toward mother** | Separation warning | Separation column, program map |
+| 4 | **Wedge recovery** | Mother miss; daughter as recovery | Mother vs plan in Trajectory tab |
+| 5 | **Multi-target RD** | Three daughters, three pierce points | Program map, branch table |
+
+### Phase 2 demos
+
+| # | ID | Scenario | Teaching goal |
+|---|-----|----------|---------------|
+| 6 | `branch-p2-approved-daughter` | P2 approved daughter | Approval snapshot + PDF sign-off |
+| 7 | `branch-p2-kickoff-compare` | P2 kickoff comparison | Wide MD window, ranked table |
+| 8 | `branch-p2-near-mother` | P2 near mother | Separation caution |
+| 9 | `branch-p2-three-target` | P2 three-target program | Target library + planner |
+| 10 | `branch-p2-abandoned-recovery` | P2 abandoned + recovery | Daughter statuses |
+
+**Code:** `packages/starterkit/src/lib/drilling/branch-program-scenarios.ts` · `branch-program-library.ts` · `branch-program.ts`
+
+---
+
 ## Maintenance
 
 Scenario data and expected outcomes are locked in code:
 
 - `packages/starterkit/src/lib/drilling/test-scenarios.ts`
+- `packages/starterkit/src/lib/drilling/branch-program-scenarios.ts`
 - `packages/starterkit/src/lib/drilling/__tests__/test-scenarios.test.ts`
+- `packages/starterkit/src/lib/drilling/__tests__/branch-program.test.ts`
 
 If you change drift parameters, re-run `npm run test` and update this document.

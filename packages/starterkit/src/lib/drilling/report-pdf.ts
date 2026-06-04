@@ -133,7 +133,19 @@ export async function buildHandoverPdfBlob(data: HandoverReportData): Promise<Bl
   y += 16;
 
   sectionTitle("Next interval aim");
-  ensureSpace(32);
+  ensureSpace(40);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(...COLORS.muted);
+  const aimNoteLines = doc.splitTextToSize(
+    `${data.nextIntervalAimNote} ${data.nextIntervalAimExplainer}`,
+    contentWidth
+  );
+  aimNoteLines.forEach((line: string) => {
+    doc.text(line, margin, y);
+    y += 4.2;
+  });
+  y += 3;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(...COLORS.ink);
@@ -168,6 +180,8 @@ export async function buildHandoverPdfBlob(data: HandoverReportData): Promise<Bl
       `Escalation: ${rg.escalation}`,
       `Point of no return: ${rg.pointOfNoReturn}`,
       `Within assumptions: ${rg.methodSummary}`,
+      ...data.recoveryLoopNotes,
+      ...(data.feasibilityEscalationNote ? [data.feasibilityEscalationNote] : []),
     ];
     recoveryLines.forEach((line) => {
       ensureSpace(5);

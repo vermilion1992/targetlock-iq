@@ -240,7 +240,7 @@ export function buildActionHeroGuidance(
       );
     case "Correct now":
       if (reco.dlsRequired <= reco.maxDls + EPS) {
-        return `Apply the recommended aim over the next ${interval} m. Required DLS is within the configured limit.`;
+        return `Aim over the next ${interval} m within the configured dogleg limit, then resurvey and recalculate.`;
       }
       return (
         bestRow?.phrase ??

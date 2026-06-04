@@ -1,5 +1,7 @@
 # TargetLock IQ — Internal testing checklist (v1.3)
 
+**For v2 RC1 pilot gate, use:** [release-candidate-checklist.md](./release-candidate-checklist.md) (branch workflow, JSON package, recovery UX).
+
 **Purpose:** Structured internal testing before showing TargetLock IQ to a wider pilot audience.  
 **App route:** http://localhost:3000/targetlock (`packages/starterkit`)  
 **Version under test:** v1.3 — Scenario lab, plan corridor tolerance, survey tool profile, plus existing trajectory/recovery engine (classification math unchanged; corridor and survey layers are **advisory**).

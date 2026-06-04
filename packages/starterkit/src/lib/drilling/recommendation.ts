@@ -116,13 +116,13 @@ export function actionSentence(reco: Recommendation): string {
   const aziMove = azimuthInstruction(reco.aziChange).toLowerCase();
 
   if (status === "On track") {
-    return `Continue drilling. Current projection is inside the ${round(reco.tolerance, 1)} m target envelope. Resurvey at the planned interval.`;
+    return `Projection is inside the ${round(reco.tolerance, 1)} m target envelope. Continue per plan and resurvey at the planned interval.`;
   }
   if (status === "Watch") {
-    return `Monitor closely. Aim for ${round(reco.aimDip, 1)} deg dip and ${round(reco.aimAzimuth, 1)} deg azimuth over the next ${round(reco.target.nextInterval, 0)} m. Shorten the next survey interval if the drift continues.`;
+    return `Monitor closely. For discussion: aim near ${round(reco.aimDip, 1)}° dip and ${round(reco.aimAzimuth, 1)}° azimuth over the next ${round(reco.target.nextInterval, 0)} m. Consider a shorter survey interval if drift continues.`;
   }
   if (status === "Correction needed") {
-    return `Correct now. ${dipMove} and ${aziMove} from the current direction. The required DLS is inside the configured limit.`;
+    return `A correction is advisable within the configured DLS window: ${dipMove} and ${aziMove} from the current direction. Confirm with site procedures before applying at the rig.`;
   }
   if (status === "Steering recommended") {
     return `Escalate for steering review. Natural correction may be marginal; assess directional tooling, a shorter survey interval, or revised target tolerance before drilling another full interval.`;

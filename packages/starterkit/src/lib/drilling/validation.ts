@@ -56,7 +56,7 @@ export function buildPlanSanityCheck(
   if (planStations.length === 0) {
     return {
       rows: [],
-      warnings: ["No planned trajectory loaded. Load a planned CSV to run the sanity check."],
+      warnings: ["No planned trajectory loaded. Load a hole plan to run the sanity check."],
       hasPlan: false,
     };
   }
