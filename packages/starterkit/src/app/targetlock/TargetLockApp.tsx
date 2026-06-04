@@ -62,12 +62,12 @@ import {
   confirmClearAssumptionsSignOff,
   confirmClearDecisionHistory,
   confirmImportHolePackage,
+  confirmLoadScenario,
   confirmResetActiveHole as resetActiveHoleConfirm,
   confirmResetAllLocalData as resetAllLocalDataConfirm,
   confirmResetRecoveryAssumptions,
 } from "@/lib/drilling/confirm-actions";
 import {
-  describeDestructiveScenarioLoad,
   describeGuideDemoExitConfirm,
   describeGuideDemoRestartConfirm,
   describeImportTargetCancelConfirm,
@@ -611,44 +611,38 @@ export default function TargetLockApp() {
     setTimeout(fillNextSurveyFromAim, 0);
   };
 
-  const handleLoadTestScenario = (scenarioId: string) => {
+  const handleLoadTestScenario = async (scenarioId: string): Promise<boolean> => {
     const scenario = findScenario(scenarioId);
-    const label = scenario?.name.replace(/^TEST · /, "") ?? scenarioId;
-    if (
-      !window.confirm(describeDestructiveScenarioLoad(label))
-    ) {
-      return;
-    }
+    const label = scenario?.name ?? scenarioId;
+    if (!(await confirm(confirmLoadScenario(label)))) return false;
     const message = loadTestScenario(scenarioId);
     setAppMessage(message);
     setManualMessage("Add the next survey as it comes off the camera.");
     fillNextSurveyFromAim();
+    return true;
   };
 
-  const handleLoadBranchScenario = (scenarioId: string) => {
+  const handleLoadBranchScenario = async (scenarioId: string): Promise<boolean> => {
     const scenario = findBranchScenario(scenarioId);
     const label = scenario?.name ?? scenarioId;
-    if (!window.confirm(describeDestructiveScenarioLoad(label))) {
-      return;
-    }
+    if (!(await confirm(confirmLoadScenario(label)))) return false;
     const message = loadBranchScenario(scenarioId);
     setAppMessage(message);
     setManualMessage("Branch program loaded — review Branch program tab (Advanced).");
     setMode("advanced");
     setAdvancedTab("branch-program");
     fillNextSurveyFromAim();
+    return true;
   };
 
-  const handleLoadSyntheticHole = (params: SyntheticHoleParams): string => {
+  const handleLoadSyntheticHole = async (params: SyntheticHoleParams): Promise<boolean> => {
     const label = params.holeName.trim() || "Custom scenario";
-    if (!window.confirm(describeDestructiveScenarioLoad(label))) {
-      return "Load cancelled.";
-    }
+    if (!(await confirm(confirmLoadScenario(label)))) return false;
     const message = loadSyntheticHole(params);
     setAppMessage(message);
     setManualMessage("Synthetic hole loaded — add surveys or review action plan.");
     fillNextSurveyFromAim();
-    return message;
+    return true;
   };
 
   const handleExportReport = () => {

@@ -11,7 +11,7 @@ import {
 import { validateSyntheticHoleParams } from "@/lib/drilling/workspace-action-contract";
 
 type Props = {
-  onGenerate: (params: SyntheticHoleParams) => string;
+  onGenerate: (params: SyntheticHoleParams) => Promise<boolean>;
 };
 
 export function ScenarioCustomBuilder({ onGenerate }: Props) {
@@ -36,10 +36,12 @@ export function ScenarioCustomBuilder({ onGenerate }: Props) {
     );
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!canGenerate) return;
-    const message = onGenerate(params);
-    setPreview(message);
+    const loaded = await onGenerate(params);
+    if (loaded) {
+      setPreview("Scenario generated and loaded.");
+    }
   };
 
   return (

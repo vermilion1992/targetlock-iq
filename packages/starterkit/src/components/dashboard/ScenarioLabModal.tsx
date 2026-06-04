@@ -12,9 +12,9 @@ type TabId = "builtin" | "custom" | "branch";
 type Props = {
   open: boolean;
   onClose: () => void;
-  onLoadScenario: (scenarioId: string) => void;
-  onLoadBranchScenario: (scenarioId: string) => void;
-  onGenerateScenario: (params: SyntheticHoleParams) => string;
+  onLoadScenario: (scenarioId: string) => Promise<boolean>;
+  onLoadBranchScenario: (scenarioId: string) => Promise<boolean>;
+  onGenerateScenario: (params: SyntheticHoleParams) => Promise<boolean>;
 };
 
 export function ScenarioLabModal({
@@ -39,20 +39,18 @@ export function ScenarioLabModal({
 
   if (!open) return null;
 
-  const handleLoadScenario = (scenarioId: string) => {
-    onLoadScenario(scenarioId);
-    onClose();
+  const handleLoadScenario = async (scenarioId: string) => {
+    if (await onLoadScenario(scenarioId)) onClose();
   };
 
-  const handleLoadBranchScenario = (scenarioId: string) => {
-    onLoadBranchScenario(scenarioId);
-    onClose();
+  const handleLoadBranchScenario = async (scenarioId: string) => {
+    if (await onLoadBranchScenario(scenarioId)) onClose();
   };
 
-  const handleGenerateScenario = (params: SyntheticHoleParams) => {
-    const message = onGenerateScenario(params);
-    onClose();
-    return message;
+  const handleGenerateScenario = async (params: SyntheticHoleParams): Promise<boolean> => {
+    const loaded = await onGenerateScenario(params);
+    if (loaded) onClose();
+    return loaded;
   };
 
   const tabPanelId = (id: TabId) => `scenario-lab-panel-${id}`;

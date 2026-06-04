@@ -88,6 +88,22 @@ export function confirmClearAssumptionsSignOff(): TargetLockConfirmRequest {
   };
 }
 
+export function confirmLoadScenario(label: string): TargetLockConfirmRequest {
+  const display = label.replace(/^TEST · /, "").trim();
+  return {
+    title: `Load “${display}”?`,
+    description:
+      "Replace the active hole’s plan, surveys, target, and branch context with test data.",
+    details: [
+      "Synthetic scenario for training and validation on this browser.",
+      "Export a hole package first if you need to keep the current hole state.",
+    ],
+    notice: "Not a live drilling record — validate conclusions against real surveys before field use.",
+    confirmLabel: "Load scenario",
+    variant: "warning",
+  };
+}
+
 export function confirmImportHolePackage(fileName: string, holeCount: number): TargetLockConfirmRequest {
   return {
     title: "Import hole package?",
