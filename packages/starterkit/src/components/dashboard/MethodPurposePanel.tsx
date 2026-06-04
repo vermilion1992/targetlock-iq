@@ -1,49 +1,58 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { ReferenceDocSection } from "@/components/dashboard/ReferenceDocSection";
 import { InfoTip } from "@/components/layout/InfoTip";
 
-function MethodSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="targetlock-method-section">
-      <h3>{title}</h3>
-      {children}
-    </section>
-  );
-}
+const ROLES = [
+  {
+    label: "Drillers",
+    detail: "Clear next-survey guidance without reading raw survey files.",
+  },
+  {
+    label: "Geologists",
+    detail: "Target risk, projected miss, and trajectory context.",
+  },
+  {
+    label: "Supervisors",
+    detail: "Handover reports, decision history, and approvals.",
+  },
+  {
+    label: "Directional contractors",
+    detail: "Structured context for feasibility and correction review.",
+  },
+] as const;
 
 export function MethodPurposePanel() {
   return (
-    <article className="targetlock-panel targetlock-method-panel">
+    <article className="targetlock-panel targetlock-ref-panel">
       <div className="targetlock-panel-title">
         <h2>
           Method &amp; Purpose{" "}
           <InfoTip tip="TargetLock IQ is decision support only. It organizes plan, survey, and tolerance context to help teams decide what to do next — it does not certify surveys or replace site sign-off." />
         </h2>
-        <span className="targetlock-mini-tag">Reference</span>
+        <span className="targetlock-mini-tag targetlock-ref-tag">Reference</span>
       </div>
-      <p className="targetlock-panel-copy">
-        Guide Center explains how to use the app. Math reference explains how calculations work.
-        This tab explains why TargetLock IQ exists and what drilling decisions it supports.
-      </p>
 
-      <div className="targetlock-method-sections">
-        <MethodSection title="Purpose">
+      <div className="targetlock-ref-lead" role="note">
+        <p className="targetlock-ref-lead-kicker">Why this tab exists</p>
+        <p>
+          <strong>Guide Center</strong> explains how to use the app. <strong>Math reference</strong>{" "}
+          explains how calculations work. This tab explains why TargetLock IQ exists and what
+          drilling decisions it supports.
+        </p>
+      </div>
+
+      <div className="targetlock-ref-sections">
+        <ReferenceDocSection title="Purpose" badge="01" variant="highlight">
           <p>
             TargetLock IQ turns hole plans and survey results into practical drilling decision
             support. It helps teams understand whether a hole is on plan, drifting, recoverable
             within tolerance, or needs technical review before the next survey or correction.
           </p>
-        </MethodSection>
+        </ReferenceDocSection>
 
-        <MethodSection title="What TargetLock provides">
-          <ul>
+        <ReferenceDocSection title="What TargetLock provides" badge="02">
+          <ul className="targetlock-ref-list">
             <li>Hole plan vs actual survey comparison and current position</li>
             <li>Projected target miss and offset from plan</li>
             <li>Simple action plan for the next survey interval</li>
@@ -57,56 +66,48 @@ export function MethodPurposePanel() {
               <InfoTip tip="Structured mother-hole context, daughter targets, kickoff ranking, separation checks, and branch handover PDFs — planning aid only; field execution and contractor design remain separate." />
             </li>
           </ul>
-        </MethodSection>
+        </ReferenceDocSection>
 
-        <MethodSection title="Who it helps">
-          <ul>
-            <li>
-              <strong>Drillers</strong> — clear next-survey guidance without reading raw survey
-              files
-            </li>
-            <li>
-              <strong>Geologists</strong> — target risk, projected miss, and trajectory context
-            </li>
-            <li>
-              <strong>Supervisors</strong> — handover reports, decision history, and approvals
-            </li>
-            <li>
-              <strong>Directional contractors</strong> — structured context for feasibility and
-              correction review
-            </li>
-          </ul>
-        </MethodSection>
+        <ReferenceDocSection title="Who it helps" badge="03">
+          <div className="targetlock-ref-role-grid">
+            {ROLES.map((role) => (
+              <div key={role.label} className="targetlock-ref-role-card">
+                <span className="targetlock-ref-role-label">{role.label}</span>
+                <p>{role.detail}</p>
+              </div>
+            ))}
+          </div>
+        </ReferenceDocSection>
 
-        <MethodSection title="What it does not replace">
-          <ul>
+        <ReferenceDocSection title="What it does not replace" badge="04" variant="caution">
+          <ul className="targetlock-ref-list">
             <li>Certified survey deliverables and independent QC systems</li>
             <li>Site geological validation and orebody interpretation</li>
             <li>Geologist and supervisor judgement on target and risk acceptance</li>
             <li>Directional drilling contractor design and tool selection approval</li>
             <li>Formal company sign-off, procedures, and regulatory obligations</li>
           </ul>
-        </MethodSection>
+        </ReferenceDocSection>
 
-        <MethodSection title="Why it matters">
-          <ul>
+        <ReferenceDocSection title="Why it matters" badge="05">
+          <ul className="targetlock-ref-list">
             <li>Earlier drift detection before miss compounds at target depth</li>
             <li>Better shift handovers with a shared view of plan vs actual</li>
             <li>Less guesswork between surveys on whether a correction is advisable</li>
             <li>Clearer communication between field crews and technical teams</li>
             <li>Safer, more defensible decisions with traceable assumptions</li>
           </ul>
-        </MethodSection>
+        </ReferenceDocSection>
 
-        <MethodSection title="Operating principle">
-          <blockquote className="targetlock-method-principle">
+        <ReferenceDocSection title="Operating principle" badge="06" variant="highlight">
+          <blockquote className="targetlock-ref-principle">
             Smart underneath, calm on top.
           </blockquote>
-          <p className="targetlock-panel-footnote">
+          <p className="targetlock-ref-muted">
             Rigorous geometry and feasibility sit behind the interface; the working view stays
             concise for field use.
           </p>
-        </MethodSection>
+        </ReferenceDocSection>
       </div>
     </article>
   );

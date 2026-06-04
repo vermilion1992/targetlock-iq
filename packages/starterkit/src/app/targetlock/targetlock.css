@@ -1658,7 +1658,367 @@
   color: var(--tl-ink);
 }
 
-/* ---------- Method & Purpose (advanced) ---------- */
+/* ---------- Reference docs: Method & Purpose, Roadmap (advanced) ---------- */
+.targetlock-ref-panel .targetlock-panel-title {
+  margin-bottom: var(--tl-gap-inner);
+}
+
+.targetlock-ref-tag {
+  letter-spacing: 0.04em;
+}
+
+.targetlock-ref-tag--future {
+  color: var(--tl-blue);
+  border-color: color-mix(in srgb, var(--tl-blue) 35%, var(--tl-line));
+  background: var(--tl-blue-soft);
+}
+
+.targetlock-ref-lead {
+  margin: 0 0 var(--tl-gap-card);
+  padding: var(--tl-gap-card);
+  border: 1px solid color-mix(in srgb, var(--tl-blue) 22%, var(--tl-line));
+  border-left: 4px solid var(--tl-blue);
+  border-radius: var(--tl-radius-sm);
+  background: linear-gradient(
+    135deg,
+    var(--tl-blue-soft) 0%,
+    color-mix(in srgb, var(--tl-blue-soft) 40%, var(--tl-surface)) 100%
+  );
+}
+
+.targetlock-ref-lead--scope {
+  border-left-color: var(--tl-muted);
+  background: linear-gradient(
+    135deg,
+    var(--tl-panel-soft) 0%,
+    var(--tl-surface) 100%
+  );
+}
+
+.targetlock-ref-lead-kicker {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tl-faint);
+}
+
+.targetlock-ref-lead > p:last-child {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--tl-ink);
+}
+
+.targetlock-ref-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tl-gap-card);
+}
+
+.targetlock-ref-sections--roadmap {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--tl-gap-card);
+  align-items: stretch;
+}
+
+.targetlock-ref-sections--roadmap > .targetlock-ref-section {
+  height: 100%;
+}
+
+.targetlock-ref-sections--roadmap .targetlock-ref-section-body {
+  flex: 1;
+}
+
+.targetlock-ref-sections--roadmap .targetlock-ref-limitation {
+  margin-top: auto;
+}
+
+@media (max-width: 900px) {
+  .targetlock-ref-sections--roadmap {
+    grid-template-columns: 1fr;
+  }
+}
+
+.targetlock-ref-section {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--tl-line);
+  border-radius: var(--tl-radius-sm);
+  background: var(--tl-surface);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--tl-ink) 4%, transparent);
+  overflow: hidden;
+}
+
+.targetlock-ref-section--default {
+  border-top: 3px solid var(--tl-line);
+}
+
+.targetlock-ref-section--highlight {
+  border-top: 3px solid var(--tl-blue);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tl-blue-soft) 55%, var(--tl-surface)) 0%,
+    var(--tl-surface) 48px
+  );
+}
+
+.targetlock-ref-section--caution {
+  border-top: 3px solid var(--tl-amber);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #fff4e8 80%, var(--tl-surface)) 0%,
+    var(--tl-surface) 56px
+  );
+}
+
+.targetlock-ref-section--field {
+  border-top: 3px solid var(--tl-green);
+}
+
+.targetlock-ref-section--integration {
+  border-top: 3px solid var(--tl-blue);
+}
+
+.targetlock-ref-section-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tl-gap-inner);
+  padding: var(--tl-gap-inner) var(--tl-gap-card);
+  border-bottom: 1px solid var(--tl-line);
+  background: var(--tl-panel-soft);
+}
+
+.targetlock-ref-section--field .targetlock-ref-section-head {
+  background: color-mix(in srgb, var(--tl-green) 6%, var(--tl-panel-soft));
+}
+
+.targetlock-ref-section--integration .targetlock-ref-section-head {
+  background: color-mix(in srgb, var(--tl-blue) 8%, var(--tl-panel-soft));
+}
+
+.targetlock-ref-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: var(--tl-chip-radius);
+  border: 1px solid var(--tl-line);
+  background: var(--tl-surface);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--tl-muted);
+}
+
+.targetlock-ref-section--field .targetlock-ref-badge {
+  border-color: color-mix(in srgb, var(--tl-green) 35%, var(--tl-line));
+  color: var(--tl-green);
+  background: color-mix(in srgb, var(--tl-green) 8%, var(--tl-surface));
+}
+
+.targetlock-ref-section--integration .targetlock-ref-badge {
+  border-color: color-mix(in srgb, var(--tl-blue) 35%, var(--tl-line));
+  color: var(--tl-blue);
+  background: var(--tl-blue-soft);
+}
+
+.targetlock-ref-section-head h3 {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--tl-ink);
+}
+
+.targetlock-ref-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tl-gap-inner);
+  padding: var(--tl-gap-card);
+}
+
+.targetlock-ref-section-body > p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--tl-ink);
+}
+
+.targetlock-ref-section-intro {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--tl-muted);
+}
+
+.targetlock-ref-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tl-ink);
+}
+
+.targetlock-ref-list li {
+  position: relative;
+  padding-left: 1.35rem;
+}
+
+.targetlock-ref-list li + li {
+  margin-top: 0.45rem;
+}
+
+.targetlock-ref-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.45em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tl-blue);
+}
+
+.targetlock-ref-section--field .targetlock-ref-list li::before {
+  background: var(--tl-green);
+}
+
+.targetlock-ref-section--caution .targetlock-ref-list li::before {
+  background: var(--tl-amber);
+}
+
+.targetlock-ref-role-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--tl-gap-inner);
+}
+
+@media (max-width: 640px) {
+  .targetlock-ref-role-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.targetlock-ref-role-card {
+  padding: var(--tl-gap-inner);
+  border: 1px solid var(--tl-line);
+  border-radius: var(--tl-radius-xs);
+  background: var(--tl-panel-soft);
+}
+
+.targetlock-ref-role-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--tl-blue);
+}
+
+.targetlock-ref-role-card p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--tl-muted);
+}
+
+.targetlock-ref-limitation {
+  padding: var(--tl-gap-inner);
+  border: 1px solid color-mix(in srgb, var(--tl-amber) 35%, var(--tl-line));
+  border-radius: var(--tl-radius-xs);
+  background: color-mix(in srgb, #fff8f0 70%, var(--tl-surface));
+}
+
+.targetlock-ref-limitation strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--tl-amber);
+}
+
+.targetlock-ref-limitation p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--tl-ink);
+}
+
+.targetlock-ref-principle {
+  margin: 0;
+  padding: var(--tl-gap-card);
+  border: none;
+  border-left: 4px solid var(--tl-blue);
+  border-radius: var(--tl-radius-xs);
+  font-size: 17px;
+  font-weight: 600;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--tl-ink);
+  background: var(--tl-blue-soft);
+}
+
+.targetlock-ref-muted {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--tl-muted);
+}
+
+.targetlock-ref-closing {
+  margin-top: var(--tl-gap-card);
+  padding: var(--tl-gap-inner) var(--tl-gap-card);
+  border: 1px dashed color-mix(in srgb, var(--tl-blue) 30%, var(--tl-line));
+  border-radius: var(--tl-radius-sm);
+  background: var(--tl-panel-soft);
+  text-align: center;
+}
+
+.targetlock-ref-closing p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--tl-muted);
+}
+
+/* Method & Purpose + Roadmap only — flat white section cards (no grey fills) */
+article.targetlock-ref-panel .targetlock-ref-section,
+article.targetlock-ref-panel .targetlock-ref-section--highlight,
+article.targetlock-ref-panel .targetlock-ref-section--caution,
+article.targetlock-ref-panel .targetlock-ref-section--field,
+article.targetlock-ref-panel .targetlock-ref-section--integration {
+  background: var(--tl-panel);
+}
+
+article.targetlock-ref-panel .targetlock-ref-section-head,
+article.targetlock-ref-panel .targetlock-ref-section--field .targetlock-ref-section-head,
+article.targetlock-ref-panel .targetlock-ref-section--integration .targetlock-ref-section-head {
+  background: transparent;
+}
+
+article.targetlock-ref-panel .targetlock-ref-role-card {
+  background: var(--tl-panel);
+}
+
+article.targetlock-ref-panel .targetlock-ref-closing,
+article.targetlock-ref-panel .targetlock-ref-lead--scope {
+  background: var(--tl-panel);
+}
+
+/* Legacy aliases (method panel class names) */
 .targetlock-method-sections {
   display: flex;
   flex-direction: column;
@@ -1670,32 +2030,6 @@
   border: 1px solid var(--tl-line);
   border-radius: var(--tl-radius-sm);
   background: var(--tl-panel-soft);
-}
-
-.targetlock-method-section h3 {
-  margin: 0 0 var(--tl-gap-tight);
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--tl-ink);
-}
-
-.targetlock-method-section > p {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--tl-ink);
-}
-
-.targetlock-method-section ul {
-  margin: 0;
-  padding-left: 1.25rem;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--tl-ink);
-}
-
-.targetlock-method-section li + li {
-  margin-top: 0.35rem;
 }
 
 .targetlock-method-principle {
