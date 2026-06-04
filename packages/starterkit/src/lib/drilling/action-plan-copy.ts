@@ -54,7 +54,32 @@ export function formatRecoveryActionDisplay(
     return "Shorten interval";
   }
   if (action === "Correct now") return "Correction advisable";
+  if (action === "Steering review") return "Steering review recommended";
+  if (action === "Wedge or branch review") return "Wedge / branch review recommended";
   return action;
+}
+
+export function pdfNextIntervalAimLine(nextIntervalM: number): string {
+  if (nextIntervalM > 0) {
+    const n = round(nextIntervalM, 0);
+    return `Next-interval aim for the next ${n} m. Re-survey and recalculate at the next station.`;
+  }
+  return "Next-interval aim for the next survey interval. Re-survey and recalculate at the next station.";
+}
+
+export function pdfRecoveryOneLiner(
+  reco: Recommendation,
+  steering: SteeringFeasibility | null | undefined
+): string {
+  const action = steering?.simple.currentAction ?? reco.classification.label;
+  const displayAction = formatRecoveryActionDisplay(action, steering?.bestMethodId);
+  const feasibility = feasibilityEscalationNote(reco, steering);
+  if (feasibility) {
+    return `${displayAction}. ${feasibility}`;
+  }
+  const tip = actionGuidanceTip(action);
+  const firstSentence = tip.split(/(?<=[.!?])\s+/)[0] ?? tip;
+  return `${displayAction}. ${firstSentence}`;
 }
 
 export function recoveryLoopNotes(reco: Recommendation): string[] {

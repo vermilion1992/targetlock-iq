@@ -53,9 +53,11 @@ No 500 responses on first request.
 | Path | How verified |
 |------|----------------|
 | TXT handover | `report.test.ts` — `buildReportText`, filenames, recovery sections |
-| PDF handover | `generate-pitch-samples.test.ts` — `buildHandoverPdfBlob`, `%PDF` header, size &gt; 500 bytes; writes `docs/targetlock-pitch/samples/*` and `public/pitch-handover-sample.pdf` |
+| PDF handover | `generate-pitch-samples.test.ts`, `report-pdf.test.ts`, `report-pdf-layout.test.ts` — decision-summary layout, display labels, QA filter, encoding smoke; `%PDF` + `/Image` |
 | Branch report data | `branch-report-data.test.ts` |
-| Branch report PDF | **Added** `branch-report-pdf.test.ts` — `buildBranchReportPdfBlob` non-empty PDF |
+| Branch report PDF | `branch-report-pdf.test.ts` — logo/trajectory fixture options, fallback without image, `%PDF` smoke |
+| PDF branding | `pdf-brand.test.ts` — logo load, masthead text fallback, safe image embed |
+| Trajectory snapshot | `trajectory-snapshot.test.ts` — Node null-return, insufficient data guard |
 | Hole package JSON | `hole-package.test.ts` — round-trip with branch + approval |
 | Safe filenames | `report.test.ts` — `handoverFilename` sanitization |
 

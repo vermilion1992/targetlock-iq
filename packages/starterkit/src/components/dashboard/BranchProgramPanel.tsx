@@ -15,6 +15,8 @@ import type { BranchApprovalSnapshot } from "@/lib/drilling/branch-program-appro
 import type { CreateDaughterInput } from "@/lib/drilling/branch-program-library";
 import { buildBranchReportData } from "@/lib/drilling/branch-report-data";
 import { downloadBranchReportPdf } from "@/lib/drilling/branch-report-pdf";
+import { loadPdfLogoBase64 } from "@/lib/drilling/pdf-brand";
+import { getTrajectorySnapshot } from "@/lib/drilling/trajectory-snapshot";
 import { branchExportReadiness } from "@/lib/drilling/workspace-action-contract";
 import type { CapabilityAssumptions } from "@/lib/drilling/capability-assumptions";
 import { buildStations } from "@/lib/drilling/desurvey";
@@ -131,10 +133,19 @@ export function BranchProgramPanel({
 
   const handleExportPdf = async () => {
     if (!exportDaughter || !exportReady?.ready) return;
+    const logoImagePng = await loadPdfLogoBase64();
+    const trajectoryImagePng = getTrajectorySnapshot(
+      planStations,
+      actualStations,
+      recommendation,
+      { branchOverlay }
+    );
     const data = buildBranchReportData({
       program,
       daughter: exportDaughter,
       recoveryAssumptions,
+      logoImagePng,
+      trajectoryImagePng,
     });
     await downloadBranchReportPdf(data);
   };

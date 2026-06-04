@@ -30,6 +30,7 @@ import {
   type SurveyUncertaintyAssessment,
 } from "./survey-tool-profile";
 import type { SteeringFeasibility } from "./steering-types";
+import { PDF_APP_VERSION } from "./pdf-brand";
 import type { CorrectionOption, QaFlag, Recommendation, SurveyStation } from "./types";
 
 export type HandoverReportOptions = {
@@ -43,13 +44,20 @@ export type HandoverReportOptions = {
   surveyToolProfile?: SurveyToolProfile | null;
   surveyAssessment?: SurveyUncertaintyAssessment | null;
   corridorStatus?: PlanCorridorStatus | null;
+  planStations?: SurveyStation[];
+  trajectoryImagePng?: string | null;
+  logoImagePng?: string | null;
 };
 
 export type HandoverReportData = {
+  reportType: "Shift Handover";
+  appVersion: string;
   holeName: string;
   siteName: string;
   testScenarioName: string | null;
   generatedAt: Date;
+  trajectoryImagePng: string | null;
+  logoImagePng: string | null;
   dateLabel: string;
   timeLabel: string;
   status: string;
@@ -142,10 +150,14 @@ export function buildHandoverReportData(
   }));
 
   return {
+    reportType: "Shift Handover",
+    appVersion: PDF_APP_VERSION,
     holeName,
     siteName,
     testScenarioName: options?.testScenarioName?.trim() || null,
     generatedAt,
+    trajectoryImagePng: options?.trajectoryImagePng ?? null,
+    logoImagePng: options?.logoImagePng ?? null,
     dateLabel,
     timeLabel,
     status: reco.classification.label,

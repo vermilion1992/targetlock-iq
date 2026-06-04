@@ -17,6 +17,7 @@ import {
 } from "./capability-assumptions";
 import { buildStations } from "./desurvey";
 import { round } from "./format";
+import { PDF_APP_VERSION } from "./pdf-brand";
 import type { SavedHoleProject } from "./storage";
 
 export type BranchReportSection = {
@@ -27,9 +28,23 @@ export type BranchReportSection = {
 
 export type BranchReportData = {
   filename: string;
+  reportType: "Branch Plan";
+  appVersion: string;
   title: string;
+  holeName: string;
+  siteName: string | null;
+  daughterId: string;
   generatedAt: Date;
   daughterContext: string | null;
+  trajectoryImagePng: string | null;
+  logoImagePng: string | null;
+  summaryTarget: string;
+  summaryKickoffMd: string;
+  summaryRequiredDls: string;
+  summarySeparation: string;
+  summaryApproval: string;
+  summaryKickoffLines: string[];
+  summaryToolfaceOneLiner: string | null;
   sections: BranchReportSection[];
   disclaimer: string;
 };
@@ -40,6 +55,8 @@ export type BranchReportOptions = {
   motherHole?: SavedHoleProject | null;
   daughterHole?: SavedHoleProject | null;
   recoveryAssumptions: CapabilityAssumptions;
+  trajectoryImagePng?: string | null;
+  logoImagePng?: string | null;
 };
 
 export function branchReportFilename(daughterId: string, date = new Date()): string {
@@ -216,9 +233,34 @@ export function buildBranchReportData(opts: BranchReportOptions): BranchReportDa
 
   return {
     filename: branchReportFilename(daughter.daughterId),
+    reportType: "Branch Plan",
+    appVersion: PDF_APP_VERSION,
     title: `Branch plan — ${daughter.daughterId}`,
+    holeName: program.mother.holeId,
+    siteName: program.site?.trim() || null,
+    daughterId: daughter.daughterId,
     generatedAt: new Date(),
     daughterContext: contextLine,
+    trajectoryImagePng: opts.trajectoryImagePng ?? null,
+    logoImagePng: opts.logoImagePng ?? null,
+    summaryTarget: target?.label ?? daughter.targetId,
+    summaryKickoffMd: `${round(daughter.kickoffMd, 0)} m`,
+    summaryRequiredDls: `${round(analysis.requiredDls, 1)}°/30 m`,
+    summarySeparation: analysis.separation
+      ? `${round(analysis.separation.minDistanceM, 1)} m — ${analysis.separation.status}`
+      : "Not computed",
+    summaryApproval:
+      validation.state === "validated"
+        ? `Approved by ${daughter.approval!.approvedBy} (${daughter.approval!.role})`
+        : validation.state === "stale"
+          ? "WARNING: Approval stale — plan or assumptions changed"
+          : "Draft — not formally approved",
+    summaryKickoffLines: sections.find((s) => s.id === "kickoff-compare")?.lines.slice(0, 4) ?? [],
+    summaryToolfaceOneLiner: (() => {
+      const tfSection = sections.find((s) => s.id === "toolface");
+      const line = tfSection?.lines.find((l) => l.startsWith("Est. toolface:"));
+      return line ?? tfSection?.lines[0] ?? null;
+    })(),
     sections,
     disclaimer:
       "Planning estimate only. Kickoff depth, required dogleg, separation, and toolface must be confirmed by the directional drilling contractor and site geologist before drilling a daughter hole. Not field instruction.",

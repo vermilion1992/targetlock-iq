@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Trajectory3D } from "@/components/charts/Trajectory3D";
 import { TrajectoryCanvas } from "@/components/charts/TrajectoryCanvas";
 import { DecisionHistoryPanel } from "@/components/dashboard/DecisionHistoryPanel";
-import { HoleDetailsFields } from "@/components/dashboard/HoleDetailsFields";
+import { HoleDetailsPanel } from "@/components/dashboard/HoleDetailsPanel";
 import { HoleLibraryPanel } from "@/components/dashboard/HoleLibraryPanel";
 import { ActionPlanPanel } from "@/components/dashboard/ActionPlanPanel";
 import { BranchProgramPanel } from "@/components/dashboard/BranchProgramPanel";
@@ -22,6 +22,7 @@ import { findHole } from "@/lib/drilling/hole-library";
 import { CapabilityAssumptionsEditor } from "@/components/dashboard/CapabilityAssumptionsEditor";
 import { MathReferencePanel } from "@/components/dashboard/MathReferencePanel";
 import { MethodPurposePanel } from "@/components/dashboard/MethodPurposePanel";
+import { RoadmapPanel } from "@/components/dashboard/RoadmapPanel";
 import { QaPanel } from "@/components/dashboard/QaPanel";
 import { ValidationPanel } from "@/components/dashboard/ValidationPanel";
 import { PlanCorridorEditor } from "@/components/dashboard/PlanCorridorEditor";
@@ -104,6 +105,7 @@ const ADVANCED_TABS: { id: AdvancedTab; label: string }[] = [
   { id: "decisions", label: "Decisions" },
   { id: "math", label: "Math reference" },
   { id: "method-purpose", label: "Method & Purpose" },
+  { id: "roadmap", label: "Roadmap" },
   { id: "validation", label: "Validation" },
   { id: "setup", label: "Setup / assumptions" },
 ];
@@ -687,6 +689,7 @@ export default function TargetLockApp() {
         surveyToolProfile,
         surveyAssessment,
         corridorStatus,
+        planStations,
       });
       pushHistory({
         type: "report_exported",
@@ -993,16 +996,14 @@ export default function TargetLockApp() {
             <p className="targetlock-version-tag m-0 mt-2">{TARGETLOCK_APP_VERSION}</p>
           </div>
 
-          <div className={`targetlock-project-meta advanced-only ${ph("hole-details")}`}>
-            <h2 className="targetlock-sidebar-section-title">Hole details</h2>
-            <HoleDetailsFields
-              activeHoleId={library?.activeHoleId ?? holeId}
-              holeName={holeName}
-              siteName={siteName}
-              onHoleNameChange={setHoleName}
-              onSiteNameChange={setSiteName}
-            />
-          </div>
+          <HoleDetailsPanel
+            className={ph("hole-details")}
+            activeHoleId={library?.activeHoleId ?? holeId}
+            holeName={holeName}
+            siteName={siteName}
+            onHoleNameChange={setHoleName}
+            onSiteNameChange={setSiteName}
+          />
 
           {library ? (
             <HoleLibraryPanel
@@ -1520,8 +1521,6 @@ export default function TargetLockApp() {
             <ActionPlanPanel
               recommendation={recommendation}
               steering={steering}
-              corridorStatus={corridorStatus}
-              surveyAssessment={surveyAssessment}
             />
           </div>
 
@@ -1846,6 +1845,12 @@ export default function TargetLockApp() {
             {advancedTab === "method-purpose" ? (
               <div className="targetlock-tabpanel" role="tabpanel">
                 <MethodPurposePanel />
+              </div>
+            ) : null}
+
+            {advancedTab === "roadmap" ? (
+              <div className="targetlock-tabpanel" role="tabpanel">
+                <RoadmapPanel />
               </div>
             ) : null}
 

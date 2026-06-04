@@ -7,7 +7,9 @@ import { computeHole } from "../compute";
 import { buildReportText } from "../report";
 import { buildHandoverReportData } from "../report-data";
 import { buildHandoverPdfBlob } from "../report-pdf";
+import { loadPdfLogoBase64 } from "../pdf-brand";
 import { sampleActualStations, samplePlanStations, sampleTarget } from "./fixtures";
+import { loadFixtureImageBase64 } from "./pdf-fixtures";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", "..", "..");
 const samplesDir = join(repoRoot, "docs", "targetlock-pitch", "samples");
@@ -59,12 +61,20 @@ describe("generate pitch samples", () => {
     expect(txt).toContain("RECOVERY GUIDANCE");
     expect(txt).toContain("RECOVERY CAPABILITY ASSUMPTIONS");
 
-    const data = buildHandoverReportData(reco, sampleActualStations, reportOptions);
+    const data = buildHandoverReportData(reco, sampleActualStations, {
+      ...reportOptions,
+      logoImagePng: await loadPdfLogoBase64(),
+      trajectoryImagePng: loadFixtureImageBase64("trajectory-sample.png"),
+    });
     expect(data.recoveryGuidance).not.toBeNull();
-    const blob = await buildHandoverPdfBlob(data);
+    const blob = await buildHandoverPdfBlob(data, {
+      reco,
+      steering,
+    });
     const buffer = Buffer.from(await blob.arrayBuffer());
     expect(buffer.length).toBeGreaterThan(500);
     expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
+    expect(buffer.includes(Buffer.from("/Image"))).toBe(true);
     await writeFile(join(samplesDir, "DDH-0247-handover-md390.pdf"), buffer);
     await writeFile(publicPdf, buffer);
   });

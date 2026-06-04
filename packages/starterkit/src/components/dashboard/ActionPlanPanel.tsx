@@ -17,16 +17,12 @@ import {
   azimuthInstruction,
   dipInstruction,
 } from "@/lib/drilling/recommendation";
-import type { PlanCorridorStatus } from "@/lib/drilling/plan-corridor";
-import type { SurveyUncertaintyAssessment } from "@/lib/drilling/survey-tool-profile";
 import type { SteeringFeasibility } from "@/lib/drilling/steering-types";
 import type { Recommendation } from "@/lib/drilling/types";
 
 type Props = {
   recommendation: Recommendation | null;
   steering: SteeringFeasibility | null;
-  corridorStatus?: PlanCorridorStatus | null;
-  surveyAssessment?: SurveyUncertaintyAssessment | null;
 };
 
 function actionClass(action: string): string {
@@ -116,8 +112,6 @@ function MetricCell({
 export function ActionPlanPanel({
   recommendation,
   steering,
-  corridorStatus,
-  surveyAssessment,
 }: Props) {
   if (!recommendation) {
     return (
@@ -239,24 +233,6 @@ export function ActionPlanPanel({
         </div>
         <p className="targetlock-metric-change-detail">{changeLabel}</p>
       </div>
-
-      {(corridorStatus?.outsidePlannedCorridor ||
-        (surveyAssessment && surveyAssessment.confidenceLevel !== "normal")) && (
-        <div className="targetlock-action-advisory simple-only" role="status">
-          {corridorStatus?.outsidePlannedCorridor
-            ? corridorStatus.simpleNotes.map((note) => (
-                <p key={note} className="targetlock-action-advisory-line">
-                  {note}
-                </p>
-              ))
-            : null}
-          {surveyAssessment && surveyAssessment.confidenceLevel !== "normal" ? (
-            <p className="targetlock-action-advisory-line">
-              {surveyAssessment.recommendationNote}
-            </p>
-          ) : null}
-        </div>
-      )}
 
       <div className="targetlock-action-footer">
         {escalation ? (

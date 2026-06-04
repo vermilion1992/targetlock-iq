@@ -38,7 +38,7 @@ TargetLock IQ ships three institutional guides. Your hole data is **not** change
 15. Set Survey Tool Profile  
 16. Adjust Plan Corridor / Target setup  
 17. Use Scenario Lab  
-18. Export handover PDF *(optional demo: recoverable correction)*  
+18. Export handover PDF *(optional demo: recoverable correction)* — page 1 decision summary + technical detail appendix when relevant  
 19. Export / import full hole package  
 20. Known limitations and validation reminder  
 
@@ -54,7 +54,7 @@ TargetLock IQ ships three institutional guides. Your hole data is **not** change
 8. Approve daughter plan  
 9. Switch active daughter *(optional demo: three targets)*  
 10. Import daughter survey results  
-11. Export branch plan PDF  
+11. Export branch plan PDF — branded branch plan with mother/daughter trajectory visual  
 12. Operational disclaimer  
 
 ## Controls during a guide
@@ -75,6 +75,7 @@ TargetLock IQ ships three institutional guides. Your hole data is **not** change
 | **Guide Center** | Top bar → Guide | How to use the app (walkthroughs) |
 | **Math reference** | Advanced → Math reference | How calculations work |
 | **Method & Purpose** | Advanced → Method & Purpose | Why the app exists and what decisions it supports |
+| **Roadmap** | Advanced → Roadmap | Future offline field mode and API/integration direction (informational only) |
 
 ## Related docs
 

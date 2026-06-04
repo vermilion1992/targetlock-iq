@@ -14,9 +14,10 @@
 |------|------------|
 | **Trajectory math** | Min-curve desurvey, offset from plan, projected miss, DLS-limited next aim, correction options |
 | **Steering feasibility** | Planned vs actual lift/drop & swing; **Action plan** (Simple); condensed steering summary + **Recovery capability assumptions** under Advanced tabs (per hole) |
-| **UI** | Simple = **Action plan** + KPIs + basic charts; Advanced = grouped tabs (Trajectory · Steering feasibility · QA/QC · Decisions · **Math reference** · **Method & Purpose** · **Validation** · Setup/assumptions); **Guide Center** (quick · standard 20-step · branch 12-step walkthroughs — non-destructive, optional demo load) |
+| **UI** | Simple = **Action plan** + KPIs + basic charts; Advanced = grouped tabs (Trajectory · Steering feasibility · QA/QC · Decisions · **Math reference** · **Method & Purpose** · **Roadmap** · **Validation** · Setup/assumptions); **Guide Center** (quick · standard 20-step · branch 12-step walkthroughs — non-destructive, optional demo load) |
 | **Transparency** | **Math reference** tab explains survey direction, desurvey, offset from plan, projected miss, required aim, DLS/feasibility, interval behaviour, and assumptions with live values |
 | **Method & Purpose** | Advanced reference tab: why TargetLock IQ exists, what it provides, who it helps, what it does not replace (decision support only) |
+| **Roadmap** | Advanced informational tab: **Offline Field Mode** (PWA, local library, offline import/export, future sync) and **API / Integration Layer** (HUB-IQ / SURVEY-IQ, automated ingestion, governed export); pilot feedback sets priority |
 | **Validation** | **Validation** tab: plan import sanity check, reference desurvey comparison (upload trusted E/N/D, compare station-by-station), coordinate/survey convention notes, and **assumption sign-off** (reviewer + timestamp; flags **stale** if assumptions change). Unvalidated warning in Setup; **Validation status** section in TXT/PDF reports |
 | **Test scenarios** | **7 built-in synthetic holes** + **10 branch program demos** (Phase 1 + Phase 2) — load from **Scenario lab** (Built-in / Custom / **Branch programs**); scenario name on exports. See [test-scenarios.md](./test-scenarios.md) |
 | **Branch program Phase 2** | Persisted mother/daughter library, editable targets, kickoff planner, approvals, import routing, Branch Planning PDF, toolface estimate — Advanced **Branch program** tab |
@@ -26,7 +27,7 @@
 | **Data in** | CSV import; HUB-IQ **templates** + **column aliases**; load sample; manual survey + undo |
 | **Metadata** | Editable **hole name** and **site/project** (Advanced); on handover exports |
 | **Governance** | **Supervisor decision** panel (5 actions); **shorten interval** updates spacing; decision history |
-| **Exports** | TXT + PDF handover with status, aim, QA, correction table, **recent history**, disclaimer |
+| **Exports** | TXT handover; **branded PDF** with decision-summary page 1 (status, miss vs tolerance, next-interval aim, recovery one-liner, trajectory) + **Technical Detail** appendix when relevant |
 | **Persistence** | **Multi-hole library** in `localStorage` (`targetlock-iq-library-v1`); legacy single-hole key migrates on load |
 | **Hole library** | New (sample/blank), duplicate, switch, delete (confirm); rename via hole name field |
 | **Quality** | 130 unit tests; `tsc --noEmit`; production build |
@@ -64,10 +65,9 @@
 
 **After v1.1 checkpoint**
 
-1. Capture deck **screenshots** per [screenshot-checklist.md](./screenshot-checklist.md)  
-2. Pilot feedback → PDF layout polish  
-3. **Live HUB-IQ / SURVEY-IQ** integration (defer until multi-hole pilot use is validated)  
-4. Full approval sign-off (name/role, locked state)
+1. Capture deck **screenshots** per [screenshot-checklist.md](./screenshot-checklist.md) — include updated **branded PDF page 1** (logo, status band, trajectory visual)  
+2. **Live HUB-IQ / SURVEY-IQ** integration (defer until multi-hole pilot use is validated)  
+3. Full approval sign-off (name/role, locked state)
 
 ---
 

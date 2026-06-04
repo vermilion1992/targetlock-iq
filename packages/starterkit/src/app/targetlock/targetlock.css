@@ -3456,20 +3456,7 @@
   }
 }
 
-/* ---------- Hole details (sidebar) ---------- */
-.targetlock-project-meta {
-  display: grid;
-  gap: var(--tl-gap-inner);
-  margin-bottom: var(--tl-gap-card);
-}
-
-.targetlock-sidebar-section-title {
-  font-size: 13px;
-  font-weight: 700;
-  margin: 0;
-  color: var(--tl-sidebar-ink);
-}
-
+/* ---------- Hole details (sidebar panel body) ---------- */
 .targetlock-meta-field {
   display: grid;
   gap: 6px;

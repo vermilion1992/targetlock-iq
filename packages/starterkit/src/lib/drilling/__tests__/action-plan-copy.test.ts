@@ -52,6 +52,10 @@ describe("action-plan-copy", () => {
     expect(formatRecoveryActionDisplay("Correct now")).toBe("Correction advisable");
     expect(formatRecoveryActionDisplay("Watch", "shorten_interval")).toBe("Shorten interval");
     expect(formatRecoveryActionDisplay("On track")).toBe("On track");
+    expect(formatRecoveryActionDisplay("Steering review")).toBe("Steering review recommended");
+    expect(formatRecoveryActionDisplay("Wedge or branch review")).toBe(
+      "Wedge / branch review recommended"
+    );
   });
 
   it("always includes recovery loop base note", () => {

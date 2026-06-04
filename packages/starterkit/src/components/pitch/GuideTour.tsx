@@ -11,6 +11,7 @@ const TAB_LABELS: Record<AdvancedTab, string> = {
   decisions: "Decisions",
   math: "Math reference",
   "method-purpose": "Method & Purpose",
+  roadmap: "Roadmap",
   validation: "Validation",
   setup: "Setup / assumptions",
 };

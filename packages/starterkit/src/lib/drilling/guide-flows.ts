@@ -153,7 +153,7 @@ export const STANDARD_HOLE_STEPS: GuideStep[] = [
     lookAt: "Hole ID / name and Site / project fields in the sidebar.",
     whyItMatters: "Correct naming avoids mixing holes in handover PDFs and package backups.",
     highlight: "hole-details",
-    mode: "advanced",
+    mode: "simple",
   },
   {
     id: "hole-plan-upload",

@@ -129,4 +129,15 @@ describe("report", () => {
     const data = buildHandoverReportData(pastTarget, sampleActualStations);
     expect(data.dlsRequired).toBe("—");
   });
+
+  it("accepts optional trajectory and logo images", () => {
+    const data = buildHandoverReportData(reco, sampleActualStations, {
+      holeName: "DDH-0247",
+      trajectoryImagePng: "data:image/png;base64,placeholder-trajectory-image-for-data-layer-test-only",
+      logoImagePng: null,
+    });
+    expect(data.reportType).toBe("Shift Handover");
+    expect(data.trajectoryImagePng).toContain("data:image/png");
+    expect(data.logoImagePng).toBeNull();
+  });
 });

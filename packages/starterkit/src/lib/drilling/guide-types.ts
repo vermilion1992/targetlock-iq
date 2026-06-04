@@ -8,6 +8,7 @@ export type AdvancedTab =
   | "decisions"
   | "math"
   | "method-purpose"
+  | "roadmap"
   | "validation"
   | "setup";
 

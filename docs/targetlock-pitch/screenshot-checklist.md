@@ -20,7 +20,7 @@ Use for pitch deck, leave-behind PDF, and website. Capture at **1920×1080** or 
 | 7 | `04-advanced-qa-flags.png` | Guide step 8; Advanced QA panel | Geologist confidence |
 | 8 | `06-decision-history.png` | After **Use aim** → **Add survey** (step 9) | Audit / governance |
 | 9 | `07-export-buttons.png` | Sidebar **Hole data**: Export TXT + Export PDF | Handover workflow |
-| 10 | `08-pdf-handover.png` | PDF preview with recovery sections | Deliverable example |
+| 10 | `08-pdf-handover.png` | PDF page 1: larger logo, decision summary cards, next-interval aim (single line), recovery one-liner, trajectory; page 2: **Technical Detail** appendix | Deliverable example |
 
 ---
 
@@ -39,6 +39,7 @@ Use for pitch deck, leave-behind PDF, and website. Capture at **1920×1080** or 
 | 17 | `17-supervisor-decision.png` | Advanced; log a supervisor decision with notes |
 | 18 | `18-hub-iq-templates.png` | Sidebar **Hole data** → expand **CSV format help**; example CSV links visible |
 | 19 | `19-scenario-lab-modal.png` | Top bar **Scenario lab** open; Built-in scenarios cards visible |
+| 20 | `20-advanced-roadmap.png` | Advanced → **Roadmap** tab; both future-direction sections visible |
 
 ---
 
@@ -74,7 +75,9 @@ The dashboard was given a presentation polish. When capturing, take advantage of
 ### PDF export
 
 - Export at MD **390 m** (sample) for consistent deck narrative.  
-- Capture page 1 and one inner page (QA table + disclaimer footer).  
+- Capture **page 1** — larger branded masthead, executive summary, next-interval aim (one line), recovery one-liner, trajectory overview, critical checks only (no OK QA noise).  
+- Capture **page 2** — **Technical Detail** appendix (correction options, QA detail, assumptions, validation, history) + disclaimer.  
+- Branch plan PDF: page 1 should show mother/daughter context and branch trajectory visual.
 
 ### Pitch / Guide highlights
 
