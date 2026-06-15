@@ -1,14 +1,17 @@
 import {
   add,
   clamp,
+  DEG,
   doglegDeg,
   dipAzFromVector,
   EPS,
   minCurveDisplacement,
+  scale,
+  shortestAngle,
   slerpDirection,
   vectorFromDipAz,
 } from "./geometry";
-import type { SurveyRecord, SurveyStation } from "./types";
+import type { SurveyRecord, SurveyStation, Vec3 } from "./types";
 
 export function buildStations(records: SurveyRecord[]): SurveyStation[] {
   if (!records.length) return [];
@@ -137,6 +140,169 @@ export function interpolateAtMd(
     n: last.n + vector.n * extra,
     d: last.d + vector.d * extra,
   };
+}
+
+export type DesurveyMethod =
+  | "minimum-curvature"
+  | "balanced-tangential"
+  | "radius-of-curvature";
+
+export const DESURVEY_METHOD_LABELS: Record<DesurveyMethod, string> = {
+  "minimum-curvature": "Minimum curvature",
+  "balanced-tangential": "Balanced tangential",
+  "radius-of-curvature": "Radius of curvature",
+};
+
+/** Balanced tangential — average of the two station direction vectors. */
+function balancedTangentialDisplacement(
+  fromRecord: { dip: number; azimuth: number },
+  toRecord: { dip: number; azimuth: number },
+  length: number
+): Vec3 {
+  const v1 = vectorFromDipAz(fromRecord.dip, fromRecord.azimuth);
+  const v2 = vectorFromDipAz(toRecord.dip, toRecord.azimuth);
+  return scale(add(v1, v2), length / 2);
+}
+
+/**
+ * Radius of curvature — inclination and azimuth assumed to change linearly
+ * with MD over the interval (classic separable formula).
+ */
+function radiusOfCurvatureDisplacement(
+  fromRecord: { dip: number; azimuth: number },
+  toRecord: { dip: number; azimuth: number },
+  length: number
+): Vec3 {
+  // Inclination measured from vertical: dip -90 (straight down) -> I = 0.
+  const i1 = (90 + fromRecord.dip) * DEG;
+  const i2 = (90 + toRecord.dip) * DEG;
+  const a1 = fromRecord.azimuth * DEG;
+  const a2 = a1 + shortestAngle(fromRecord.azimuth, toRecord.azimuth) * DEG;
+
+  const di = i2 - i1;
+  const da = a2 - a1;
+
+  const vertical =
+    Math.abs(di) < EPS
+      ? length * Math.cos(i1)
+      : (length * (Math.sin(i2) - Math.sin(i1))) / di;
+  const horizontal =
+    Math.abs(di) < EPS
+      ? length * Math.sin(i1)
+      : (length * (Math.cos(i1) - Math.cos(i2))) / di;
+
+  const north =
+    Math.abs(da) < EPS
+      ? horizontal * Math.cos(a1)
+      : (horizontal * (Math.sin(a2) - Math.sin(a1))) / da;
+  const east =
+    Math.abs(da) < EPS
+      ? horizontal * Math.sin(a1)
+      : (horizontal * (Math.cos(a1) - Math.cos(a2))) / da;
+
+  return { e: east, n: north, d: vertical };
+}
+
+export function displacementWithMethod(
+  fromRecord: { dip: number; azimuth: number },
+  toRecord: { dip: number; azimuth: number },
+  length: number,
+  method: DesurveyMethod
+): Vec3 {
+  switch (method) {
+    case "balanced-tangential":
+      return balancedTangentialDisplacement(fromRecord, toRecord, length);
+    case "radius-of-curvature":
+      return radiusOfCurvatureDisplacement(fromRecord, toRecord, length);
+    default:
+      return minCurveDisplacement(fromRecord, toRecord, length);
+  }
+}
+
+/** Desurvey using an alternative method — for cross-checking only. */
+export function buildStationsWithMethod(
+  records: SurveyRecord[],
+  method: DesurveyMethod
+): SurveyStation[] {
+  if (method === "minimum-curvature") return buildStations(records);
+  if (!records.length) return [];
+
+  const stations: SurveyStation[] = [];
+  let position = { e: 0, n: 0, d: 0 };
+
+  records.forEach((record, index) => {
+    if (index > 0) {
+      const previous = records[index - 1];
+      const length = record.md - previous.md;
+      position = add(
+        position,
+        displacementWithMethod(previous, record, length, method)
+      );
+    }
+
+    const previousRecord = records[index - 1];
+    const dogleg = previousRecord
+      ? doglegDeg(
+          vectorFromDipAz(previousRecord.dip, previousRecord.azimuth),
+          vectorFromDipAz(record.dip, record.azimuth)
+        )
+      : 0;
+    const interval = previousRecord ? record.md - previousRecord.md : 0;
+
+    stations.push({
+      ...record,
+      e: position.e,
+      n: position.n,
+      d: position.d,
+      dls: interval > EPS ? dogleg / (interval / 30) : 0,
+      dogleg,
+    });
+  });
+
+  return stations;
+}
+
+export type DesurveyMethodComparison = {
+  method: DesurveyMethod;
+  label: string;
+  end: Vec3;
+  /** 3D distance from the minimum-curvature bottom-hole position (m). */
+  deltaFromMinCurveM: number;
+};
+
+/**
+ * Bottom-hole position per desurvey method, with deltas against minimum
+ * curvature — for reconciling against contractor databases that use a
+ * different desurvey convention.
+ */
+export function compareDesurveyMethods(
+  records: SurveyRecord[]
+): DesurveyMethodComparison[] {
+  if (records.length < 2) return [];
+
+  const methods: DesurveyMethod[] = [
+    "minimum-curvature",
+    "balanced-tangential",
+    "radius-of-curvature",
+  ];
+
+  const ends = methods.map((method) => {
+    const stations = buildStationsWithMethod(records, method);
+    const last = stations[stations.length - 1]!;
+    return { method, end: { e: last.e, n: last.n, d: last.d } };
+  });
+
+  const reference = ends[0]!.end;
+  return ends.map(({ method, end }) => ({
+    method,
+    label: DESURVEY_METHOD_LABELS[method],
+    end,
+    deltaFromMinCurveM: Math.hypot(
+      end.e - reference.e,
+      end.n - reference.n,
+      end.d - reference.d
+    ),
+  }));
 }
 
 export function buildDeviationSeries(

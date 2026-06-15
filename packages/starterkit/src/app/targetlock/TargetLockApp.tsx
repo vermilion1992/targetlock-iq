@@ -1,12 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Trajectory3D } from "@/components/charts/Trajectory3D";
+import {
+  ProgramScene3DLazy,
+  type Scene3DHole,
+} from "@/components/three/ProgramScene3DLazy";
 import { TrajectoryCanvas } from "@/components/charts/TrajectoryCanvas";
 import { DecisionHistoryPanel } from "@/components/dashboard/DecisionHistoryPanel";
+import { FileDropzone } from "@/components/planner/ui/FileDropzone";
 import { HoleDetailsPanel } from "@/components/dashboard/HoleDetailsPanel";
 import { HoleLibraryPanel } from "@/components/dashboard/HoleLibraryPanel";
 import { ActionPlanPanel } from "@/components/dashboard/ActionPlanPanel";
+import { HoleModeAdvisoryPanel } from "@/components/dashboard/HoleModeAdvisoryPanel";
+import { ReferenceSystemPanel } from "@/components/dashboard/ReferenceSystemPanel";
 import { BranchProgramPanel } from "@/components/dashboard/BranchProgramPanel";
 import { BranchProgramSimpleStrip } from "@/components/dashboard/BranchProgramSimpleStrip";
 import { SurveyImportTargetModal } from "@/components/dashboard/SurveyImportTargetModal";
@@ -20,11 +28,18 @@ import {
 } from "@/lib/drilling/branch-program-library";
 import { findHole } from "@/lib/drilling/hole-library";
 import { CapabilityAssumptionsEditor } from "@/components/dashboard/CapabilityAssumptionsEditor";
-import { MathReferencePanel } from "@/components/dashboard/MathReferencePanel";
-import { MethodPurposePanel } from "@/components/dashboard/MethodPurposePanel";
+import { HowItWorksView } from "@/components/dashboard/HowItWorksView";
 import { RoadmapPanel } from "@/components/dashboard/RoadmapPanel";
 import { QaPanel } from "@/components/dashboard/QaPanel";
 import { ValidationPanel } from "@/components/dashboard/ValidationPanel";
+import { DesurveyCrosscheckPanel } from "@/components/dashboard/DesurveyCrosscheckPanel";
+import { PlannerExecutionBanner } from "@/components/dashboard/PlannerExecutionBanner";
+import { PlanCompletionPanel } from "@/components/dashboard/PlanCompletionPanel";
+import { PlanLockStatusPanel } from "@/components/dashboard/PlanLockStatusPanel";
+import { ActualVsPlannedPanel } from "@/components/dashboard/ActualVsPlannedPanel";
+import { ActualVsPlannedStrip } from "@/components/dashboard/ActualVsPlannedStrip";
+import { ExecutionAuditPanel } from "@/components/dashboard/ExecutionAuditPanel";
+import { ExecutionPackagePanel } from "@/components/dashboard/ExecutionPackagePanel";
 import { PlanCorridorEditor } from "@/components/dashboard/PlanCorridorEditor";
 import { SurveyToolProfilePanel } from "@/components/dashboard/SurveyToolProfilePanel";
 import { ScenarioLabModal } from "@/components/dashboard/ScenarioLabModal";
@@ -55,6 +70,12 @@ import { entryForSurvey } from "@/lib/drilling/history";
 import { buildCorridorStatus } from "@/lib/drilling/plan-corridor";
 import { buildQaFlags } from "@/lib/drilling/qa";
 import { assessSurveyUncertainty } from "@/lib/drilling/survey-tool-profile";
+import {
+  assessTargetUncertainty,
+  errorModelFromSurveyToolProfile,
+  propagateUncertainty,
+  uncertaintyAtMd,
+} from "@/lib/drilling/uncertainty";
 import { findBranchScenario } from "@/lib/drilling/branch-program-scenarios";
 import { findScenario } from "@/lib/drilling/test-scenarios";
 import type { SyntheticHoleParams } from "@/lib/drilling/synthetic-hole-builder";
@@ -82,7 +103,21 @@ import {
 } from "@/lib/drilling/validation";
 import { downloadReportPdf } from "@/lib/drilling/report-pdf";
 import { downloadReport } from "@/lib/drilling/report";
+import { buildActualVsPlanned } from "@/lib/drilling/actual-vs-plan";
+import {
+  buildPlannerExecutionContext,
+  buildPlannerExecutionReportContext,
+} from "@/lib/drilling/execution-bridge";
+import { buildExecutionAuditReport } from "@/lib/drilling/execution-audit";
+import { isPlannerCreatedHole, plannerStatus } from "@/lib/drilling/planner-status";
+import { resolveBranchPlannerContext } from "@/lib/drilling/planner-branch-context";
+import { BranchPlannerWorkflowBanner } from "@/components/dashboard/BranchPlannerWorkflowBanner";
 import { TARGETLOCK_APP_VERSION } from "@/lib/drilling/app-version";
+import {
+  PLANNER_HOW_IT_WORKS_URL,
+  TARGETLOCK_HOW_IT_WORKS_URL,
+  isHowItWorksLanding,
+} from "@/lib/targetlock/section-links";
 import { downloadHolePackage, readHolePackageFile } from "@/lib/drilling/hole-package";
 import {
   buildImportUndoSnapshot,
@@ -103,8 +138,6 @@ const ADVANCED_TABS: { id: AdvancedTab; label: string }[] = [
   { id: "steering", label: "Steering feasibility" },
   { id: "qaqc", label: "QA/QC" },
   { id: "decisions", label: "Decisions" },
-  { id: "math", label: "Math reference" },
-  { id: "method-purpose", label: "Method & Purpose" },
   { id: "roadmap", label: "Roadmap" },
   { id: "validation", label: "Validation" },
   { id: "setup", label: "Setup / assumptions" },
@@ -166,15 +199,20 @@ export default function TargetLockApp() {
     setPlanCorridor,
     surveyToolProfile,
     setSurveyToolProfile,
+    referenceSystem,
+    setReferenceSystem,
     seedPlanCorridorFromPlan,
     storageHealth,
     storageError,
     resetAllLocalData,
     initFreshSampleLibrary,
     importHolePackage,
+    completePlannerPlanExecution,
+    planEditNotice,
   } = useTargetLockProject(guidePersistenceOff);
 
   const [advancedTab, setAdvancedTab] = useState<AdvancedTab>("steering");
+  const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
   const guide = useGuideMode({
     setMode,
@@ -192,6 +230,7 @@ export default function TargetLockApp() {
   });
 
   const modeFromUrlApplied = useRef(false);
+  const howItWorksFromUrlApplied = useRef(false);
   useEffect(() => {
     if (!hydrated || modeFromUrlApplied.current) return;
     const modeParam = new URLSearchParams(window.location.search).get("mode");
@@ -200,6 +239,14 @@ export default function TargetLockApp() {
       modeFromUrlApplied.current = true;
     }
   }, [hydrated, setMode]);
+
+  useEffect(() => {
+    if (!hydrated || howItWorksFromUrlApplied.current) return;
+    if (isHowItWorksLanding(window.location.search)) {
+      setHowItWorksOpen(true);
+      howItWorksFromUrlApplied.current = true;
+    }
+  }, [hydrated]);
   const [pendingImport, setPendingImport] = useState<{
     type: "plan" | "actual";
     fileName: string;
@@ -225,6 +272,12 @@ export default function TargetLockApp() {
   useEffect(() => {
     if (!guide.guideActive) return;
     const tab = resolveGuideTab(guide.currentStep);
+    // Math reference and method/purpose now live on the "How it works" page.
+    if (tab === "math" || tab === "method-purpose") {
+      setHowItWorksOpen(true);
+      return;
+    }
+    setHowItWorksOpen(false);
     if (tab) setAdvancedTab(tab);
   }, [guide.guideActive, guide.stepIndex, guide.currentStep]);
 
@@ -251,16 +304,24 @@ export default function TargetLockApp() {
     setDataMessage(message);
   }, []);
   const [scenarioLabOpen, setScenarioLabOpen] = useState(false);
-  const { planStations, actualStations, recommendation, steering } = useMemo(
+  const {
+    planStations,
+    actualStations,
+    recommendation,
+    steering,
+    referenceWarnings,
+    holeModeAssessment,
+  } = useMemo(
     () =>
       computeHole(
         planRecords,
         actualRecords,
         target,
         recoveryAssumptions,
-        planCorridor
+        planCorridor,
+        referenceSystem
       ),
-    [planRecords, actualRecords, target, recoveryAssumptions, planCorridor]
+    [planRecords, actualRecords, target, recoveryAssumptions, planCorridor, referenceSystem]
   );
 
   const corridorStatus = useMemo(
@@ -272,6 +333,49 @@ export default function TargetLockApp() {
   const surveyAssessment = useMemo(
     () => assessSurveyUncertainty(recommendation, surveyToolProfile),
     [recommendation, surveyToolProfile]
+  );
+
+  const holeUncertainty = useMemo(() => {
+    if (actualStations.length < 2) return null;
+    return propagateUncertainty(
+      actualStations,
+      errorModelFromSurveyToolProfile(surveyToolProfile)
+    );
+  }, [actualStations, surveyToolProfile]);
+
+  const currentUncertainty = useMemo(() => {
+    if (!holeUncertainty || !recommendation) return null;
+    return uncertaintyAtMd(holeUncertainty, recommendation.current.md);
+  }, [holeUncertainty, recommendation]);
+
+  const targetUncertainty = useMemo(() => {
+    if (!holeUncertainty || !recommendation) return null;
+    return assessTargetUncertainty(
+      holeUncertainty,
+      recommendation.target.md,
+      recommendation.miss,
+      recommendation.tolerance
+    );
+  }, [holeUncertainty, recommendation]);
+
+  const scene3dHoles = useMemo<Scene3DHole[]>(
+    () => [
+      {
+        holeId: holeId || "active-hole",
+        holeName: holeName || "Active hole",
+        planType: "standard",
+        trace: planStations,
+        actualTrace: actualStations.length > 1 ? actualStations : undefined,
+        target: {
+          e: target.e,
+          n: target.n,
+          d: target.d,
+          tolerance: target.tolerance,
+        },
+        highlighted: false,
+      },
+    ],
+    [holeId, holeName, planStations, actualStations, target]
   );
 
   const correctionOptions = useMemo(
@@ -286,6 +390,70 @@ export default function TargetLockApp() {
         : [],
     [recommendation, actualStations, corridorStatus]
   );
+
+  const plannerExecutionContext = useMemo(() => {
+    if (!activeHoleMeta || !library) return null;
+    if (!isPlannerCreatedHole(activeHoleMeta)) return null;
+    const status = plannerStatus(activeHoleMeta);
+    if (
+      !activeHoleMeta.plannerMeta?.lockedPlan &&
+      status !== "active" &&
+      status !== "completed"
+    ) {
+      return null;
+    }
+    return buildPlannerExecutionContext(activeHoleMeta, library);
+  }, [activeHoleMeta, library]);
+
+  const branchPlannerContext = useMemo(
+    () => resolveBranchPlannerContext(activeHoleMeta, library, branchProgram),
+    [activeHoleMeta, library, branchProgram]
+  );
+
+  const actualVsPlanned = useMemo(() => {
+    if (!activeHoleMeta || !library || !plannerExecutionContext) return null;
+    return buildActualVsPlanned(
+      activeHoleMeta,
+      actualRecords,
+      planCorridor,
+      recommendation,
+      library
+    );
+  }, [
+    activeHoleMeta,
+    library,
+    plannerExecutionContext,
+    actualRecords,
+    planCorridor,
+    recommendation,
+  ]);
+
+  const plannerExecutionReport = useMemo(() => {
+    if (!activeHoleMeta || !library || !actualVsPlanned) return null;
+    if (actualVsPlanned.status === "no-locked-plan") return null;
+    return buildPlannerExecutionReportContext(activeHoleMeta, library, {
+      actualVsPlanStatus: actualVsPlanned.status,
+      actualVsPlanOffset: actualVsPlanned.latestPlanOffsetM,
+      actualVsPlanProgressPct: actualVsPlanned.progressPct,
+      actualVsPlanWarnings: actualVsPlanned.warnings,
+      finalActualMd: actualVsPlanned.latestActualMd,
+      planChangedWarning: actualVsPlanned.warnings.find((w) =>
+        w.includes("locked execution snapshot")
+      ),
+      drilledPastPlanWarning: actualVsPlanned.drilledPastPlan
+        ? actualVsPlanned.warnings.find((w) => w.includes("beyond planned TD"))
+        : undefined,
+    });
+  }, [activeHoleMeta, library, actualVsPlanned]);
+
+  const executionAudit = useMemo(() => {
+    if (!activeHoleMeta || !library || !plannerExecutionContext) return null;
+    return buildExecutionAuditReport(activeHoleMeta, library);
+  }, [activeHoleMeta, library, plannerExecutionContext]);
+
+  useEffect(() => {
+    if (planEditNotice) setDataMessage(planEditNotice);
+  }, [planEditNotice]);
 
   const planSanity = useMemo(
     () => buildPlanSanityCheck(planStations, target),
@@ -434,7 +602,14 @@ export default function TargetLockApp() {
           actionTaken: `File: ${fileName} → ${targetHoleId}`,
         });
         if (targetHoleId === holeId) {
-          const { recommendation: newReco } = computeHole(planRecords, records, target);
+          const { recommendation: newReco } = computeHole(
+            planRecords,
+            records,
+            target,
+            recoveryAssumptions,
+            planCorridor,
+            referenceSystem
+          );
           logRecommendation(newReco, "Import survey results");
         }
       }
@@ -580,7 +755,14 @@ export default function TargetLockApp() {
     pushHistory(
       entryForSurvey(eventType, md, dip, normalizeAngle(azimuth), "Add survey")
     );
-    const { recommendation: newReco } = computeHole(planRecords, next, target);
+    const { recommendation: newReco } = computeHole(
+      planRecords,
+      next,
+      target,
+      recoveryAssumptions,
+      planCorridor,
+      referenceSystem
+    );
     logRecommendation(newReco, "Add survey");
     setManualMessage(
       validation.warning ? `${message} ${validation.warning}` : message
@@ -605,7 +787,14 @@ export default function TargetLockApp() {
         "Undo last survey"
       )
     );
-    const { recommendation: newReco } = computeHole(planRecords, next, target);
+    const { recommendation: newReco } = computeHole(
+      planRecords,
+      next,
+      target,
+      recoveryAssumptions,
+      planCorridor,
+      referenceSystem
+    );
     logRecommendation(newReco, "Undo last survey");
     setManualMessage(`Removed latest survey at MD ${round(removed.md, 1)} m.`);
     setTimeout(fillNextSurveyFromAim, 0);
@@ -665,6 +854,12 @@ export default function TargetLockApp() {
       surveyToolProfile,
       surveyAssessment,
       corridorStatus,
+      referenceSystem,
+      referenceWarnings,
+      holeModeAssessment,
+      plannerExecution: plannerExecutionReport ?? undefined,
+      holeUncertainty,
+      targetUncertainty,
     });
     setDataMessage("Text handover report downloaded.");
   };
@@ -684,6 +879,12 @@ export default function TargetLockApp() {
         surveyAssessment,
         corridorStatus,
         planStations,
+        referenceSystem,
+        referenceWarnings,
+        holeModeAssessment,
+        plannerExecution: plannerExecutionReport ?? undefined,
+        holeUncertainty,
+        targetUncertainty,
       });
       pushHistory({
         type: "report_exported",
@@ -846,26 +1047,6 @@ export default function TargetLockApp() {
     guide.restartGuide();
   };
 
-  const handleLoadGuideDemo = () => {
-    const action = guide.currentStep.demoAction;
-    if (!action) return;
-    const ok = window.confirm(
-      "Load a demo scenario for this guide step? Your current data will be restored when you exit or restart the guide."
-    );
-    if (!ok) return;
-    if (action.kind === "builtin-scenario") {
-      const message = loadTestScenario(action.scenarioId);
-      setAppMessage(message);
-    } else {
-      const message = loadBranchScenario(action.scenarioId);
-      setAppMessage(message);
-      setMode("advanced");
-      setAdvancedTab("branch-program");
-    }
-    guide.setDemoLoaded(true);
-    fillNextSurveyFromAim();
-  };
-
   if (!hydrated) {
     return (
       <div className="targetlock-app flex min-h-screen items-center justify-center">
@@ -909,19 +1090,17 @@ export default function TargetLockApp() {
             >
               Reset all local TargetLock data
             </button>
-            <label className="targetlock-btn targetlock-btn cursor-pointer">
-              Import hole package
-              <input
-                type="file"
-                accept=".json,application/json"
-                className="sr-only"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void handleImportHolePackage(file);
-                  e.target.value = "";
-                }}
-              />
-            </label>
+          </div>
+          <div className="mt-3">
+            <FileDropzone
+              compact
+              accept=".json,application/json"
+              label="Import hole package JSON"
+              lead="Import hole package — drop JSON or browse"
+              hint="Previously exported TargetLock backup"
+              icon="JSON"
+              onFiles={(files) => void handleImportHolePackage(files[0])}
+            />
           </div>
           <p className="targetlock-version-tag mt-4 mb-0">{TARGETLOCK_APP_VERSION}</p>
         </div>
@@ -971,10 +1150,7 @@ export default function TargetLockApp() {
         onPrev={guide.prevStep}
         onNext={guide.nextStep}
         onExit={handleExitGuide}
-        onRestart={handleRestartGuide}
         onOpenGuideCenter={() => guide.setCenterOpen(true)}
-        onOpenTab={guide.openTabForCurrentStep}
-        onLoadDemo={guide.currentStep.demoAction ? handleLoadGuideDemo : undefined}
       />
       <div className="targetlock-shell">
         <aside className="targetlock-sidebar">
@@ -1382,6 +1558,14 @@ export default function TargetLockApp() {
               </button>
               <button
                 type="button"
+                className={`scenario-lab-topbar-btn pitch-topbar-btn${howItWorksOpen ? " guide-topbar-btn--active" : ""} ${ph("math-panel")}`}
+                onClick={() => setHowItWorksOpen((open) => !open)}
+                aria-pressed={howItWorksOpen}
+              >
+                How it works
+              </button>
+              <button
+                type="button"
                 className={`scenario-lab-topbar-btn pitch-topbar-btn ${ph("scenario-lab")}`}
                 data-guide-target="scenario-lab"
                 onClick={() => setScenarioLabOpen(true)}
@@ -1389,6 +1573,12 @@ export default function TargetLockApp() {
               >
                 Scenario lab
               </button>
+              <Link
+                href={PLANNER_HOW_IT_WORKS_URL}
+                className="scenario-lab-topbar-btn pitch-topbar-btn"
+              >
+                Hole Planner
+              </Link>
               <div
                 className={`targetlock-mode-switch ${ph("mode-toggle")}`}
                 role="tablist"
@@ -1437,6 +1627,44 @@ export default function TargetLockApp() {
               </div>
             </div>
           </header>
+
+          {howItWorksOpen ? (
+            <HowItWorksView
+              recommendation={recommendation}
+              steering={steering}
+              onClose={() => setHowItWorksOpen(false)}
+            />
+          ) : (
+          <>
+          {plannerExecutionContext && activeHoleMeta ? (
+            <PlannerExecutionBanner
+              context={plannerExecutionContext}
+              completedAt={
+                activeHoleMeta.plannerMeta?.completionSnapshot?.completedAt ??
+                activeHoleMeta.plannerMeta?.completedAt
+              }
+              onMarkCompleted={
+                plannerExecutionContext.status === "active"
+                  ? async () => {
+                      const ok = await confirm({
+                        title: "Mark planner plan completed?",
+                        description:
+                          "Completion preserves the locked plan and actual surveys. Future edits should be made through a revision.",
+                        confirmLabel: "Mark completed",
+                      });
+                      if (!ok) return;
+                      if (completePlannerPlanExecution({ completedBy: "Field" })) {
+                        setDataMessage("Planner plan marked completed.");
+                      }
+                    }
+                  : undefined
+              }
+            />
+          ) : null}
+
+          {mode === "simple" && actualVsPlanned ? (
+            <ActualVsPlannedStrip result={actualVsPlanned} />
+          ) : null}
 
           {dataMessage ? (
             <p
@@ -1493,6 +1721,33 @@ export default function TargetLockApp() {
               </span>
               <strong>{recommendation ? `${round(recommendation.miss, 1)} m` : "--"}</strong>
             </article>
+            <article
+              className={`targetlock-metric ${
+                targetUncertainty
+                  ? targetUncertainty.status === "clear"
+                    ? "metric-on-track"
+                    : targetUncertainty.status === "marginal"
+                      ? "metric-watch"
+                      : "metric-risk"
+                  : ""
+              }`}
+            >
+              <span>
+                Position uncertainty{" "}
+                <InfoTip
+                  tip={
+                    targetUncertainty
+                      ? `ISCWSA-inspired simplified model for the configured survey tool. ${targetUncertainty.note}`
+                      : "Position uncertainty radius from the configured survey tool (ISCWSA-inspired simplified model). Add surveys to compute."
+                  }
+                />
+              </span>
+              <strong>
+                {currentUncertainty
+                  ? `±${round(currentUncertainty.radiusM, 1)} m`
+                  : "--"}
+              </strong>
+            </article>
           </section>
 
           {branchProgram ? (
@@ -1515,6 +1770,7 @@ export default function TargetLockApp() {
             <ActionPlanPanel
               recommendation={recommendation}
               steering={steering}
+              holeModeAssessment={holeModeAssessment}
             />
           </div>
 
@@ -1631,6 +1887,19 @@ export default function TargetLockApp() {
                       corridorStatus={corridorStatus}
                     />
                   </article>
+                  <article className="targetlock-panel targetlock-chart-panel targetlock-chart-3d-panel">
+                    <div className="targetlock-panel-title">
+                      <h2>
+                        Interactive 3D scene{" "}
+                        <InfoTip tip="WebGL scene with plan, actual, target tolerance sphere, and uncertainty envelopes from the configured survey tool (ISCWSA-inspired simplified model)." />
+                      </h2>
+                    </div>
+                    <ProgramScene3DLazy
+                      holes={scene3dHoles}
+                      heightPx={420}
+                      snapshotName={`targetlock-${holeName || "hole"}-3d`}
+                    />
+                  </article>
                   <article className="targetlock-panel targetlock-chart-panel targetlock-chart-deviation-panel">
                     <div className="targetlock-panel-title">
                       <h2>
@@ -1709,7 +1978,12 @@ export default function TargetLockApp() {
                   holeRole={holeRole}
                   activeHoleId={holeId}
                   recoveryAssumptions={recoveryAssumptions}
-                  onInitProgram={holeRole === "mother" ? initBranchProgram : undefined}
+                  branchPlannerContext={branchPlannerContext}
+                  onInitProgram={
+                    holeRole === "mother" && !branchPlannerContext?.blockBranchInit
+                      ? initBranchProgram
+                      : undefined
+                  }
                   onAddTarget={branchAddTarget}
                   onUpdateTarget={branchUpdateTarget}
                   onRemoveTarget={branchRemoveTarget}
@@ -1724,26 +1998,42 @@ export default function TargetLockApp() {
 
             {advancedTab === "branch-program" && !branchProgram ? (
               <div className={`targetlock-tabpanel ${ph("branch-program")}`} role="tabpanel">
+                {branchPlannerContext &&
+                (branchPlannerContext.blockBranchInit ||
+                  branchPlannerContext.isPlannerHole) ? (
+                  <BranchPlannerWorkflowBanner context={branchPlannerContext} />
+                ) : null}
                 <article className="targetlock-panel">
                   <div className="targetlock-panel-title">
                     <h2>Branch program</h2>
                   </div>
-                  <p className="targetlock-panel-copy">
-                    Start a branch program on the active mother hole, or load a preset from{" "}
-                    <strong>Scenario lab → Branch programs</strong>.
-                  </p>
-                  {holeRole === "mother" ? (
-                    <button
-                      type="button"
-                      className="targetlock-btn targetlock-btn-primary"
-                      onClick={initBranchProgram}
-                    >
-                      Start branch program
-                    </button>
-                  ) : (
-                    <p className="branch-program-muted">
-                      Switch to a mother hole or load a branch scenario to begin.
+                  {branchPlannerContext?.blockBranchInit ? (
+                    <p className="targetlock-panel-copy">
+                      This mother hole is managed in Hole Planner. Add targets and daughter plans
+                      there, then return here for live kickoff ranking and execution context.
                     </p>
+                  ) : (
+                    <>
+                      <p className="targetlock-panel-copy">
+                        Start a branch program on the active mother hole, or load a preset from{" "}
+                        <strong>Scenario lab → Branch programs</strong>. For institutional
+                        multi-hole programs, prefer{" "}
+                        <Link href={PLANNER_HOW_IT_WORKS_URL}>Hole Planner</Link>.
+                      </p>
+                      {holeRole === "mother" ? (
+                        <button
+                          type="button"
+                          className="targetlock-btn targetlock-btn-primary"
+                          onClick={initBranchProgram}
+                        >
+                          Start branch program
+                        </button>
+                      ) : (
+                        <p className="branch-program-muted">
+                          Switch to a mother hole or load a branch scenario to begin.
+                        </p>
+                      )}
+                    </>
                   )}
                 </article>
               </div>
@@ -1751,6 +2041,7 @@ export default function TargetLockApp() {
 
             {advancedTab === "steering" ? (
               <div className={`targetlock-tabpanel ${ph("steering-panel")}`} role="tabpanel">
+                <HoleModeAdvisoryPanel assessment={holeModeAssessment} />
                 {steering ? (
                   <SteeringFeasibilityPanel
                     steering={steering}
@@ -1830,18 +2121,6 @@ export default function TargetLockApp() {
               </div>
             ) : null}
 
-            {advancedTab === "math" ? (
-              <div className={`targetlock-tabpanel ${ph("math-panel")}`} role="tabpanel">
-                <MathReferencePanel recommendation={recommendation} steering={steering} />
-              </div>
-            ) : null}
-
-            {advancedTab === "method-purpose" ? (
-              <div className="targetlock-tabpanel" role="tabpanel">
-                <MethodPurposePanel />
-              </div>
-            ) : null}
-
             {advancedTab === "roadmap" ? (
               <div className="targetlock-tabpanel" role="tabpanel">
                 <RoadmapPanel />
@@ -1858,7 +2137,59 @@ export default function TargetLockApp() {
                   signOff={assumptionSignOff}
                   onSignOff={signOffAssumptions}
                   onClearSignOff={clearAssumptionsSignOff}
+                  referenceWarnings={referenceWarnings}
                 />
+                <DesurveyCrosscheckPanel
+                  planRecords={planRecords}
+                  actualRecords={actualRecords}
+                />
+                {plannerExecutionContext && activeHoleMeta ? (
+                  <PlanCompletionPanel
+                    hole={activeHoleMeta}
+                    context={plannerExecutionContext}
+                    onMarkCompleted={
+                      plannerExecutionContext.status === "active"
+                        ? async () => {
+                            const ok = await confirm({
+                              title: "Mark planner plan completed?",
+                              description:
+                                "Completion preserves the locked plan and actual surveys. Future edits should be made through a revision.",
+                              confirmLabel: "Mark completed",
+                            });
+                            if (!ok) return;
+                            if (
+                              completePlannerPlanExecution({ completedBy: "Field" })
+                            ) {
+                              setDataMessage("Planner plan marked completed.");
+                            }
+                          }
+                        : undefined
+                    }
+                  />
+                ) : null}
+                {plannerExecutionContext ? (
+                  <PlanLockStatusPanel context={plannerExecutionContext} />
+                ) : null}
+                {plannerExecutionContext &&
+                actualVsPlanned &&
+                actualVsPlanned.status !== "no-locked-plan" ? (
+                  <ActualVsPlannedPanel
+                    context={plannerExecutionContext}
+                    result={actualVsPlanned}
+                  />
+                ) : null}
+                {executionAudit ? (
+                  <ExecutionAuditPanel audit={executionAudit} />
+                ) : null}
+                {executionAudit && activeHoleMeta && library ? (
+                  <ExecutionPackagePanel
+                    hole={activeHoleMeta}
+                    library={library}
+                    onExported={(label) =>
+                      setDataMessage(`${label} exported.`)
+                    }
+                  />
+                ) : null}
               </div>
             ) : null}
 
@@ -1885,20 +2216,17 @@ export default function TargetLockApp() {
                     >
                       Export full hole package
                     </button>
-                    <label className="targetlock-btn targetlock-btn cursor-pointer">
-                      Import hole package
-                      <input
-                        type="file"
-                        accept=".json,application/json"
-                        className="sr-only"
-                        aria-label="Import hole package JSON"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) void handleImportHolePackage(file);
-                          e.target.value = "";
-                        }}
-                      />
-                    </label>
+                  </div>
+                  <div className="mt-3">
+                    <FileDropzone
+                      compact
+                      accept=".json,application/json"
+                      label="Import hole package JSON"
+                      lead="Import hole package — drop JSON or browse"
+                      hint="Import replaces local data"
+                      icon="JSON"
+                      onFiles={(files) => void handleImportHolePackage(files[0])}
+                    />
                   </div>
                 </article>
                 <CapabilityAssumptionsEditor
@@ -1906,6 +2234,11 @@ export default function TargetLockApp() {
                   onChange={setRecoveryAssumptions}
                   onReset={handleResetRecoveryAssumptions}
                   validationStatus={validationStatus}
+                />
+                <ReferenceSystemPanel
+                  config={referenceSystem}
+                  warnings={referenceWarnings}
+                  onChange={setReferenceSystem}
                 />
                 <div className={ph("survey-tool-profile")}>
                   <SurveyToolProfilePanel
@@ -1917,6 +2250,8 @@ export default function TargetLockApp() {
               </div>
             ) : null}
           </section>
+          </>
+          )}
         </main>
       </div>
 

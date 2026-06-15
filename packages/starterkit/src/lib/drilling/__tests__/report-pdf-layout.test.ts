@@ -166,4 +166,42 @@ describe("buildHandoverPdfViewModel", () => {
     ).length;
     expect(count).toBe(1);
   });
+
+  it("includes RC2 key values in appendix for near-vertical scenario", () => {
+    const scenario = findScenario("near-vertical")!;
+    const planStations = buildStations(parseSurveyCsv(scenario.planCsv));
+    const actualStations = buildStations(parseSurveyCsv(scenario.actualCsv));
+    const finalPlan = planStations[planStations.length - 1]!;
+    const target = {
+      ...sampleTarget(),
+      md: finalPlan.md,
+      maxDls: 3,
+      nextInterval: 30,
+      ...scenario.target,
+    };
+    const { recommendation: reco, steering, holeModeAssessment } = computeHole(
+      planStations.map((r) => ({ md: r.md, dip: r.dip, azimuth: r.azimuth })),
+      actualStations.map((r) => ({ md: r.md, dip: r.dip, azimuth: r.azimuth })),
+      target,
+      undefined,
+      undefined,
+      scenario.referenceSystem
+    );
+    if (!reco) throw new Error("No recommendation for near-vertical");
+    const data = buildHandoverReportData(reco, actualStations, {
+      steering,
+      holeModeAssessment,
+    });
+    const vm = buildHandoverPdfViewModel(data, { reco, steering });
+    const labels = vm.appendix.rc2KeyValues.map((row) => row.label);
+    expect(labels).toContain("Plan north reference");
+    expect(labels).toContain("Hole mode");
+    expect(labels).toContain("Reported confidence");
+    expect(vm.appendix.hasAppendixContent).toBe(true);
+    expect(holeModeAssessment?.mode).toBe("near-vertical");
+    const blob = collectHandoverPdfStrings(vm).join(" ");
+    if (data.rc2Context.confidenceDowngradeReason) {
+      expect(blob).toContain("Near-vertical");
+    }
+  });
 });

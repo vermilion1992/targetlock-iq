@@ -140,4 +140,80 @@ describe("report", () => {
     expect(data.trajectoryImagePng).toContain("data:image/png");
     expect(data.logoImagePng).toBeNull();
   });
+
+  it("includes RC2 reference and hole mode section in text report", () => {
+    const { steering, referenceWarnings, holeModeAssessment } = computeHole(
+      samplePlanStations.map((r) => ({ md: r.md, dip: r.dip, azimuth: r.azimuth })),
+      sampleActualStations.map((r) => ({ md: r.md, dip: r.dip, azimuth: r.azimuth })),
+      sampleTarget()
+    );
+    const text = buildReportText(reco, sampleActualStations, {
+      holeName: "DDH-0247",
+      steering,
+      referenceWarnings,
+      holeModeAssessment,
+    });
+    expect(text).toContain("SURVEY REFERENCE & HOLE MODE (RC2)");
+    expect(text).toContain("Plan north reference:");
+    expect(text).toContain("Internal calculation reference: True North");
+    expect(text).toContain("Base confidence:");
+    expect(text).toContain("Reported confidence:");
+  });
+
+  it("includes planner execution context when provided", () => {
+    const text = buildReportText(reco, sampleActualStations, {
+      holeName: "DDH-0247",
+      plannerExecution: {
+        planRevision: 2,
+        approvalState: "current",
+        approvalLabel: "Approved",
+        approvedBy: "Geologist",
+        approvedAt: "2026-06-01T00:00:00.000Z",
+        lockedPlanHash: "abc123",
+        qaWarningCount: 1,
+        qaHardErrorCount: 0,
+        lockStatus: "locked-current",
+        actualVsPlanStatus: "on-plan",
+        actualVsPlanOffset: 1.2,
+        executionState: "drilling",
+      },
+    });
+    expect(text.toUpperCase()).toContain("PLAN PROVENANCE (PLANNER)");
+    expect(text).toContain("R2");
+    expect(text).toContain("Geologist");
+    expect(text).toContain("on-plan");
+  });
+
+  it("includes actual-vs-locked-plan progress and warnings when provided", () => {
+    const text = buildReportText(reco, sampleActualStations, {
+      holeName: "DDH-0247",
+      plannerExecution: {
+        planRevision: 1,
+        approvalState: "current",
+        approvalLabel: "Approved",
+        approvedBy: "Geologist",
+        approvedAt: "2026-06-01T00:00:00.000Z",
+        lockedPlanHash: "abc123",
+        qaWarningCount: 0,
+        qaHardErrorCount: 0,
+        lockStatus: "locked-current",
+        actualVsPlanStatus: "watch",
+        actualVsPlanOffset: 6.5,
+        actualVsPlanProgressPct: 50,
+        planChangedWarning:
+          "Current plan differs from the locked execution snapshot — create a revision in Planner.",
+        drilledPastPlanWarning:
+          "Latest actual MD (202 m) is beyond planned TD (200 m).",
+        actualVsPlanWarnings: [
+          "Offset from locked plan: 6.50 m (warning ≥ 6 m).",
+        ],
+        executionState: "drilling",
+      },
+    });
+    expect(text).toContain("Drilling progress:");
+    expect(text).toContain("50%");
+    expect(text).toContain("locked execution snapshot");
+    expect(text).toContain("beyond planned TD");
+    expect(text).toContain("Offset from locked plan");
+  });
 });

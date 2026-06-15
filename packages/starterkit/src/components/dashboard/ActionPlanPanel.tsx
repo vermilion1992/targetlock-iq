@@ -1,5 +1,6 @@
 "use client";
 
+import { HoleModeAdvisoryPanel } from "@/components/dashboard/HoleModeAdvisoryPanel";
 import { InfoTip } from "@/components/layout/InfoTip";
 import { round } from "@/lib/drilling/format";
 import {
@@ -18,11 +19,13 @@ import {
   dipInstruction,
 } from "@/lib/drilling/recommendation";
 import type { SteeringFeasibility } from "@/lib/drilling/steering-types";
+import type { HoleModeAssessment } from "@/lib/drilling/hole-mode";
 import type { Recommendation } from "@/lib/drilling/types";
 
 type Props = {
   recommendation: Recommendation | null;
   steering: SteeringFeasibility | null;
+  holeModeAssessment?: HoleModeAssessment | null;
 };
 
 function actionClass(action: string): string {
@@ -112,6 +115,7 @@ function MetricCell({
 export function ActionPlanPanel({
   recommendation,
   steering,
+  holeModeAssessment,
 }: Props) {
   if (!recommendation) {
     return (
@@ -152,6 +156,10 @@ export function ActionPlanPanel({
   const dlsAmount = Number.isFinite(recommendation.dlsRequired)
     ? `${round(recommendation.dlsRequired, 2)}°`
     : "--";
+  const confidenceLabel =
+    holeModeAssessment && holeModeAssessment.mode !== "angle" && steering?.recoveryConfidence
+      ? steering.recoveryConfidence
+      : recommendation.classification.confidence;
 
   return (
     <article className="targetlock-panel targetlock-action-plan">
@@ -160,10 +168,10 @@ export function ActionPlanPanel({
           Action plan{" "}
           <InfoTip tip={ACTION_PLAN_PANEL_TIP} />
         </h2>
-        <span className="targetlock-mini-tag">
-          {recommendation.classification.confidence} confidence
-        </span>
+        <span className="targetlock-mini-tag">{confidenceLabel} confidence</span>
       </div>
+
+      <HoleModeAdvisoryPanel assessment={holeModeAssessment ?? null} />
 
       <div className={`targetlock-action-hero ${actionClass(currentAction)}`}>
         <div className="targetlock-action-hero-head">

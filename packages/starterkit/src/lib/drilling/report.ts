@@ -123,12 +123,37 @@ export function buildReportText(
     );
   }
 
+  if (data.positionUncertaintyLines.length) {
+    lines.push(
+      ...section(
+        "Position uncertainty (simplified model)",
+        data.positionUncertaintyLines.map((line) => `  ${line}`)
+      )
+    );
+  }
+
   if (data.recoveryAssumptionsSummary.length) {
     lines.push(
       ...section("Recovery capability assumptions (this hole)", [
         ...data.recoveryAssumptionsSummary.map((line) => `  ${line}`),
         "",
         "  These are configurable assumptions, not guaranteed tool performance.",
+      ])
+    );
+  }
+
+  lines.push(
+    ...section("Survey reference & hole mode (RC2)", [
+      ...data.rc2Context.summaryLines.map((line) => `  ${line}`),
+    ])
+  );
+
+  if (data.plannerExecutionLines.length) {
+    lines.push(
+      ...section("Plan provenance (Planner)", [
+        ...data.plannerExecutionLines.map((line) =>
+          line.startsWith("  ") ? line : `  ${line}`
+        ),
       ])
     );
   }

@@ -34,10 +34,10 @@ export function MethodPurposePanel() {
       </div>
 
       <div className="targetlock-ref-lead" role="note">
-        <p className="targetlock-ref-lead-kicker">Why this tab exists</p>
+        <p className="targetlock-ref-lead-kicker">Why this section exists</p>
         <p>
           <strong>Guide Center</strong> explains how to use the app. <strong>Math reference</strong>{" "}
-          explains how calculations work. This tab explains why TargetLock IQ exists and what
+          explains how calculations work. This section explains why TargetLock IQ exists and what
           drilling decisions it supports.
         </p>
       </div>
@@ -96,6 +96,40 @@ export function MethodPurposePanel() {
             <li>Less guesswork between surveys on whether a correction is advisable</li>
             <li>Clearer communication between field crews and technical teams</li>
             <li>Safer, more defensible decisions with traceable assumptions</li>
+          </ul>
+        </ReferenceDocSection>
+
+        <ReferenceDocSection title="Directional limitations" badge="07" variant="caution">
+          <p>
+            TargetLock IQ does not currently calculate gravity toolface, magnetic toolface, motor
+            yield, or directional-tool control settings. It provides trajectory decision support
+            only. Near-vertical holes should be reviewed by the directional driller, supervisor,
+            and site survey/geology team.
+          </p>
+        </ReferenceDocSection>
+
+        <ReferenceDocSection title="RC2 changelog" badge="08">
+          <ul className="targetlock-ref-list">
+            <li>
+              Reference-system conversion — plan, survey, and display north can differ; all
+              azimuths convert through true north before trajectory math
+            </li>
+            <li>
+              Reference warnings surfaced in Setup and Validation when mixed references or site
+              parameters need review
+            </li>
+            <li>
+              Near-vertical and high-angle hole advisories when steep geometry limits steering
+              assumptions
+            </li>
+            <li>
+              Recovery confidence downgrades on steep holes so reported confidence reflects hole
+              mode, not just classification
+            </li>
+            <li>
+              Directional limitations unchanged — no toolface, motor yield, or directional-tool
+              control calculations
+            </li>
           </ul>
         </ReferenceDocSection>
 

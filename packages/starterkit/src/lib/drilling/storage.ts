@@ -1,4 +1,5 @@
 import { migrateLibrary } from "./branch-program-library";
+import { migratePlannerMeta } from "./planner-status";
 import type { HoleLibrary } from "./hole-library";
 import { LIBRARY_STORAGE_KEY } from "./hole-library";
 import { parseLibraryRaw, type StorageLoadResult } from "./storage-health";
@@ -6,6 +7,7 @@ import type { DecisionHistoryEntry } from "./history";
 import type { CapabilityAssumptions } from "./capability-assumptions";
 import type { AssumptionSignOff } from "./validation";
 import type { PlanCorridorConfig } from "./plan-corridor";
+import type { ReferenceSystemConfig } from "./reference-system";
 import type { SurveyToolProfile } from "./survey-tool-profile";
 import type { PersistedBranchProgram } from "./branch-program-types";
 import type {
@@ -13,6 +15,7 @@ import type {
   DaughterStatus,
   HoleRole,
 } from "./branch-program-types";
+import type { PlannerProjectMetadata } from "./planner-types";
 import type { SurveyRecord, TargetConfig } from "./types";
 
 /** Legacy single-hole key (migrated into library on first load) */
@@ -41,6 +44,8 @@ export type SavedHoleProject = {
   planCorridor?: PlanCorridorConfig | null;
   /** Downhole survey tool accuracy profile (optional). */
   surveyToolProfile?: SurveyToolProfile | null;
+  /** Plan/survey azimuth reference system (optional). */
+  referenceSystem?: ReferenceSystemConfig | null;
   updatedAt: string;
   /** Branch program lineage (v2). */
   holeRole?: HoleRole;
@@ -57,6 +62,8 @@ export type SavedHoleProject = {
   branchMethod?: BranchMethod;
   branchStatus?: DaughterStatus;
   branchProgram?: PersistedBranchProgram | null;
+  /** Hole Planner metadata when created via /targetlock/planner (optional). */
+  plannerMeta?: PlannerProjectMetadata | null;
 };
 
 export function slugifyHoleId(holeName: string): string {
@@ -123,7 +130,14 @@ export function loadLibraryWithStatus(): StorageLoadResult {
   if (!raw) return { status: "missing" };
   const result = parseLibraryRaw(raw);
   if (result.status !== "ok" || !result.library) return result;
-  return { status: "ok", library: migrateLibrary(result.library) };
+  const migrated = migrateLibrary(result.library);
+  return {
+    status: "ok",
+    library: {
+      ...migrated,
+      holes: migrated.holes.map(migratePlannerMeta),
+    },
+  };
 }
 
 export function loadLibrary(): HoleLibrary | null {

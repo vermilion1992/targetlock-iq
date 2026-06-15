@@ -10,6 +10,7 @@ import {
 } from "@/lib/drilling/csv-import-assistant";
 import { SAMPLE_ACTUAL_CSV, SAMPLE_PLAN_CSV } from "@/lib/sample-data";
 import type { SurveyRecord } from "@/lib/drilling/types";
+import { FileDropzone } from "@/components/planner/ui/FileDropzone";
 
 type Props = {
   open: boolean;
@@ -62,7 +63,6 @@ export function CsvImportAssistantModal({
   onImport,
 }: Props) {
   const closeRef = useRef<HTMLButtonElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileText, setFileText] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
   const [ackMetres, setAckMetres] = useState(false);
@@ -77,7 +77,6 @@ export function CsvImportAssistantModal({
     setAckDip(false);
     setAckAzimuth(false);
     setDoneSummary(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   }, []);
 
   useEffect(() => {
@@ -305,36 +304,13 @@ export function CsvImportAssistantModal({
                   release.
                 </p>
                 <div className="tl-modal-subpanel">
-                  <div
-                    className="csv-import-dropzone"
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const file = e.dataTransfer.files[0];
-                      if (file) void handleFile(file);
-                    }}
-                  >
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".csv,text/csv"
-                      className="csv-import-file-input"
-                      aria-label={`Choose ${title} CSV file`}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) void handleFile(file);
-                      }}
-                    />
-                    <span className="csv-import-dropzone-icon" aria-hidden>
-                      CSV
-                    </span>
-                    <p className="csv-import-dropzone-lead">Drop file here or click to browse</p>
-                    {fileName ? (
-                      <p className="csv-import-dropzone-file">{fileName}</p>
-                    ) : (
-                      <p className="csv-import-dropzone-hint">Accepted: .csv</p>
-                    )}
-                  </div>
+                  <FileDropzone
+                    accept=".csv,text/csv"
+                    label={`Choose ${title} CSV file`}
+                    hint="Accepted: .csv"
+                    fileName={fileName || null}
+                    onFiles={(files) => void handleFile(files[0])}
+                  />
                 </div>
               </section>
 

@@ -11,6 +11,7 @@ import { round } from "@/lib/drilling/format";
 type Props = {
   program: BranchProgram;
   activeDaughterHoleId?: string | null;
+  readOnly?: boolean;
   onSetActive: (daughterHoleId: string) => void;
   onArchive: (daughterHoleId: string) => void;
   onStatusChange: (daughterHoleId: string, status: DaughterStatus) => void;
@@ -19,6 +20,7 @@ type Props = {
 export function BranchDaughterList({
   program,
   activeDaughterHoleId,
+  readOnly = false,
   onSetActive,
   onArchive,
   onStatusChange,
@@ -72,6 +74,7 @@ export function BranchDaughterList({
                       onStatusChange(d.daughterHoleId, ev.target.value as DaughterStatus)
                     }
                     aria-label={`Status ${d.daughterId}`}
+                    disabled={readOnly}
                   >
                     {Object.entries(DAUGHTER_STATUS_LABELS).map(([k, v]) =>
                       k === "planned" ? null : (
@@ -81,13 +84,15 @@ export function BranchDaughterList({
                       )
                     )}
                   </select>
-                  <button
-                    type="button"
-                    className="targetlock-btn targetlock-btn-sm"
-                    onClick={() => onArchive(d.daughterHoleId)}
-                  >
-                    Archive
-                  </button>
+                  {!readOnly ? (
+                    <button
+                      type="button"
+                      className="targetlock-btn targetlock-btn-sm"
+                      onClick={() => onArchive(d.daughterHoleId)}
+                    >
+                      Archive
+                    </button>
+                  ) : null}
                 </div>
               </li>
             );

@@ -9,6 +9,7 @@ import {
 } from "./storage";
 import type { CapabilityAssumptions } from "./capability-assumptions";
 import type { PlanCorridorConfig } from "./plan-corridor";
+import type { ReferenceSystemConfig } from "./reference-system";
 import type { SurveyToolProfile } from "./survey-tool-profile";
 import type { AssumptionSignOff } from "./validation";
 import type { PersistedBranchProgram } from "./branch-program-types";
@@ -17,6 +18,13 @@ import type {
   DaughterStatus,
   HoleRole,
 } from "./branch-program-types";
+import { holesInProgram } from "./planner-program";
+import { canEditPlannerPlan } from "./plan-revision";
+import { plannerStatus } from "./planner-status";
+import type {
+  PlannerProjectCoordinateSystem,
+  PlannerProjectMetadata,
+} from "./planner-types";
 import type { SurveyRecord, TargetConfig } from "./types";
 import { DEFAULT_TARGET } from "./compute";
 
@@ -180,6 +188,7 @@ export function snapshotProject(fields: {
   activeScenario?: { id: string; name: string } | null;
   planCorridor?: PlanCorridorConfig | null;
   surveyToolProfile?: SurveyToolProfile | null;
+  referenceSystem?: ReferenceSystemConfig | null;
   holeRole?: HoleRole;
   programId?: string;
   parentHoleId?: string;
@@ -194,6 +203,7 @@ export function snapshotProject(fields: {
   branchMethod?: BranchMethod;
   branchStatus?: DaughterStatus;
   branchProgram?: PersistedBranchProgram | null;
+  plannerMeta?: PlannerProjectMetadata | null;
 }): SavedHoleProject {
   return touchProject({
     version: 1,
@@ -210,6 +220,7 @@ export function snapshotProject(fields: {
     activeScenario: fields.activeScenario ?? null,
     planCorridor: fields.planCorridor ?? null,
     surveyToolProfile: fields.surveyToolProfile ?? null,
+    referenceSystem: fields.referenceSystem ?? null,
     holeRole: fields.holeRole,
     programId: fields.programId,
     parentHoleId: fields.parentHoleId,
@@ -224,8 +235,77 @@ export function snapshotProject(fields: {
     branchMethod: fields.branchMethod,
     branchStatus: fields.branchStatus,
     branchProgram: fields.branchProgram ?? null,
+    plannerMeta: fields.plannerMeta ?? null,
     updatedAt: new Date().toISOString(),
   });
+}
+
+export function resolveProgramCoordinateSystem(
+  holes: SavedHoleProject[]
+): PlannerProjectCoordinateSystem | undefined {
+  for (const hole of holes) {
+    if (plannerStatus(hole) === "archived") continue;
+    if (hole.plannerMeta?.projectCoordinateSystem) {
+      return hole.plannerMeta.projectCoordinateSystem;
+    }
+  }
+  for (const hole of holes) {
+    if (hole.plannerMeta?.projectCoordinateSystem) {
+      return hole.plannerMeta.projectCoordinateSystem;
+    }
+  }
+  return undefined;
+}
+
+export type SyncProgramResult = {
+  library: HoleLibrary;
+  skippedProtected: number;
+};
+
+export function syncProgramCoordinateSystem(
+  library: HoleLibrary,
+  programId: string,
+  pcs: PlannerProjectCoordinateSystem | undefined
+): SyncProgramResult {
+  const holes = holesInProgram(library, programId, true);
+  const existing = resolveProgramCoordinateSystem(holes);
+  const merged =
+    pcs && existing?.plannerQa && !pcs.plannerQa
+      ? { ...pcs, plannerQa: existing.plannerQa }
+      : pcs;
+  let next = library;
+  let skippedProtected = 0;
+  for (const hole of holes) {
+    if (!hole.plannerMeta) continue;
+    if (!canEditPlannerPlan(hole)) {
+      skippedProtected += 1;
+      continue;
+    }
+    const updated: SavedHoleProject = {
+      ...hole,
+      plannerMeta: {
+        ...hole.plannerMeta,
+        projectCoordinateSystem: merged,
+      },
+    };
+    next = upsertHole(next, updated);
+  }
+  return { library: next, skippedProtected };
+}
+
+export function syncProgramQaSettings(
+  library: HoleLibrary,
+  programId: string,
+  qaSettings: PlannerProjectCoordinateSystem["plannerQa"]
+): SyncProgramResult {
+  const holes = holesInProgram(library, programId, true);
+  const existing = resolveProgramCoordinateSystem(holes);
+  const pcs: PlannerProjectCoordinateSystem = {
+    mode: existing?.mode ?? "local",
+    ...existing,
+    plannerQa: qaSettings,
+  };
+  return syncProgramCoordinateSystem(library, programId, pcs);
 }
 
 export function uniqueHoleName(library: HoleLibrary, baseName: string): string {

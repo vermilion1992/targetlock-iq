@@ -13,6 +13,8 @@ import {
   type ReferenceComparison,
 } from "@/lib/drilling/validation";
 import type { SurveyStation } from "@/lib/drilling/types";
+import type { ReferenceWarning } from "@/lib/drilling/reference-system";
+import { FileDropzone } from "@/components/planner/ui/FileDropzone";
 
 type Props = {
   sanity: PlanSanityCheck;
@@ -22,6 +24,7 @@ type Props = {
   signOff: AssumptionSignOff | null;
   onSignOff: (validatedBy: string) => void;
   onClearSignOff: () => void;
+  referenceWarnings?: ReferenceWarning[];
 };
 
 function statusClass(state: AssumptionValidationStatus["state"]): string {
@@ -38,11 +41,13 @@ export function ValidationPanel({
   signOff,
   onSignOff,
   onClearSignOff,
+  referenceWarnings = [],
 }: Props) {
   const [name, setName] = useState("");
   const [comparePath, setComparePath] = useState<"actual" | "plan">("actual");
   const [reference, setReference] = useState<ReferenceComparison | null>(null);
   const [refMessage, setRefMessage] = useState<string | null>(null);
+  const [refFileName, setRefFileName] = useState<string | null>(null);
 
   const compareTarget = comparePath === "actual" ? actualStations : planStations;
 
@@ -203,17 +208,21 @@ export function ValidationPanel({
               <option value="plan">Planned trajectory</option>
             </select>
           </label>
-          <label className="targetlock-validation-name">
+          <div className="targetlock-validation-name">
             <span>Reference CSV</span>
-            <input
-              type="file"
+            <FileDropzone
+              compact
               accept=".csv,text/csv"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void handleReferenceFile(file);
+              label="Choose reference desurvey CSV file"
+              lead="Drop CSV or browse"
+              hint="MD, East, North, Down"
+              fileName={refFileName}
+              onFiles={(files) => {
+                setRefFileName(files[0].name);
+                void handleReferenceFile(files[0]);
               }}
             />
-          </label>
+          </div>
         </div>
         {refMessage ? (
           <p className="targetlock-validation-help" role="status" aria-live="polite">
@@ -278,6 +287,21 @@ export function ValidationPanel({
           </>
         ) : null}
       </section>
+
+      {/* Survey reference warnings */}
+      {referenceWarnings.length > 0 ? (
+        <section className="targetlock-validation-section">
+          <h3 className="targetlock-validation-subhead">
+            Survey reference system{" "}
+            <InfoTip tip="Azimuth north-reference settings from Setup / assumptions. Mixed references are converted internally to true north before trajectory math." />
+          </h3>
+          <ul className="targetlock-validation-flags">
+            {referenceWarnings.map((warning) => (
+              <li key={warning.id}>{warning.message}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {/* Coordinate conventions */}
       <section className="targetlock-validation-section">

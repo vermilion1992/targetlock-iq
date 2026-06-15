@@ -6,6 +6,7 @@ import {
 } from "./capability-assumptions";
 import { DEFAULT_CAPABILITY_PROFILES } from "./capability-profiles";
 import { round } from "./format";
+import { adjustConfidenceForHoleMode, type HoleMode } from "./hole-mode";
 import {
   doglegDeg,
   EPS,
@@ -138,6 +139,11 @@ function confidenceFromAction(
     return reco.dlsRequired <= reco.maxDls ? "Medium" : "Low";
   }
   return "Low";
+}
+
+/** Base recovery confidence before hole-mode downgrade (RC2 report traceability). */
+export function baseRecoveryConfidence(reco: Recommendation): RecoveryConfidence {
+  return confidenceFromAction(mapRecoveryAction(reco), reco);
 }
 
 function methodFeasibilityRow(
@@ -297,7 +303,8 @@ export function buildSteeringFeasibility(
   actualStations: SurveyStation[],
   profiles: CapabilityProfile[] = DEFAULT_CAPABILITY_PROFILES,
   wedgeReviewThresholdDls: number = DEFAULT_CAPABILITY_ASSUMPTIONS.wedgeReviewThresholdDls,
-  planCorridor?: PlanCorridorConfig | null
+  planCorridor?: PlanCorridorConfig | null,
+  holeMode: HoleMode = "angle"
 ): SteeringFeasibility {
   const intervals = buildIntervalBehaviours(
     planStations,
@@ -308,7 +315,10 @@ export function buildSteeringFeasibility(
   const latestInterval = intervals.length ? intervals[intervals.length - 1] : null;
   const currentAction = mapRecoveryAction(reco);
   const requiredDlsToTarget = reco.dlsRequired;
-  const recoveryConfidence = confidenceFromAction(currentAction, reco);
+  const recoveryConfidence = adjustConfidenceForHoleMode(
+    confidenceFromAction(currentAction, reco),
+    holeMode
+  );
 
   const rejoinDepths = [30, 60, 90, reco.remaining].filter(
     (d, i, arr) => d > EPS && arr.indexOf(d) === i
@@ -384,7 +394,8 @@ export function computeSteeringFeasibility(
   planStations: SurveyStation[],
   actualStations: SurveyStation[],
   assumptions?: Partial<CapabilityAssumptions> | null,
-  planCorridor?: PlanCorridorConfig | null
+  planCorridor?: PlanCorridorConfig | null,
+  holeMode: HoleMode = "angle"
 ): SteeringFeasibility | null {
   if (!recommendation) return null;
   const normalized = normalizeCapabilityAssumptions(assumptions);
@@ -395,6 +406,7 @@ export function computeSteeringFeasibility(
     actualStations,
     profiles,
     normalized.wedgeReviewThresholdDls,
-    planCorridor
+    planCorridor,
+    holeMode
   );
 }

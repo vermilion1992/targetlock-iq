@@ -12,7 +12,7 @@ Each scenario replaces the **active hole** data (plan, actual, target, hole name
 
 **Top bar → Scenario lab → Custom scenario tab** → configure fields → **Generate scenario**.
 
-Use this to build holes without confidential data when the seven presets are not enough.
+Use this to build holes without confidential data when the nine built-in presets are not enough.
 
 | Field | Purpose |
 |-------|---------|
@@ -26,7 +26,7 @@ Use this to build holes without confidential data when the seven presets are not
 | Survey noise | Optional small random perturbation on actual surveys |
 | Expected outcome | Label only (shown in status message; not used in math) |
 
-**Output:** Generates planned and actual surveys, loads into the active hole, tags `Scenario lab · {hole name}` on exports. The seven **Built-in presets** below are unchanged.
+**Output:** Generates planned and actual surveys, loads into the active hole, tags `Scenario lab · {hole name}` on exports. The nine **Built-in presets** below are unchanged.
 
 **Code:** `packages/starterkit/src/lib/drilling/synthetic-hole-builder.ts`
 
@@ -43,6 +43,8 @@ Use this to build holes without confidential data when the seven presets are not
 | 5 | **Wedge / branch review** | Beyond smooth recovery — decision point, not a guarantee | Target at risk | Wedge or branch review | Steering feasibility, Action plan, QA/QC (Recover / Target) |
 | 6 | **QA survey jump** | Suspicious single-interval jump flags QA before trusting correction | (varies) | Investigate survey before acting | QA/QC (DLS risk + Trend), Trajectory chart |
 | 7 | **Invalid CSV import** | Import validation and clear error messaging | Import rejected | No hole loaded | Hole data status line only |
+| 8 | **Reference system** | Mixed plan (grid) / survey (true) north converts correctly before desurvey | On track | Continue drilling; confirm site north conventions | Setup → Reference system, Validation tab, PDF RC2 section |
+| 9 | **Near-vertical** | Steep-hole advisory and confidence downgrade without toolface math | Watch, Correction needed, or On track | Review near-vertical advisory; confirm survey quality | Action plan banner, confidence tag, PDF RC2 section |
 
 ---
 
@@ -90,6 +92,19 @@ Use this to build holes without confidential data when the seven presets are not
 - **Expected:** Status message: *No valid surveys found. Expected columns: MD, dip, azimuth…*
 - **Inspect:** Hole data panel status line; active hole data unchanged
 
+### 8. Reference system
+- **Hole:** `TEST · Reference system` / Synthetic test suite
+- **Data:** Full plan in grid north (~125°); actual on-plan to 540 m stored in true north (~135° = grid + 10° rotation)
+- **Reference config:** Plan = grid, survey = true, output = grid; grid rotation 10°, magnetic declination 12°
+- **Expected:** `On track` after internal conversion — geometry aligned; mixed-reference warning in Validation / Setup
+- **Inspect:** Reference system panel, Validation tab, exported PDF RC2 section
+
+### 9. Near-vertical
+- **Hole:** `TEST · Near-vertical` / Synthetic test suite
+- **Data:** Steep hole (`startDip: -88°`) planned to 300 m; actual with azimuth drift to 270 m; default grid/grid/grid reference
+- **Expected:** Classification may be `Watch`, `Correction needed`, or `On track`; hole mode **Near-vertical**; recovery confidence downgraded vs base recovery confidence
+- **Inspect:** Action plan advisory banner, confidence mini-tag, PDF RC2 section
+
 ---
 
 ## Suggested demo flow (10 minutes)
@@ -101,7 +116,9 @@ Use this to build holes without confidential data when the seven presets are not
 5. **Wedge / branch review** — show the escalation path.
 6. **QA survey jump** — show survey QA/QC catches bad data.
 7. **Invalid CSV** — show import guardrails.
-8. Export PDF from any hole scenario — confirm **Test scenario** line appears in the report header.
+8. **Reference system** — open Setup → Reference system; show mixed-ref warning and on-track outcome.
+9. **Near-vertical** — show steep-hole advisory and confidence downgrade in Action plan.
+10. Export PDF from any hole scenario — confirm **Test scenario** line and RC2 section appear in the report.
 
 ---
 

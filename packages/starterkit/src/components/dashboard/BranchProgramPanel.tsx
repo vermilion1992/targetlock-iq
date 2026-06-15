@@ -28,6 +28,8 @@ import { BranchDaughterList } from "./branch-program/BranchDaughterList";
 import { BranchProgramSummary } from "./branch-program/BranchProgramSummary";
 import { BranchTargetEditor } from "./branch-program/BranchTargetEditor";
 import { KickoffPlannerPanel } from "./branch-program/KickoffPlannerPanel";
+import { BranchPlannerWorkflowBanner } from "./BranchPlannerWorkflowBanner";
+import type { BranchPlannerContext } from "@/lib/drilling/planner-branch-context";
 
 type Props = {
   program: BranchProgram;
@@ -37,6 +39,7 @@ type Props = {
   holeRole: "standard" | "mother" | "daughter";
   activeHoleId: string;
   recoveryAssumptions: CapabilityAssumptions;
+  branchPlannerContext?: BranchPlannerContext | null;
   onInitProgram?: () => void;
   onAddTarget: (t: Omit<BranchTarget, "id">) => void;
   onUpdateTarget: (id: string, patch: Partial<BranchTarget>) => void;
@@ -63,6 +66,7 @@ export function BranchProgramPanel({
   holeRole,
   activeHoleId,
   recoveryAssumptions,
+  branchPlannerContext = null,
   onInitProgram,
   onAddTarget,
   onUpdateTarget,
@@ -151,9 +155,17 @@ export function BranchProgramPanel({
   };
 
   const hasProgram = Boolean(program.persisted);
+  const planningReadOnly = branchPlannerContext?.planningReadOnly ?? false;
 
   return (
     <div className="branch-program-panel">
+      {branchPlannerContext &&
+      (branchPlannerContext.planningReadOnly ||
+        branchPlannerContext.blockBranchInit ||
+        branchPlannerContext.isPlannerHole) ? (
+        <BranchPlannerWorkflowBanner context={branchPlannerContext} />
+      ) : null}
+
       <p className="branch-program-disclaimer" role="note">
         <strong>Planning estimate only</strong>
         Kickoff depth, required dogleg, and toolface must be confirmed by the directional drilling
@@ -174,6 +186,7 @@ export function BranchProgramPanel({
           <div className={gs("branch-targets")}>
             <BranchTargetEditor
               targets={program.targets}
+              readOnly={planningReadOnly}
               onAdd={onAddTarget}
               onUpdate={onUpdateTarget}
               onRemove={onRemoveTarget}
@@ -181,13 +194,18 @@ export function BranchProgramPanel({
           </div>
 
           <div className={gs("kickoff-planner")}>
-            <KickoffPlannerPanel program={program} onSaveDaughter={onSaveDaughter} />
+            <KickoffPlannerPanel
+              program={program}
+              readOnly={planningReadOnly}
+              onSaveDaughter={onSaveDaughter}
+            />
           </div>
 
           <div className={gs("branch-daughters")}>
             <BranchDaughterList
               program={program}
               activeDaughterHoleId={activeDaughterHoleId}
+              readOnly={planningReadOnly}
               onSetActive={onSetActiveDaughter}
               onArchive={onArchiveDaughter}
               onStatusChange={onStatusChange}
@@ -200,6 +218,7 @@ export function BranchProgramPanel({
                 program={program}
                 daughter={d}
                 recoveryAssumptions={recoveryAssumptions}
+                readOnly={planningReadOnly}
                 onApprove={onApprove}
                 onStatusChange={onStatusChange}
               />

@@ -310,6 +310,67 @@ swing     = change in azimuth across interval
 
         <Section
           index={8}
+          title="Position uncertainty (simplified model)"
+          formula={`σ_along²    = depth_const² + Σ (k_depth × L)²
+σ_highside² = Σ (L × σ_inc)²
+σ_lateral²  = Σ (L × cosθ × σ_azi)² + (Σ L × cosθ × σ_dec)²
+radius      = sigma_factor × max(σ_along, σ_highside, σ_lateral)`}
+        >
+          <p>
+            An ISCWSA-inspired simplified error model propagates survey-tool error terms
+            station-by-station along the minimum-curvature path: depth (constant + proportional),
+            inclination, azimuth sensor, and declination. Random terms accumulate in quadrature;
+            the systematic declination term accumulates linearly. The published radius is the
+            largest semi-axis at the chosen sigma factor (2-sigma ≈ 95%). This is decision-support
+            uncertainty, not a certified ISCWSA/OWSG implementation.
+          </p>
+        </Section>
+
+        <Section
+          index={9}
+          title="Separation factor (anti-collision)"
+          formula={`SF = centre_distance / (radius_A + radius_B)
+SF < 1  → uncertainty envelopes may overlap`}
+        >
+          <p>
+            Planner clearance pairs divide the closest-approach distance by the combined
+            uncertainty radii of both holes at that depth. Configurable thresholds flag watch,
+            risk, and approval-blocking separation factors. SF applies to independent hole pairs
+            only — mother/daughter and planned-vs-actual pairs share survey lineage, so their
+            errors are correlated and SF would over-flag them.
+          </p>
+        </Section>
+
+        <Section
+          index={10}
+          title="Curved path design"
+          formula={`R         = 30 / (DLS × π / 180)        (turn radius, m)
+required  = gentlest DLS whose arc still reaches the target
+path      = [kickoff straight] + arc(R) + tangent`}
+        >
+          <p>
+            Build-and-hold and curve-to-target plans solve a single constant-curvature arc plus
+            straight tangent in the plane containing the start direction and the target. The
+            solver reports the required dogleg rate and refuses to generate a plan when the
+            configured max DLS (or build rate) cannot reach the target.
+          </p>
+        </Section>
+
+        <Section
+          index={11}
+          title="Desurvey method cross-check"
+          formula={`balanced tangential : Δpos = (L / 2) × (dir₁ + dir₂)
+radius of curvature : inclination and azimuth vary linearly over L`}
+        >
+          <p>
+            All TargetLock calculations use minimum curvature. The validation tab can cross-check
+            bottom-hole position against balanced tangential and radius-of-curvature desurveys to
+            reconcile with contractor or mine databases that use a different convention.
+          </p>
+        </Section>
+
+        <Section
+          index={12}
           title="Assumptions and limitations"
           formula={`feasibility = f(ground, rig, rods, hole size, tool,
               survey quality, contractor, approval)`}

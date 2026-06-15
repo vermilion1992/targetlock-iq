@@ -87,5 +87,6 @@ export function snapshotFingerprint(project: SavedHoleProject): string {
     branchMethod: project.branchMethod,
     branchStatus: project.branchStatus,
     branchProgram: project.branchProgram ?? null,
+    plannerMeta: project.plannerMeta ?? null,
   });
 }

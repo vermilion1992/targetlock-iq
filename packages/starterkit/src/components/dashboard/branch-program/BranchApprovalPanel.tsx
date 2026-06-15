@@ -19,6 +19,7 @@ type Props = {
   program: BranchProgram;
   daughter: DaughterHole;
   recoveryAssumptions: CapabilityAssumptions;
+  readOnly?: boolean;
   onApprove: (daughterHoleId: string, snapshot: BranchApprovalSnapshot) => void;
   onStatusChange: (daughterHoleId: string, status: DaughterStatus) => void;
 };
@@ -27,6 +28,7 @@ export function BranchApprovalPanel({
   program,
   daughter,
   recoveryAssumptions,
+  readOnly = false,
   onApprove,
   onStatusChange,
 }: Props) {
@@ -83,45 +85,54 @@ export function BranchApprovalPanel({
         <strong>{validation.label}</strong> — {validation.detail}{" "}
         <InfoTip tip="If recovery assumptions or the daughter plan change after approval, the sign-off may be stale — re-approve before field use." />
       </div>
-      <div className="targetlock-branch-signoff targetlock-validation-section">
-        <h3 className="targetlock-validation-subhead">Sign-off</h3>
-        <div className="targetlock-branch-form-grid">
-          <label>
-            Approver name
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Approver name"
-            />
-          </label>
-          <label>
-            Role
-            <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Role" />
-          </label>
-        </div>
-        <label>
-          Notes
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Optional notes for the handover record"
-            rows={2}
-          />
-        </label>
-      </div>
-      <div className="targetlock-btn-row">
-        <button type="button" className="targetlock-btn targetlock-btn-sm" onClick={advanceStatus}>
-          Advance review step
-        </button>
-        <button
-          type="button"
-          className="targetlock-btn targetlock-btn-primary targetlock-btn-sm"
-          onClick={handleApprove}
-          disabled={!name.trim() || !analysis.kickoff}
-        >
-          Approve branch plan
-        </button>
-      </div>
+      {readOnly ? (
+        <p className="targetlock-panel-copy">
+          Planner-managed daughters use Hole Planner approval and execution lock. Review the
+          execution banner and Validation tab for the institutional sign-off trail.
+        </p>
+      ) : (
+        <>
+          <div className="targetlock-branch-signoff targetlock-validation-section">
+            <h3 className="targetlock-validation-subhead">Sign-off</h3>
+            <div className="targetlock-branch-form-grid">
+              <label>
+                Approver name
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Approver name"
+                />
+              </label>
+              <label>
+                Role
+                <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Role" />
+              </label>
+            </div>
+            <label>
+              Notes
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Optional notes for the handover record"
+                rows={2}
+              />
+            </label>
+          </div>
+          <div className="targetlock-btn-row">
+            <button type="button" className="targetlock-btn targetlock-btn-sm" onClick={advanceStatus}>
+              Advance review step
+            </button>
+            <button
+              type="button"
+              className="targetlock-btn targetlock-btn-primary targetlock-btn-sm"
+              onClick={handleApprove}
+              disabled={!name.trim() || !analysis.kickoff}
+            >
+              Approve branch plan
+            </button>
+          </div>
+        </>
+      )}
     </article>
   );
 }

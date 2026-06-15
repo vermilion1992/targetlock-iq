@@ -1,0 +1,2 @@
+program_id,program_name,pcs_mode,grid_name,epsg_code,north_reference,magnetic_declination_deg,grid_convergence_deg,origin_easting,origin_northing,origin_elevation,origin_latitude,origin_longitude,notes
+prog-1,My Program,grid,MGA94 Zone 54,EPSG:28354,grid,0,0,500000,7000000,400,,,Project origin for RC2 program

@@ -6,6 +6,11 @@ import type { SavedHoleProject } from "./storage";
 import { SAMPLE_PLAN_CSV } from "@/lib/sample-data";
 import type { TargetConfig } from "./types";
 import {
+  convertSurveyRecordsReference,
+  normalizeReferenceSystem,
+  type ReferenceSystemConfig,
+} from "./reference-system";
+import {
   driftRows,
   LEGACY_PLAN_ROWS,
   onPlanRows,
@@ -45,9 +50,45 @@ export type TestScenario = {
   target?: Partial<TargetConfig>;
   /** Deliberately malformed CSV for the invalid-import demo. */
   invalidCsv?: string;
+  /** RC2 reference-system config (defaults to grid/grid/grid when omitted). */
+  referenceSystem?: ReferenceSystemConfig;
 };
 
 const PLAN = SAMPLE_PLAN_CSV;
+
+const REFERENCE_SYSTEM_GRID_ROTATION_DEG = 10;
+
+/** Plan in grid north; actual stored in true north (+10° azimuth). */
+function referenceSystemScenarioCsvs(): { planCsv: string; actualCsv: string } {
+  const actualRows = onPlanRows(LEGACY_PLAN_ROWS, 540).map((row) => ({
+    ...row,
+    azimuth: row.azimuth + REFERENCE_SYSTEM_GRID_ROTATION_DEG,
+  }));
+  return {
+    planCsv: PLAN,
+    actualCsv: rowsToCsv(actualRows),
+  };
+}
+
+const REFERENCE_SYSTEM_CSVS = referenceSystemScenarioCsvs();
+
+const NEAR_VERTICAL_PLAN_CSV = rowsToCsv(
+  driftRows({
+    toMd: 300,
+    startDip: -88,
+    dipPerInterval: 0.1,
+    aziPerInterval: 0.2,
+  })
+);
+
+const NEAR_VERTICAL_ACTUAL_CSV = rowsToCsv(
+  driftRows({
+    toMd: 270,
+    startDip: -88,
+    dipPerInterval: 0.15,
+    aziPerInterval: 0.65,
+  })
+);
 
 export const TEST_SCENARIOS: TestScenario[] = [
   {
@@ -150,6 +191,42 @@ export const TEST_SCENARIOS: TestScenario[] = [
     planCsv: PLAN,
   },
   {
+    id: "reference-system",
+    name: "TEST · Reference system",
+    site: "Synthetic test suite",
+    description:
+      "Plan azimuths are grid north (~125°); survey azimuths are stored in true north (~135°). Proves mixed-reference conversion before desurvey keeps geometry aligned.",
+    expectedStatus: "On track",
+    expectedAction: "Continue drilling; confirm grid rotation and declination match site procedures.",
+    inspect:
+      "Setup → Reference system panel (mixed-ref warning), Validation tab, exported PDF RC2 section.",
+    kind: "hole",
+    planCsv: REFERENCE_SYSTEM_CSVS.planCsv,
+    actualCsv: REFERENCE_SYSTEM_CSVS.actualCsv,
+    referenceSystem: {
+      planReference: "grid",
+      surveyReference: "true",
+      outputReference: "grid",
+      gridRotationDeg: REFERENCE_SYSTEM_GRID_ROTATION_DEG,
+      magneticDeclinationDeg: 12,
+    },
+  },
+  {
+    id: "near-vertical",
+    name: "TEST · Near-vertical",
+    site: "Synthetic test suite",
+    description:
+      "Steep hole (|dip| ≥ 85°) planned to 300 m with azimuth drift on actual to 270 m. Proves near-vertical advisory and confidence downgrade without toolface math.",
+    expectedStatus: "Watch, Correction needed, or On track",
+    expectedAction:
+      "Review near-vertical advisory; confirm survey quality before relying on standard correction guidance.",
+    inspect:
+      "Action plan advisory banner, confidence mini-tag, Setup → Reference system (defaults), exported PDF RC2 section.",
+    kind: "hole",
+    planCsv: NEAR_VERTICAL_PLAN_CSV,
+    actualCsv: NEAR_VERTICAL_ACTUAL_CSV,
+  },
+  {
     id: "invalid-import",
     name: "TEST · Invalid CSV import",
     site: "Synthetic test suite",
@@ -171,7 +248,9 @@ export function findScenario(id: string): TestScenario | undefined {
 
 export function scenarioTarget(scenario: TestScenario): TargetConfig {
   const planRecords = parseSurveyCsv(scenario.planCsv);
-  const stations = buildStations(planRecords);
+  const ref = normalizeReferenceSystem(scenario.referenceSystem);
+  const planTrue = convertSurveyRecordsReference(planRecords, ref.planReference, ref);
+  const stations = buildStations(planTrue);
   const finalPlan = stations[stations.length - 1]!;
   const fromPlan = planTargetFromStations(stations, finalPlan.md)!;
   return {

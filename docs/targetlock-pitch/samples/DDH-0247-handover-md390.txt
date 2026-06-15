@@ -4,7 +4,7 @@
 
 Hole ID / name:             DDH-0247
 Site / project:             North Camp — Pilot
-Report generated:           Fri, 5 June 2026  04:24 am
+Report generated:           Tue, 16 June 2026  03:13 am
 Latest survey depth:        390.0 m
 Overall status:             Correction needed
 Confidence:                 Medium
@@ -66,6 +66,17 @@ RECOVERY CAPABILITY ASSUMPTIONS (THIS HOLE)
 
   These are configurable assumptions, not guaranteed tool performance.
 
+SURVEY REFERENCE & HOLE MODE (RC2)
+──────────────────────────────────────────────────────────────
+  Plan north reference: Grid North
+  Survey camera reference: Grid North
+  Display output reference: Grid North
+  Mine grid rotation: 0.0°
+  Magnetic declination: 0.0°
+  Internal calculation reference: True North
+  Base confidence: Medium
+  Reported confidence: Medium
+
 VALIDATION STATUS
 ──────────────────────────────────────────────────────────────
 Assumptions:                Not validated
@@ -97,8 +108,8 @@ SURVEY QA / QC
 
 RECENT DECISION HISTORY (THIS SESSION)
 ──────────────────────────────────────────────────────────────
-  5 June, 04:24 am  Supervisor: Correct naturally at MD 390 m → Correct naturally
-  5 June, 04:24 am  Sample plan and actual surveys loaded → Load sample
+  16 June, 03:13 am  Supervisor: Correct naturally at MD 390 m → Correct naturally
+  16 June, 03:13 am  Sample plan and actual surveys loaded → Load sample
 
 ──────────────────────────────────────────────────────────────
 DECISION SUPPORT ONLY. STEERING FEASIBILITY DEPENDS ON SITE CONDITIONS, TOOL CAPABILITY, DRILLING CONTRACTOR, AND GEOLOGIST/SUPERVISOR APPROVAL. VERIFY ALL RECOMMENDATIONS AGAINST SITE PROCEDURES, INDEPENDENT DESURVEY, AND OPERATIONAL SIGN-OFF.

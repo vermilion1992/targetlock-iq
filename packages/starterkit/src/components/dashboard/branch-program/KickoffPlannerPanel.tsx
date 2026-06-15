@@ -17,10 +17,11 @@ import { ToolfaceEstimateCard } from "./ToolfaceEstimateCard";
 
 type Props = {
   program: BranchProgram;
+  readOnly?: boolean;
   onSaveDaughter: (input: CreateDaughterInput) => string | null;
 };
 
-export function KickoffPlannerPanel({ program, onSaveDaughter }: Props) {
+export function KickoffPlannerPanel({ program, readOnly = false, onSaveDaughter }: Props) {
   const defaults = program.persisted?.kickoffPlannerDefaults ?? program.kickoffWindow;
   const [targetId, setTargetId] = useState(program.targets[0]?.id ?? "");
   const [mdMin, setMdMin] = useState(String(defaults?.mdMin ?? 420));
@@ -78,6 +79,9 @@ export function KickoffPlannerPanel({ program, onSaveDaughter }: Props) {
       </div>
       <p className="targetlock-panel-copy">
         Kickoff from actual mother survey — not planned path alone.
+        {readOnly
+          ? " Rank options here for field decisions; create or revise daughter plans in Hole Planner."
+          : null}
       </p>
 
       <div className="targetlock-branch-form-grid">
@@ -123,11 +127,19 @@ export function KickoffPlannerPanel({ program, onSaveDaughter }: Props) {
         </label>
         <label>
           New daughter ID
-          <input value={daughterId} onChange={(e) => setDaughterId(e.target.value)} />
+          <input
+            value={daughterId}
+            onChange={(e) => setDaughterId(e.target.value)}
+            disabled={readOnly}
+          />
         </label>
         <label>
           Branch method
-          <select value={method} onChange={(e) => setMethod(e.target.value as BranchMethod)}>
+          <select
+            value={method}
+            onChange={(e) => setMethod(e.target.value as BranchMethod)}
+            disabled={readOnly}
+          >
             <option value="natural">Natural</option>
             <option value="motor-navi">Motor / Navi</option>
             <option value="devidrill-dcd">DeviDrill / DCD</option>
@@ -236,14 +248,20 @@ export function KickoffPlannerPanel({ program, onSaveDaughter }: Props) {
             <strong>{selectedMd != null ? `${round(selectedMd, 0)} m` : "—"}</strong>
           </p>
           <div className="targetlock-btn-row">
-            <button
-              type="button"
-              className="targetlock-btn targetlock-btn-primary"
-              onClick={handleSave}
-              disabled={selectedMd == null || !target}
-            >
-              Save as daughter plan (draft)
-            </button>
+            {!readOnly ? (
+              <button
+                type="button"
+                className="targetlock-btn targetlock-btn-primary"
+                onClick={handleSave}
+                disabled={selectedMd == null || !target}
+              >
+                Save as daughter plan (draft)
+              </button>
+            ) : (
+              <p className="targetlock-helper m-0" role="note">
+                Daughter plans are created and revised in Hole Planner for this program.
+              </p>
+            )}
           </div>
         </>
       ) : (

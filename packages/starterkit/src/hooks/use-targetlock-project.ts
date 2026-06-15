@@ -49,6 +49,12 @@ import {
   type PlanCorridorConfig,
 } from "@/lib/drilling/plan-corridor";
 import {
+  completePlannerExecution,
+  markExecutionDrilling,
+} from "@/lib/drilling/execution-bridge";
+import { guardLockedPlanEdit } from "@/lib/drilling/plan-lock";
+import { plannerStatus } from "@/lib/drilling/planner-status";
+import {
   syntheticHoleToProject,
   type SyntheticHoleParams,
 } from "@/lib/drilling/synthetic-hole-builder";
@@ -57,6 +63,11 @@ import {
   normalizeSurveyToolProfile,
   type SurveyToolProfile,
 } from "@/lib/drilling/survey-tool-profile";
+import {
+  DEFAULT_REFERENCE_SYSTEM,
+  normalizeReferenceSystem,
+  type ReferenceSystemConfig,
+} from "@/lib/drilling/reference-system";
 import {
   addTarget as libAddTarget,
   archiveDaughter as libArchiveDaughter,
@@ -106,6 +117,7 @@ function applyProjectToState(
     setActiveScenario: (s: { id: string; name: string } | null) => void;
     setPlanCorridor: (c: PlanCorridorConfig) => void;
     setSurveyToolProfile: (p: SurveyToolProfile) => void;
+    setReferenceSystem: (r: ReferenceSystemConfig) => void;
   }
 ) {
   setters.setHoleId(project.holeId);
@@ -124,6 +136,9 @@ function applyProjectToState(
   setters.setPlanCorridor(project.planCorridor ?? { ...DEFAULT_PLAN_CORRIDOR });
   setters.setSurveyToolProfile(
     normalizeSurveyToolProfile(project.surveyToolProfile ?? DEFAULT_SURVEY_TOOL_PROFILE)
+  );
+  setters.setReferenceSystem(
+    normalizeReferenceSystem(project.referenceSystem ?? DEFAULT_REFERENCE_SYSTEM)
   );
 }
 
@@ -152,14 +167,29 @@ export function useTargetLockProject(suspendPersistence = false) {
   const [surveyToolProfile, setSurveyToolProfile] = useState<SurveyToolProfile>(
     DEFAULT_SURVEY_TOOL_PROFILE
   );
+  const [referenceSystem, setReferenceSystemState] = useState<ReferenceSystemConfig>(
+    DEFAULT_REFERENCE_SYSTEM
+  );
   const [library, setLibrary] = useState<HoleLibrary | null>(null);
   const [storageHealth, setStorageHealth] = useState<StorageLoadStatus>("missing");
   const [storageError, setStorageError] = useState<string | null>(null);
+  const [planEditNotice, setPlanEditNotice] = useState<string | null>(null);
   const libraryRef = useRef<HoleLibrary | null>(null);
   const skipSaveRef = useRef(true);
   const lastPersistedRef = useRef("");
 
   libraryRef.current = library;
+
+  const setReferenceSystem = useCallback((next: ReferenceSystemConfig) => {
+    const normalized = normalizeReferenceSystem(next);
+    setReferenceSystemState(normalized);
+    setSurveyToolProfile((prev) =>
+      normalizeSurveyToolProfile({
+        ...prev,
+        northReference: normalized.surveyReference,
+      })
+    );
+  }, []);
 
   const pushHistory = useCallback(
     (entry: Omit<DecisionHistoryEntry, "id" | "timestamp">) => {
@@ -240,6 +270,7 @@ export function useTargetLockProject(suspendPersistence = false) {
       activeScenario,
       planCorridor,
       surveyToolProfile,
+      referenceSystem,
       holeRole,
       branchProgram: holeRole === "mother" ? persistedBranchProgram : null,
     });
@@ -247,6 +278,19 @@ export function useTargetLockProject(suspendPersistence = false) {
       ? findHole(libraryRef.current, holeId)
       : undefined;
     if (!activeInLib) return base;
+
+    let plannerMeta = activeInLib.plannerMeta ?? null;
+    if (plannerMeta && plannerStatus({ ...base, plannerMeta }) === "active") {
+      const withMeta = { ...base, plannerMeta };
+      if (
+        actualRecords.length > 1 &&
+        plannerMeta.executionStatus?.state === "not-started"
+      ) {
+        const marked = markExecutionDrilling(withMeta);
+        plannerMeta = marked.plannerMeta ?? plannerMeta;
+      }
+    }
+
     return {
       ...base,
       programId: activeInLib.programId,
@@ -261,6 +305,7 @@ export function useTargetLockProject(suspendPersistence = false) {
       branchTargetId: activeInLib.branchTargetId,
       branchMethod: activeInLib.branchMethod,
       branchStatus: activeInLib.branchStatus,
+      plannerMeta,
       branchProgram:
         holeRole === "mother" ? persistedBranchProgram : activeInLib.branchProgram,
     };
@@ -278,6 +323,7 @@ export function useTargetLockProject(suspendPersistence = false) {
     activeScenario,
     planCorridor,
     surveyToolProfile,
+    referenceSystem,
     holeRole,
     persistedBranchProgram,
   ]);
@@ -290,6 +336,47 @@ export function useTargetLockProject(suspendPersistence = false) {
       }
     },
     [suspendPersistence]
+  );
+
+  const guardPlanEdit = useCallback(
+    (field: "planRecords" | "target" | "planCorridor"): boolean => {
+      const activeInLib = libraryRef.current
+        ? findHole(libraryRef.current, holeId)
+        : undefined;
+      if (!activeInLib) return true;
+      const err = guardLockedPlanEdit(activeInLib, field);
+      if (err) {
+        setPlanEditNotice(err);
+        return false;
+      }
+      setPlanEditNotice(null);
+      return true;
+    },
+    [holeId]
+  );
+
+  const setPlanRecordsGuarded = useCallback(
+    (records: SurveyRecord[]) => {
+      if (!guardPlanEdit("planRecords")) return;
+      setPlanRecords(records);
+    },
+    [guardPlanEdit]
+  );
+
+  const setTargetGuarded = useCallback(
+    (next: TargetConfig | ((prev: TargetConfig) => TargetConfig)) => {
+      if (!guardPlanEdit("target")) return;
+      setTarget(next);
+    },
+    [guardPlanEdit]
+  );
+
+  const setPlanCorridorGuarded = useCallback(
+    (next: PlanCorridorConfig) => {
+      if (!guardPlanEdit("planCorridor")) return;
+      setPlanCorridor(next);
+    },
+    [guardPlanEdit]
   );
 
   const applyHole = useCallback(
@@ -326,6 +413,7 @@ export function useTargetLockProject(suspendPersistence = false) {
         setActiveScenario,
         setPlanCorridor,
         setSurveyToolProfile,
+        setReferenceSystem,
       });
     },
     []
@@ -421,6 +509,7 @@ export function useTargetLockProject(suspendPersistence = false) {
     activeScenario,
     planCorridor,
     surveyToolProfile,
+    referenceSystem,
     holeRole,
     persistedBranchProgram,
     suspendPersistence,
@@ -536,6 +625,7 @@ export function useTargetLockProject(suspendPersistence = false) {
       setPlanRecords(plan);
       setActualRecords(actual);
       setTarget(scenarioTarget(scenario));
+      setReferenceSystem(normalizeReferenceSystem(scenario.referenceSystem));
       setActiveScenario({ id: scenario.id, name: scenario.name });
       setAssumptionSignOff(null);
       pushHistory({
@@ -546,7 +636,7 @@ export function useTargetLockProject(suspendPersistence = false) {
       });
       return `${scenario.name} loaded — expect “${scenario.expectedStatus}”. ${scenario.expectedAction}`;
     },
-    [pushHistory]
+    [pushHistory, setReferenceSystem]
   );
 
   const loadBranchScenario = useCallback(
@@ -691,6 +781,9 @@ export function useTargetLockProject(suspendPersistence = false) {
   const importSurveysToHole = useCallback(
     (targetHoleId: string, type: "plan" | "actual", records: SurveyRecord[]) => {
       if (!library) return;
+      if (type === "plan" && targetHoleId === holeId && !guardPlanEdit("planRecords")) {
+        return;
+      }
       let nextLib = upsertHole(library, currentSnapshot());
       const hole = findHole(nextLib, targetHoleId);
       if (!hole) return;
@@ -705,7 +798,7 @@ export function useTargetLockProject(suspendPersistence = false) {
       }
       persistLibrary(nextLib);
     },
-    [library, currentSnapshot, holeId, persistLibrary]
+    [library, currentSnapshot, holeId, persistLibrary, guardPlanEdit]
   );
 
   const loadSyntheticHole = useCallback(
@@ -827,6 +920,18 @@ export function useTargetLockProject(suspendPersistence = false) {
     [library, getMotherHoleId, currentSnapshot, persistLibrary, applyHole, pushHistory]
   );
 
+  const completePlannerPlanExecution = useCallback(
+    (opts?: { completedBy?: string; completionNotes?: string; notes?: string }) => {
+      if (!library) return false;
+      const result = completePlannerExecution(library, holeId, opts);
+      if (!result) return false;
+      persistLibrary(result.library);
+      applyHole(result.completedHole, result.library);
+      return true;
+    },
+    [library, holeId, persistLibrary, applyHole]
+  );
+
   return {
     hydrated,
     holeId,
@@ -837,11 +942,11 @@ export function useTargetLockProject(suspendPersistence = false) {
     mode,
     setMode,
     planRecords,
-    setPlanRecords,
+    setPlanRecords: setPlanRecordsGuarded,
     actualRecords,
     setActualRecords,
     target,
-    setTarget,
+    setTarget: setTargetGuarded,
     history,
     pushHistory,
     logRecommendation,
@@ -880,14 +985,19 @@ export function useTargetLockProject(suspendPersistence = false) {
     getMotherHoleId,
     importSurveysToHole,
     planCorridor,
-    setPlanCorridor,
+    setPlanCorridor: setPlanCorridorGuarded,
+    planEditNotice,
+    setPlanEditNotice,
     surveyToolProfile,
     setSurveyToolProfile,
+    referenceSystem,
+    setReferenceSystem,
     seedPlanCorridorFromPlan,
     storageHealth,
     storageError,
     resetAllLocalData,
     initFreshSampleLibrary,
     importHolePackage,
+    completePlannerPlanExecution,
   };
 }

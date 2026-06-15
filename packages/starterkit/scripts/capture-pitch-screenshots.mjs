@@ -125,6 +125,32 @@ async function main() {
   console.log("Wrote", join(outDir, "08-pdf-handover-preview.png"));
   await pdfPage.close();
 
+  const plannerUrl = appRoot.replace(/\/targetlock\/?$/, "/targetlock/planner");
+  const plannerPage = await context.newPage();
+  await plannerPage.goto(plannerUrl, { waitUntil: "networkidle", timeout: 30_000 });
+  await plannerPage.waitForSelector(".planner-context-row", { timeout: 15_000 });
+  await plannerPage.getByRole("tab", { name: /^Create$/i }).click();
+  await plannerPage.waitForTimeout(600);
+  await plannerPage.screenshot({
+    path: join(outDir, "09-planner-create-tab.png"),
+  });
+  console.log("Wrote", join(outDir, "09-planner-create-tab.png"));
+
+  await plannerPage.getByRole("tab", { name: /Map/i }).click();
+  await plannerPage.waitForTimeout(400);
+  await plannerPage.screenshot({
+    path: join(outDir, "10-planner-map.png"),
+  });
+  console.log("Wrote", join(outDir, "10-planner-map.png"));
+
+  await plannerPage.getByRole("tab", { name: /Package/i }).click();
+  await plannerPage.waitForTimeout(400);
+  await plannerPage.screenshot({
+    path: join(outDir, "11-planner-package.png"),
+  });
+  console.log("Wrote", join(outDir, "11-planner-package.png"));
+  await plannerPage.close();
+
   await browser.close();
 }
 

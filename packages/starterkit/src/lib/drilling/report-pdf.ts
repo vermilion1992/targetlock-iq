@@ -254,6 +254,30 @@ function renderAppendix(
     layout.y += 3;
   }
 
+  if (apx.rc2KeyValues.length) {
+    layout.y = drawPdfSectionHeader(
+      doc,
+      layout.y,
+      margin,
+      contentWidth,
+      "Survey reference & hole mode"
+    );
+    writeKeyValueBlock(layout, apx.rc2KeyValues);
+    if (apx.rc2ReferenceWarnings.length) {
+      writeLines(layout, apx.rc2ReferenceWarnings.map((w) => `- ${w}`), {
+        fontSize: 7.5,
+        color: PDF_COLORS.watch,
+      });
+    }
+    if (apx.rc2HoleModeAdvisory) {
+      writeLines(layout, [apx.rc2HoleModeAdvisory], {
+        fontSize: 7.5,
+        color: PDF_COLORS.muted,
+      });
+    }
+    layout.y += 3;
+  }
+
   if (apx.validationStatus && apx.validationDetail) {
     layout.y = drawPdfSectionHeader(doc, layout.y, margin, contentWidth, "Validation status");
     writeKeyValueBlock(layout, [
@@ -278,6 +302,18 @@ function renderAppendix(
     layout.y += 3;
   } else if (apx.surveyToolOneLiner) {
     writeLines(layout, [`Survey tool: ${apx.surveyToolOneLiner}`], { color: PDF_COLORS.muted });
+    layout.y += 3;
+  }
+
+  if (apx.positionUncertaintyLines.length) {
+    layout.y = drawPdfSectionHeader(
+      doc,
+      layout.y,
+      margin,
+      contentWidth,
+      "Position uncertainty (simplified model)"
+    );
+    writeLines(layout, apx.positionUncertaintyLines);
     layout.y += 3;
   }
 

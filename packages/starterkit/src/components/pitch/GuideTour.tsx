@@ -1,20 +1,6 @@
 "use client";
 
-import { resolveGuideTab } from "@/lib/drilling/guide-flows";
-import type { AdvancedTab, GuideStep } from "@/lib/drilling/guide-types";
-
-const TAB_LABELS: Record<AdvancedTab, string> = {
-  trajectory: "Trajectory",
-  "branch-program": "Branch program",
-  steering: "Steering feasibility",
-  qaqc: "QA/QC",
-  decisions: "Decisions",
-  math: "Math reference",
-  "method-purpose": "Method & Purpose",
-  roadmap: "Roadmap",
-  validation: "Validation",
-  setup: "Setup / assumptions",
-};
+import type { GuideStep } from "@/lib/drilling/guide-types";
 
 type Props = {
   active: boolean;
@@ -25,10 +11,7 @@ type Props = {
   onPrev: () => void;
   onNext: () => void;
   onExit: () => void;
-  onRestart: () => void;
   onOpenGuideCenter: () => void;
-  onOpenTab?: () => void;
-  onLoadDemo?: () => void;
 };
 
 export function GuideTour({
@@ -40,19 +23,21 @@ export function GuideTour({
   onPrev,
   onNext,
   onExit,
-  onRestart,
   onOpenGuideCenter,
-  onOpenTab,
-  onLoadDemo,
 }: Props) {
   if (!active) return null;
-
-  const tab = resolveGuideTab(step);
-  const tabLabel = tab ? TAB_LABELS[tab] : null;
 
   return (
     <div className="guide-tour pitch-walkthrough" role="region" aria-label="Guided walkthrough">
       <div className="guide-tour-inner pitch-walkthrough-inner">
+        <button
+          type="button"
+          className="guide-tour-close"
+          onClick={onExit}
+          aria-label="Exit guide"
+        >
+          <span aria-hidden="true">×</span>
+        </button>
         <div className="pitch-walkthrough-progress">
           <span>
             {flowTitle ? `${flowTitle} · ` : ""}
@@ -93,40 +78,28 @@ export function GuideTour({
           </p>
         ) : null}
         <div className="pitch-walkthrough-actions guide-tour-actions">
-          <button type="button" className="targetlock-btn" onClick={onOpenGuideCenter}>
-            Guide center
-          </button>
-          {tabLabel && onOpenTab ? (
-            <button type="button" className="targetlock-btn" onClick={onOpenTab}>
-              Open {tabLabel}
+          <div className="guide-tour-actions-context">
+            <button type="button" className="targetlock-btn" onClick={onOpenGuideCenter}>
+              Guide center
             </button>
-          ) : null}
-          {step.demoAction && onLoadDemo ? (
-            <button type="button" className="targetlock-btn" onClick={onLoadDemo}>
-              {step.demoAction.label}
+          </div>
+          <div className="guide-tour-actions-nav">
+            <button
+              type="button"
+              className="targetlock-btn"
+              onClick={onPrev}
+              disabled={stepIndex === 0}
+            >
+              Previous
             </button>
-          ) : null}
-          <button
-            type="button"
-            className="targetlock-btn"
-            onClick={onPrev}
-            disabled={stepIndex === 0}
-          >
-            Previous
-          </button>
-          <button
-            type="button"
-            className="targetlock-btn targetlock-btn-primary"
-            onClick={onNext}
-          >
-            {stepIndex >= stepCount - 1 ? "Finish guide" : "Next"}
-          </button>
-          <button type="button" className="targetlock-btn" onClick={onRestart}>
-            Restart
-          </button>
-          <button type="button" className="targetlock-btn" onClick={onExit}>
-            Exit guide
-          </button>
+            <button
+              type="button"
+              className="targetlock-btn targetlock-btn-primary guide-tour-next"
+              onClick={onNext}
+            >
+              {stepIndex >= stepCount - 1 ? "Finish guide" : "Next"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

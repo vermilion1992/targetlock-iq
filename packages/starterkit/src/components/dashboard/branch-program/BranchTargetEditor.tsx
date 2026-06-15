@@ -10,6 +10,7 @@ import {
 
 type Props = {
   targets: BranchTarget[];
+  readOnly?: boolean;
   onAdd: (t: Omit<BranchTarget, "id">) => void;
   onUpdate: (id: string, patch: Partial<BranchTarget>) => void;
   onRemove: (id: string) => void;
@@ -28,7 +29,7 @@ function purposeLabel(p: BranchTargetPurpose): string {
   return p.replace(/-/g, " ");
 }
 
-export function BranchTargetEditor({ targets, onAdd, onUpdate, onRemove }: Props) {
+export function BranchTargetEditor({ targets, readOnly = false, onAdd, onUpdate, onRemove }: Props) {
   const [label, setLabel] = useState("New target");
   const [e, setE] = useState("0");
   const [n, setN] = useState("0");
@@ -58,7 +59,9 @@ export function BranchTargetEditor({ targets, onAdd, onUpdate, onRemove }: Props
         <span className="targetlock-mini-tag">{targets.length} targets</span>
       </div>
       <p className="targetlock-panel-copy">
-        Define branch targets before ranking kickoff options in the planner below.
+        {readOnly
+          ? "Targets are defined in Hole Planner. Review them here during execution."
+          : "Define branch targets before ranking kickoff options in the planner below."}
       </p>
 
       {targets.length === 0 ? (
@@ -81,6 +84,7 @@ export function BranchTargetEditor({ targets, onAdd, onUpdate, onRemove }: Props
                     onUpdate(t.id, { purpose: ev.target.value as BranchTargetPurpose })
                   }
                   aria-label={`Purpose for ${t.label}`}
+                  disabled={readOnly}
                 >
                   {PURPOSES.map((p) => (
                     <option key={p} value={p}>
@@ -88,79 +92,83 @@ export function BranchTargetEditor({ targets, onAdd, onUpdate, onRemove }: Props
                     </option>
                   ))}
                 </select>
-                <button
-                  type="button"
-                  className="targetlock-btn targetlock-btn-sm"
-                  onClick={() => onRemove(t.id)}
-                >
-                  Remove
-                </button>
+                {!readOnly ? (
+                  <button
+                    type="button"
+                    className="targetlock-btn targetlock-btn-sm"
+                    onClick={() => onRemove(t.id)}
+                  >
+                    Remove
+                  </button>
+                ) : null}
               </div>
             </li>
           ))}
         </ul>
       )}
 
-      <div className="targetlock-validation-section">
-        <h3 className="targetlock-validation-subhead">Add target</h3>
-        <div className="targetlock-branch-form-grid">
-          <label>
-            Label
-            <input value={label} onChange={(ev) => setLabel(ev.target.value)} placeholder="Label" />
-          </label>
-          <label>
-            East (m)
-            <input
-              value={e}
-              onChange={(ev) =>
-                setE(String(sanitizeBranchCoordField(ev.target.value, Number(e) || 0)))
-              }
-              inputMode="decimal"
-            />
-          </label>
-          <label>
-            North (m)
-            <input
-              value={n}
-              onChange={(ev) =>
-                setN(String(sanitizeBranchCoordField(ev.target.value, Number(n) || 0)))
-              }
-              inputMode="decimal"
-            />
-          </label>
-          <label>
-            Down (m)
-            <input
-              value={d}
-              onChange={(ev) =>
-                setD(String(sanitizeBranchCoordField(ev.target.value, Number(d) || 0)))
-              }
-              inputMode="decimal"
-            />
-          </label>
-          <label>
-            Tolerance (m)
-            <input
-              value={toleranceM}
-              onChange={(ev) =>
-                setToleranceM(
-                  String(sanitizeBranchToleranceM(ev.target.value, Number(toleranceM) || 8))
-                )
-              }
-              inputMode="decimal"
-            />
-          </label>
+      {!readOnly ? (
+        <div className="targetlock-validation-section">
+          <h3 className="targetlock-validation-subhead">Add target</h3>
+          <div className="targetlock-branch-form-grid">
+            <label>
+              Label
+              <input value={label} onChange={(ev) => setLabel(ev.target.value)} placeholder="Label" />
+            </label>
+            <label>
+              East (m)
+              <input
+                value={e}
+                onChange={(ev) =>
+                  setE(String(sanitizeBranchCoordField(ev.target.value, Number(e) || 0)))
+                }
+                inputMode="decimal"
+              />
+            </label>
+            <label>
+              North (m)
+              <input
+                value={n}
+                onChange={(ev) =>
+                  setN(String(sanitizeBranchCoordField(ev.target.value, Number(n) || 0)))
+                }
+                inputMode="decimal"
+              />
+            </label>
+            <label>
+              Down (m)
+              <input
+                value={d}
+                onChange={(ev) =>
+                  setD(String(sanitizeBranchCoordField(ev.target.value, Number(d) || 0)))
+                }
+                inputMode="decimal"
+              />
+            </label>
+            <label>
+              Tolerance (m)
+              <input
+                value={toleranceM}
+                onChange={(ev) =>
+                  setToleranceM(
+                    String(sanitizeBranchToleranceM(ev.target.value, Number(toleranceM) || 8))
+                  )
+                }
+                inputMode="decimal"
+              />
+            </label>
+          </div>
+          <div className="targetlock-btn-row">
+            <button
+              type="button"
+              className="targetlock-btn targetlock-btn-primary targetlock-btn-sm"
+              onClick={handleAdd}
+            >
+              Add target
+            </button>
+          </div>
         </div>
-        <div className="targetlock-btn-row">
-          <button
-            type="button"
-            className="targetlock-btn targetlock-btn-primary targetlock-btn-sm"
-            onClick={handleAdd}
-          >
-            Add target
-          </button>
-        </div>
-      </div>
+      ) : null}
     </article>
   );
 }

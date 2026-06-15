@@ -90,7 +90,11 @@ export type HandoverPdfViewModel = {
     surveyToolSummary: string[];
     surveyToolOneLiner: string | null;
     surveyUncertaintyNote: string | null;
+    positionUncertaintyLines: string[];
     planCorridorSummary: string | null;
+    rc2KeyValues: { label: string; value: string }[];
+    rc2ReferenceWarnings: string[];
+    rc2HoleModeAdvisory: string | null;
     correctionOptions: HandoverReportData["correctionOptions"];
     qaFlagsAll: QaFlag[];
     qaFlagsNonOk: QaFlag[];
@@ -215,11 +219,13 @@ export function buildHandoverPdfViewModel(
     : ASSUMPTIONS_WITHIN_LINE;
 
   const hasAppendixContent =
+    Boolean(data.rc2Context) ||
     Boolean(data.recoveryGuidance) ||
     fullAssumptions ||
     validation.state !== "validated" ||
     (includeTechnicalDetail && data.conventions.length > 0) ||
     fullSurveyTool ||
+    data.positionUncertaintyLines.length > 0 ||
     Boolean(corridorStatus?.outsidePlannedCorridor || corridorStatus?.detailPhrase) ||
     meaningfulCorrections ||
     qaFlagsNonOk.length > 0 ||
@@ -269,12 +275,21 @@ export function buildHandoverPdfViewModel(
       surveyUncertaintyNote: fullSurveyTool && data.surveyUncertaintyNote
         ? sanitizePdfText(data.surveyUncertaintyNote)
         : null,
+      positionUncertaintyLines: data.positionUncertaintyLines.map(sanitizePdfText),
       planCorridorSummary:
         corridorStatus?.outsidePlannedCorridor || !corridorStatus?.targetStillRecoverable
           ? data.planCorridorSummary
             ? sanitizePdfText(data.planCorridorSummary)
             : null
           : null,
+      rc2KeyValues: data.rc2Context.keyValues.map(({ label, value }) => ({
+        label: sanitizePdfText(label),
+        value: sanitizePdfText(value),
+      })),
+      rc2ReferenceWarnings: data.rc2Context.referenceWarnings.map(sanitizePdfText),
+      rc2HoleModeAdvisory: data.rc2Context.holeModeAdvisory
+        ? sanitizePdfText(data.rc2Context.holeModeAdvisory)
+        : null,
       correctionOptions: meaningfulCorrections ? data.correctionOptions : [],
       qaFlagsAll: data.qaFlags,
       qaFlagsNonOk,
@@ -368,9 +383,13 @@ export function collectHandoverPdfStrings(vm: HandoverPdfViewModel): string[] {
     ...appendix.surveyToolSummary,
     appendix.surveyToolOneLiner ?? "",
     appendix.surveyUncertaintyNote ?? "",
+    ...appendix.positionUncertaintyLines,
     appendix.planCorridorSummary ?? "",
     appendix.feasibilityEscalationNote ?? "",
     ...appendix.recoveryLoopNotes,
+    ...appendix.rc2KeyValues.flatMap((row) => [row.label, row.value]),
+    ...appendix.rc2ReferenceWarnings,
+    appendix.rc2HoleModeAdvisory ?? "",
   ];
   if (appendix.recoveryGuidanceFull) {
     const rg = appendix.recoveryGuidanceFull;

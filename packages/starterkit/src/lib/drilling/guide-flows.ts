@@ -276,7 +276,7 @@ export const STANDARD_HOLE_STEPS: GuideStep[] = [
     id: "math-reference",
     title: "Check Math Reference",
     purpose: "Shows desurvey basis, required DLS, and vector geometry behind the recommendation.",
-    lookAt: "Advanced → Math reference panel.",
+    lookAt: "Topbar → How it works → Math reference.",
     whyItMatters: "Supports peer review and alignment with offline spreadsheet checks.",
     highlight: "math-panel",
     mode: "advanced",
