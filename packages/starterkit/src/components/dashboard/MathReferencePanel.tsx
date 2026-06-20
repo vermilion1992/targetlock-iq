@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { InfoTip } from "@/components/layout/InfoTip";
+import { HeroSubPanel } from "@/components/dashboard/HeroSubPanel";
 import { round } from "@/lib/drilling/format";
 import { directionLabel } from "@/lib/drilling/geometry";
 import { dipInstruction, azimuthInstruction } from "@/lib/drilling/recommendation";
@@ -67,14 +68,17 @@ export function MathReferencePanel({ recommendation, steering }: Props) {
   const interval = steering?.latestInterval ?? null;
 
   return (
-    <article className="targetlock-panel targetlock-math-panel">
-      <div className="targetlock-panel-title">
-        <h2>
+    <HeroSubPanel
+      className="targetlock-math-panel"
+      kicker="Reference"
+      title={
+        <>
           Math reference{" "}
           <InfoTip tip="How TargetLock IQ derives direction, miss, DLS, and feasibility. Reference only — opening this does not change any calculation." />
-        </h2>
-        <span className="targetlock-mini-tag">Reference</span>
-      </div>
+        </>
+      }
+      meta={<span className="targetlock-mini-tag">Reference</span>}
+    >
       <p className="targetlock-panel-copy">
         Plain-English explanation of the calculations behind the recommendations, with live values
         from the current hole. This is here if a geologist, supervisor, or engineer wants to see
@@ -388,6 +392,6 @@ radius of curvature : inclination and azimuth vary linearly over L`}
           </p>
         </Section>
       </div>
-    </article>
+    </HeroSubPanel>
   );
 }

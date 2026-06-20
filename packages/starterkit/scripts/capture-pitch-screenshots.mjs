@@ -76,19 +76,30 @@ async function main() {
     }
   };
 
-  await selectTab(/Steering feasibility/i);
+  await selectTab(/^Settings$/i);
   await screenshot(page, "02-advanced-dashboard.png", { fullPage: true });
+  await page
+    .getByRole("heading", { name: /Recovery capability assumptions/i })
+    .scrollIntoViewIfNeeded()
+    .catch(() => {});
   await screenshot(page, "10-steering-feasibility.png");
 
   await page.getByRole("heading", { name: /Hole library/i }).scrollIntoViewIfNeeded();
   await screenshot(page, "03-hole-library.png", { clipTo: ".targetlock-sidebar" });
 
-  await selectTab(/Setup \/ assumptions/i);
+  await selectTab(/^Settings$/i);
+  await page
+    .getByRole("heading", { name: /Recovery capability assumptions/i })
+    .scrollIntoViewIfNeeded()
+    .catch(() => {});
   await screenshot(page, "11-capability-assumptions.png");
 
-  await selectTab(/Decisions/i);
-  await page.getByRole("heading", { name: /Supervisor decision/i }).scrollIntoViewIfNeeded().catch(() => {});
-  await screenshot(page, "04-supervisor-decision.png", { clipTo: ".targetlock-sidebar" });
+  await selectTab(/^Settings$/i);
+  await page
+    .getByRole("heading", { name: /Assumption sign-off/i })
+    .scrollIntoViewIfNeeded()
+    .catch(() => {});
+  await screenshot(page, "04-supervisor-decision.png", { clipTo: ".targetlock-settings-tab" });
 
   await selectTab(/Trajectory/i);
   await page

@@ -4,7 +4,7 @@
 
 Hole ID / name:             DDH-0247
 Site / project:             North Camp — Pilot
-Report generated:           Tue, 16 June 2026  03:13 am
+Report generated:           Sun, 21 June 2026  07:41 am
 Latest survey depth:        390.0 m
 Overall status:             Correction needed
 Confidence:                 Medium
@@ -42,13 +42,13 @@ Advisory summary:
 
 RECOVERY GUIDANCE
 ──────────────────────────────────────────────────────────────
-Current action:             Correct now
-Best method:                Aim over the next 30 m within the configured dogleg limit, then resurvey and recalculate.
+Current action:             Supervisor review
+Best method:                Parameter correction may be sufficient if ground and rig allow.
 Next aim:                   Drop 2.2 deg, swing left 4.0 deg
 Confidence:                 Medium
 Escalation:                 Review by 420 m if the next survey does not improve.
 Point of no return:         390 m (estimate)
-Methods within assumptions: Parameter correction, Shorten survey interval, Motor / Navi review, DeviDrill review
+Methods within assumptions: Parameter correction
 
 Recovery loop:
   Recovery is a repeated survey-control process: aim the next interval, survey again, then recalculate.
@@ -108,8 +108,8 @@ SURVEY QA / QC
 
 RECENT DECISION HISTORY (THIS SESSION)
 ──────────────────────────────────────────────────────────────
-  16 June, 03:13 am  Supervisor: Correct naturally at MD 390 m → Correct naturally
-  16 June, 03:13 am  Sample plan and actual surveys loaded → Load sample
+  21 June, 07:41 am  Supervisor: Correct naturally at MD 390 m → Correct naturally
+  21 June, 07:41 am  Sample plan and actual surveys loaded → Load sample
 
 ──────────────────────────────────────────────────────────────
 DECISION SUPPORT ONLY. STEERING FEASIBILITY DEPENDS ON SITE CONDITIONS, TOOL CAPABILITY, DRILLING CONTRACTOR, AND GEOLOGIST/SUPERVISOR APPROVAL. VERIFY ALL RECOMMENDATIONS AGAINST SITE PROCEDURES, INDEPENDENT DESURVEY, AND OPERATIONAL SIGN-OFF.

@@ -5,6 +5,7 @@ import type { ActualVsPlannedResult } from "@/lib/drilling/actual-vs-plan";
 import type { PlannerExecutionContext } from "@/lib/drilling/execution-bridge";
 import { round } from "@/lib/drilling/format";
 import { PlannerStatusBadge } from "./PlannerStatusBadge";
+import { PlannerSubPanel } from "./ui/PlannerSubPanel";
 
 type Props = {
   context: PlannerExecutionContext;
@@ -16,11 +17,11 @@ export function PlannerExecutionStatusPanel({
   actualVsPlanned,
 }: Props) {
   return (
-    <article className="targetlock-panel">
-      <div className="targetlock-panel-title">
-        <h3>Field execution</h3>
-        <PlannerStatusBadge status={context.status} />
-      </div>
+    <PlannerSubPanel
+      kicker="Execution"
+      title="Field execution"
+      meta={<PlannerStatusBadge status={context.status} />}
+    >
       <dl className="planner-lock-dl">
         <div>
           <dt>Execution state</dt>
@@ -72,6 +73,6 @@ export function PlannerExecutionStatusPanel({
       <Link href="/targetlock" className="targetlock-btn targetlock-btn-sm">
         Open dashboard
       </Link>
-    </article>
+    </PlannerSubPanel>
   );
 }

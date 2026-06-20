@@ -1,17 +1,16 @@
 "use client";
 
+import { SettingsNumberField } from "@/components/dashboard/SettingsNumberField";
+import { SettingsSelectField } from "@/components/dashboard/SettingsSelectField";
+import { SettingsTextField } from "@/components/dashboard/SettingsTextField";
 import { resolveTargetEnu } from "@/lib/drilling/coordinate-system";
 import type { PlannerDraft, PlannerTargetInputMode } from "@/lib/drilling/planner-types";
+import { PlannerStepCard } from "./PlannerStepCard";
 
 type Props = {
   draft: PlannerDraft;
   onChange: (patch: Partial<PlannerDraft>) => void;
 };
-
-function parseNum(value: string, fallback = 0): number {
-  const n = Number.parseFloat(value);
-  return Number.isFinite(n) ? n : fallback;
-}
 
 function targetInputModeLabel(mode: PlannerTargetInputMode, isDaughter: boolean): string {
   if (mode === "collar-relative") {
@@ -37,190 +36,138 @@ export function TargetStep({ draft, onChange }: Props) {
   const showLocalTarget = mode === "collar-relative";
   const showMdOffset = mode === "md-offset";
 
-  return (
-    <article className="targetlock-panel planner-step-panel planner-coordinate-step">
-      <div className="targetlock-panel-title">
-        <h2>{isDaughter ? "Daughter target coordinates" : "Target coordinates"}</h2>
-      </div>
-      <p className="targetlock-panel-copy">
-        {isDaughter
-          ? "Target position for the daughter leg. Offsets are from the resolved kickoff station."
-          : "Target position for the planned path. Grid targets convert to collar-relative offsets when a grid collar is set."}
-      </p>
+  const setTarget = (patch: Partial<PlannerDraft["target"]>) => {
+    onChange({ target: { ...draft.target, ...patch } });
+  };
 
-      <div className="targetlock-survey-fields planner-coordinate-fields">
-        <label className="targetlock-survey-field">
-          <span>Target input mode</span>
-          <select
+  return (
+    <PlannerStepCard
+      kicker="Target"
+      title={isDaughter ? "Daughter target coordinates" : "Target coordinates"}
+      copy={
+        isDaughter
+          ? "Target position for the daughter leg. Offsets are from the resolved kickoff station."
+          : "Target position for the planned path. Grid targets convert to collar-relative offsets when a grid collar is set."
+      }
+      className="planner-coordinate-step"
+    >
+      <fieldset className="targetlock-settings-form-group">
+        <legend>Target definition</legend>
+        <div className="targetlock-settings-form-grid targetlock-settings-form-grid--2">
+          <SettingsSelectField
+            label="Target input mode"
             value={draft.target.inputMode}
-            onChange={(e) =>
-              onChange({
-                target: {
-                  ...draft.target,
-                  inputMode: e.target.value as PlannerTargetInputMode,
-                },
-              })
-            }
+            onChange={(v) => setTarget({ inputMode: v as PlannerTargetInputMode })}
           >
             {inputModes.map((m) => (
               <option key={m} value={m}>
                 {targetInputModeLabel(m, isDaughter)}
               </option>
             ))}
-          </select>
-        </label>
-
-        <label className="targetlock-survey-field">
-          <span>Target tolerance (m)</span>
-          <input
-            type="number"
-            min={1}
-            step="0.5"
+          </SettingsSelectField>
+          <SettingsNumberField
+            label="Target tolerance"
+            unit="m"
             value={draft.target.tolerance}
-            onChange={(e) =>
-              onChange({
-                target: {
-                  ...draft.target,
-                  tolerance: parseNum(e.target.value, 6),
-                },
-              })
-            }
+            min={1}
+            max={20}
+            step={0.5}
+            onChange={(v) => setTarget({ tolerance: v })}
           />
-        </label>
-
-        {showMdOffset ? (
-          <label className="targetlock-survey-field">
-            <span>Target MD (m)</span>
-            <input
-              type="number"
-              step="1"
-              value={draft.target.md ?? ""}
-              onChange={(e) =>
-                onChange({
-                  target: {
-                    ...draft.target,
-                    md: e.target.value === "" ? undefined : parseNum(e.target.value),
-                  },
+          {showMdOffset ? (
+            <SettingsNumberField
+              label="Target MD"
+              unit="m"
+              value={draft.target.md ?? 0}
+              min={0}
+              step={1}
+              slider={false}
+              onChange={(v) => setTarget({ md: v > 0 ? v : undefined })}
+            />
+          ) : (
+            <SettingsTextField
+              label={isDaughter ? "Target MD / estimated MD" : "Target MD (optional)"}
+              value={draft.target.md !== undefined ? String(draft.target.md) : ""}
+              placeholder="Along-hole depth"
+              onChange={(raw) =>
+                setTarget({
+                  md: raw === "" ? undefined : Number.parseFloat(raw) || undefined,
                 })
               }
-              placeholder="Along-hole depth"
             />
-          </label>
-        ) : (
-          <label className="targetlock-survey-field">
-            <span>{isDaughter ? "Target MD / estimated MD (m)" : "Target MD (optional, m)"}</span>
-            <input
-              type="number"
-              step="1"
-              value={draft.target.md ?? ""}
-              onChange={(e) =>
-                onChange({
-                  target: {
-                    ...draft.target,
-                    md: e.target.value === "" ? undefined : parseNum(e.target.value),
-                  },
-                })
-              }
-              placeholder="Along-hole depth"
-            />
-          </label>
-        )}
-
-        {showGridTarget ? (
-          <div className="targetlock-survey-field-row planner-coordinate-grid-row">
-            <label className="targetlock-survey-field">
-              <span>Target easting (m)</span>
-              <input
-                type="number"
-                step="0.1"
-                value={draft.target.e}
-                onChange={(e) =>
-                  onChange({
-                    target: { ...draft.target, e: parseNum(e.target.value) },
-                  })
-                }
-              />
-            </label>
-            <label className="targetlock-survey-field">
-              <span>Target northing (m)</span>
-              <input
-                type="number"
-                step="0.1"
-                value={draft.target.n}
-                onChange={(e) =>
-                  onChange({
-                    target: { ...draft.target, n: parseNum(e.target.value) },
-                  })
-                }
-              />
-            </label>
-            <label className="targetlock-survey-field">
-              <span>Target elevation / RL (m)</span>
-              <input
-                type="number"
-                step="0.1"
-                value={draft.target.d}
-                onChange={(e) =>
-                  onChange({
-                    target: { ...draft.target, d: parseNum(e.target.value) },
-                  })
-                }
-              />
-            </label>
-          </div>
-        ) : null}
-
-        {showLocalTarget ? (
-          <div className="targetlock-survey-field-row planner-coordinate-grid-row">
-            <label className="targetlock-survey-field">
-              <span>Local E (m)</span>
-              <input
-                type="number"
-                step="0.1"
-                value={draft.target.e}
-                onChange={(e) =>
-                  onChange({
-                    target: { ...draft.target, e: parseNum(e.target.value) },
-                  })
-                }
-              />
-            </label>
-            <label className="targetlock-survey-field">
-              <span>Local N (m)</span>
-              <input
-                type="number"
-                step="0.1"
-                value={draft.target.n}
-                onChange={(e) =>
-                  onChange({
-                    target: { ...draft.target, n: parseNum(e.target.value) },
-                  })
-                }
-              />
-            </label>
-            <label className="targetlock-survey-field">
-              <span>Local D (m)</span>
-              <input
-                type="number"
-                step="0.1"
-                value={draft.target.d}
-                onChange={(e) =>
-                  onChange({
-                    target: { ...draft.target, d: parseNum(e.target.value) },
-                  })
-                }
-              />
-            </label>
-          </div>
-        ) : null}
-
+          )}
+        </div>
         {showMdOffset ? (
-          <p className="targetlock-helper targetlock-survey-field--full">
+          <p className="targetlock-helper">
             Target position is resolved along-hole from initial dip and azimuth at the specified
             MD.
           </p>
         ) : null}
-      </div>
+      </fieldset>
+
+      {showGridTarget ? (
+        <fieldset className="targetlock-settings-form-group">
+          <legend>Grid target</legend>
+          <div className="targetlock-settings-form-grid targetlock-settings-form-grid--3">
+            <SettingsNumberField
+              label="Target easting"
+              unit="m"
+              value={draft.target.e}
+              step={0.1}
+              slider={false}
+              onChange={(v) => setTarget({ e: v })}
+            />
+            <SettingsNumberField
+              label="Target northing"
+              unit="m"
+              value={draft.target.n}
+              step={0.1}
+              slider={false}
+              onChange={(v) => setTarget({ n: v })}
+            />
+            <SettingsNumberField
+              label="Target elevation / RL"
+              unit="m"
+              value={draft.target.d}
+              step={0.1}
+              slider={false}
+              onChange={(v) => setTarget({ d: v })}
+            />
+          </div>
+        </fieldset>
+      ) : null}
+
+      {showLocalTarget ? (
+        <fieldset className="targetlock-settings-form-group">
+          <legend>Local target offset</legend>
+          <div className="targetlock-settings-form-grid targetlock-settings-form-grid--3">
+            <SettingsNumberField
+              label="Local E"
+              unit="m"
+              value={draft.target.e}
+              step={0.1}
+              slider={false}
+              onChange={(v) => setTarget({ e: v })}
+            />
+            <SettingsNumberField
+              label="Local N"
+              unit="m"
+              value={draft.target.n}
+              step={0.1}
+              slider={false}
+              onChange={(v) => setTarget({ n: v })}
+            />
+            <SettingsNumberField
+              label="Local D"
+              unit="m"
+              value={draft.target.d}
+              step={0.1}
+              slider={false}
+              onChange={(v) => setTarget({ d: v })}
+            />
+          </div>
+        </fieldset>
+      ) : null}
 
       <p className="targetlock-helper">
         Resolved local target: E {resolved.e.toFixed(1)} / N {resolved.n.toFixed(1)} / D{" "}
@@ -231,6 +178,6 @@ export function TargetStep({ draft, onChange }: Props) {
           {w}
         </p>
       ))}
-    </article>
+    </PlannerStepCard>
   );
 }

@@ -99,7 +99,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
       "Actual survey follows the planned trajectory closely to 540 m. Proves the app does not over-warn when the hole is healthy.",
     expectedStatus: "On track",
     expectedAction: "Continue drilling; resurvey at the planned interval.",
-    inspect: "Action plan (green / continue), KPIs (projected miss inside tolerance), QA/QC (all OK).",
+    inspect: "Action plan (green / continue), KPIs (projected miss inside tolerance), export PDF QA section.",
     kind: "hole",
     planCsv: PLAN,
     actualCsv: rowsToCsv(onPlanRows(LEGACY_PLAN_ROWS, 540)),
@@ -112,7 +112,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
       "Hole tracks plan to 330 m then gradually lifts and swings right. Shows early-warning behaviour before a correction is strictly required.",
     expectedStatus: "Watch",
     expectedAction: "Monitor closely and shorten the next survey interval if drift continues.",
-    inspect: "Action plan (watch), KPIs (miss just outside tolerance), Steering feasibility (Watch).",
+    inspect: "Action plan (watch), KPIs (miss just outside tolerance).",
     kind: "hole",
     actualCsv: rowsToCsv(
       tailDriftRows({
@@ -133,7 +133,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
       "Hole is off plan at 300 m but the required dogleg is still inside the configured limit. Parameter / natural correction should be sufficient.",
     expectedStatus: "Correction needed",
     expectedAction: "Correct now within the configured DLS limit.",
-    inspect: "Action plan (correct now), Steering feasibility (Correct now; method within limits), Correction options.",
+    inspect: "Action plan (correct now), Settings → capability assumptions.",
     kind: "hole",
     actualCsv: rowsToCsv(
       driftRows({ toMd: 300, dipPerInterval: 0.7, aziPerInterval: 1.7 })
@@ -148,7 +148,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
       "Hole has drifted beyond smooth correction at the configured limit but is still recoverable with higher-DLS directional tooling.",
     expectedStatus: "Steering recommended",
     expectedAction: "Escalate for steering review (motor / Navi assumptions).",
-    inspect: "Steering feasibility (Steering review; motor/Navi feasible), Math reference (required DLS).",
+    inspect: "Action plan (steering review), How it works → math reference (required DLS).",
     kind: "hole",
     actualCsv: rowsToCsv(
       driftRows({ toMd: 330, dipPerInterval: 1.0, aziPerInterval: 2.6 })
@@ -163,7 +163,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
       "Hole is beyond smooth recovery — the required dogleg exceeds even high-DLS steering. The app should recommend a wedge / branch review.",
     expectedStatus: "Target at risk",
     expectedAction: "Wedge or branch review recommended (review decision, not a guarantee).",
-    inspect: "Steering feasibility (Wedge / branch review), Action plan (escalate), QA/QC (Recover / Target risk).",
+    inspect: "Action plan (escalate), export PDF QA flags (Recover / Target risk).",
     kind: "hole",
     actualCsv: rowsToCsv(
       driftRows({ toMd: 360, dipPerInterval: 1.5, aziPerInterval: 3.6 })
@@ -178,7 +178,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
       "A near-on-plan hole with one suspicious survey at 210 m (sudden dip and azimuth jump). Exercises survey QA/QC dogleg and trend flags.",
     expectedStatus: "any",
     expectedAction: "Investigate the suspicious survey before trusting the correction.",
-    inspect: "QA/QC (DLS risk + trend watch on the last interval), Trajectory (kinked path).",
+    inspect: "KPIs and Action plan; export PDF for DLS/trend checks; Trajectory chart (kinked path).",
     kind: "hole",
     actualCsv: rowsToCsv(
       driftRows({
@@ -199,7 +199,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     expectedStatus: "On track",
     expectedAction: "Continue drilling; confirm grid rotation and declination match site procedures.",
     inspect:
-      "Setup → Reference system panel (mixed-ref warning), Validation tab, exported PDF RC2 section.",
+      "Settings → Reference system (mixed-ref warning), export PDF RC2 section.",
     kind: "hole",
     planCsv: REFERENCE_SYSTEM_CSVS.planCsv,
     actualCsv: REFERENCE_SYSTEM_CSVS.actualCsv,

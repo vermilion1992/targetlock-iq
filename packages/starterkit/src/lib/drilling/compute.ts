@@ -12,7 +12,15 @@ import {
 import { computeSteeringFeasibility } from "./steering-feasibility";
 import type { CapabilityAssumptions } from "./capability-assumptions";
 import type { HoleModeAssessment } from "./hole-mode";
+import { buildCorridorStatus } from "./plan-corridor";
 import type { PlanCorridorConfig } from "./plan-corridor";
+import {
+  applySteeringPolicy,
+  evaluateSteeringPolicy,
+  normalizeSteeringSettings,
+  type SteeringPolicyMatch,
+  type SteeringSettings,
+} from "./steering-settings";
 import type { SteeringFeasibility } from "./steering-types";
 import type {
   Recommendation,
@@ -26,6 +34,7 @@ export type ComputedHole = {
   actualStations: SurveyStation[];
   recommendation: Recommendation | null;
   steering: SteeringFeasibility | null;
+  steeringPolicy: SteeringPolicyMatch | null;
   referenceWarnings: ReferenceWarning[];
   holeModeAssessment: HoleModeAssessment | null;
 };
@@ -70,7 +79,8 @@ export function computeHole(
   target: TargetConfig,
   recoveryAssumptions?: Partial<CapabilityAssumptions> | null,
   planCorridor?: PlanCorridorConfig | null,
-  referenceSystem?: ReferenceSystemConfig | null
+  referenceSystem?: ReferenceSystemConfig | null,
+  steeringSettings?: Partial<SteeringSettings> | null
 ): ComputedHole {
   const ref = normalizeReferenceSystem(referenceSystem);
   const referenceWarnings = buildReferenceWarnings(ref);
@@ -85,14 +95,34 @@ export function computeHole(
     ? assessHoleMode(recommendationRaw.current.dip)
     : null;
 
-  const steering = computeSteeringFeasibility(
+  const settings = normalizeSteeringSettings(steeringSettings);
+
+  const steeringBase = computeSteeringFeasibility(
     recommendationRaw,
     planStations,
     actualStations,
     recoveryAssumptions,
     planCorridor,
-    holeModeAssessment?.mode
+    holeModeAssessment?.mode,
+    settings.gear
   );
+
+  const corridorStatus = buildCorridorStatus(
+    planStations,
+    actualStations,
+    planCorridor,
+    recommendationRaw
+  );
+  const steeringPolicy = evaluateSteeringPolicy(
+    recommendationRaw,
+    planStations,
+    corridorStatus,
+    settings
+  );
+  const steering =
+    steeringBase && recommendationRaw ?
+      applySteeringPolicy(steeringBase, recommendationRaw, steeringPolicy, settings.gear)
+    : steeringBase;
 
   const recommendation = recommendationRaw
     ? convertRecommendationForDisplay(recommendationRaw, ref)
@@ -103,6 +133,7 @@ export function computeHole(
     actualStations,
     recommendation,
     steering,
+    steeringPolicy,
     referenceWarnings,
     holeModeAssessment,
   };

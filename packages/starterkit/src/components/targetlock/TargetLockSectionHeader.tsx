@@ -9,6 +9,8 @@ type Props = {
   actions?: ReactNode;
   badge?: ReactNode;
   as?: "h2" | "h3";
+  /** Blue accent bar — use only for page-level headers, not nested panels. */
+  accent?: boolean;
 };
 
 export function TargetLockSectionHeader({
@@ -18,9 +20,12 @@ export function TargetLockSectionHeader({
   actions,
   badge,
   as: Heading = "h2",
+  accent = false,
 }: Props) {
   return (
-    <header className="targetlock-section-header">
+    <header
+      className={`targetlock-section-header${accent ? " targetlock-section-header--accent" : ""}`}
+    >
       <div className="targetlock-section-header-text">
         {eyebrow ? (
           <span className="targetlock-section-header-eyebrow">{eyebrow}</span>

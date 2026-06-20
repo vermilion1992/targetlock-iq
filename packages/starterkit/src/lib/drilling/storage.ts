@@ -9,6 +9,7 @@ import type { AssumptionSignOff } from "./validation";
 import type { PlanCorridorConfig } from "./plan-corridor";
 import type { ReferenceSystemConfig } from "./reference-system";
 import type { SurveyToolProfile } from "./survey-tool-profile";
+import type { SteeringSettings } from "./steering-settings";
 import type { PersistedBranchProgram } from "./branch-program-types";
 import type {
   BranchMethod,
@@ -46,6 +47,8 @@ export type SavedHoleProject = {
   surveyToolProfile?: SurveyToolProfile | null;
   /** Plan/survey azimuth reference system (optional). */
   referenceSystem?: ReferenceSystemConfig | null;
+  /** Gear availability and escalation rules for steering (optional). */
+  steeringSettings?: SteeringSettings | null;
   updatedAt: string;
   /** Branch program lineage (v2). */
   holeRole?: HoleRole;

@@ -6,6 +6,7 @@ import { canApprovePlannerHole } from "@/lib/drilling/planner-qa";
 import { plannerStatus } from "@/lib/drilling/planner-status";
 import type { SavedHoleProject } from "@/lib/drilling/storage";
 import type { PlannerTab } from "./PlannerShell";
+import { PlannerSubPanel } from "./ui/PlannerSubPanel";
 
 type Props = {
   hole: SavedHoleProject | null;
@@ -32,14 +33,11 @@ export function PlannerReviewActionsPanel({
 }: Props) {
   if (!hole) {
     return (
-      <article className="targetlock-panel planner-side-panel">
-        <div className="targetlock-panel-title">
-          <h3>Decisions</h3>
-        </div>
+      <PlannerSubPanel kicker="Approve" title="Decisions" className="planner-side-panel">
         <p className="targetlock-panel-copy">
           Select a plan from Plans or finish creating a plan to review and approve.
         </p>
-      </article>
+      </PlannerSubPanel>
     );
   }
 
@@ -51,15 +49,18 @@ export function PlannerReviewActionsPanel({
     approvalGate.allowed;
 
   return (
-    <article className="targetlock-panel planner-side-panel">
-      <div className="targetlock-panel-title">
-        <h3>Decisions</h3>
+    <PlannerSubPanel
+      kicker="Approve"
+      title="Decisions"
+      className="planner-side-panel"
+      meta={
         <span
           className={`planner-approval-badge planner-approval-badge--${validation.state}`}
         >
           {validation.label}
         </span>
-      </div>
+      }
+    >
       <p className="targetlock-panel-copy">{validation.detail}</p>
 
       <div className="targetlock-btn-row planner-review-decision-actions">
@@ -120,6 +121,6 @@ export function PlannerReviewActionsPanel({
         </button>
         .
       </p>
-    </article>
+    </PlannerSubPanel>
   );
 }

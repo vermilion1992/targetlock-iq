@@ -80,5 +80,6 @@ describe("guide-flows", () => {
     expect(ids).toContain("kpis");
     expect(ids).toContain("action-plan");
     expect(ids).toContain("export-handover");
+    expect(ids).toContain("steering-settings");
   });
 });

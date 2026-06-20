@@ -17,11 +17,11 @@ describe("applyGuideStepUi", () => {
 
     const deps: GuideUiDeps = { setMode, setAdvancedTab };
 
-    const step = STANDARD_HOLE_STEPS.find((s) => s.id === "steering-feasibility")!;
+    const step = STANDARD_HOLE_STEPS.find((s) => s.id === "action-plan")!;
     applyGuideStepUi(step, deps);
 
-    expect(setMode).toHaveBeenCalledWith("advanced");
-    expect(setAdvancedTab).toHaveBeenCalledWith("steering");
+    expect(setMode).toHaveBeenCalledWith("simple");
+    expect(setAdvancedTab).not.toHaveBeenCalled();
     expect(setPlanRecords).not.toHaveBeenCalled();
     expect(setActualRecords).not.toHaveBeenCalled();
     expect(setTarget).not.toHaveBeenCalled();

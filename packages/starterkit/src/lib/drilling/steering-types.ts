@@ -11,6 +11,7 @@ export type RecoveryAction =
   | "Watch"
   | "Correct now"
   | "Steering review"
+  | "Supervisor review"
   | "Wedge or branch review";
 
 export type RecoveryConfidence = "High" | "Medium" | "Low";

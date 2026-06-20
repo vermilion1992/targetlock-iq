@@ -1,5 +1,7 @@
 "use client";
 
+import { PlannerStepCard } from "./PlannerStepCard";
+
 type Props = {
   disabled: boolean;
   onSave: () => void;
@@ -8,15 +10,12 @@ type Props = {
 
 export function PlannerActions({ disabled, onSave, onSaveAndReview }: Props) {
   return (
-    <article className="targetlock-panel planner-step-panel">
-      <div className="targetlock-panel-title">
-        <h2>Save plan</h2>
-      </div>
-      <p className="targetlock-panel-copy">
-        Save the planned hole with the collar and target coordinates entered in this workflow.
-        Review readiness and approve before handoff to TargetLock.
-      </p>
-      <div className="targetlock-btn-row">
+    <PlannerStepCard
+      kicker="Handoff"
+      title="Save plan"
+      copy="Save the planned hole with the collar and target coordinates entered in this workflow. Review readiness and approve before handoff to TargetLock."
+    >
+      <div className="targetlock-settings-form-actions">
         <button
           type="button"
           className="targetlock-btn targetlock-btn-secondary"
@@ -34,6 +33,6 @@ export function PlannerActions({ disabled, onSave, onSaveAndReview }: Props) {
           Save and review
         </button>
       </div>
-    </article>
+    </PlannerStepCard>
   );
 }

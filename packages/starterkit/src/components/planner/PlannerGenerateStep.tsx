@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { TargetLockFormCard } from "@/components/targetlock/TargetLockFormCard";
 import { buildStations } from "@/lib/drilling/desurvey";
 import { validateCoordinateInputs } from "@/lib/drilling/coordinate-system";
 import { round } from "@/lib/drilling/format";
@@ -8,6 +9,7 @@ import { validatePlannerDraft } from "@/lib/drilling/planner";
 import type { HoleLibrary } from "@/lib/drilling/hole-library";
 import type { PlannerDraft } from "@/lib/drilling/planner-types";
 import { PlannerPreview } from "./PlannerPreview";
+import { PlannerStepCard } from "./PlannerStepCard";
 
 type Props = {
   draft: PlannerDraft;
@@ -32,15 +34,11 @@ export function PlannerGenerateStep({ draft, library, onGenerate }: Props) {
 
   return (
     <div className="planner-generate-step">
-      <article className="targetlock-panel planner-step-panel">
-        <div className="targetlock-panel-title">
-          <h2>Generate + review</h2>
-        </div>
-        <p className="targetlock-panel-copy">
-          Build a straight planned survey path at the configured interval. Coordinate warnings
-          are shown before saving.
-        </p>
-
+      <PlannerStepCard
+        kicker="Build"
+        title="Generate + review"
+        copy="Build a straight planned survey path at the configured interval. Coordinate warnings are shown before saving."
+      >
         {preWarnings.length ? (
           <ul className="planner-coordinate-warnings" role="status">
             {preWarnings.map((w) => (
@@ -51,42 +49,47 @@ export function PlannerGenerateStep({ draft, library, onGenerate }: Props) {
           <p className="targetlock-helper">Inputs look complete — ready to generate.</p>
         )}
 
-        <button
-          type="button"
-          className="targetlock-btn targetlock-btn-primary"
-          onClick={onGenerate}
-        >
-          Generate planned surveys
-        </button>
+        <div className="targetlock-settings-form-actions">
+          <button
+            type="button"
+            className="targetlock-btn targetlock-btn-primary"
+            onClick={onGenerate}
+          >
+            Generate planned surveys
+          </button>
+        </div>
 
         {generated ? (
-          <dl className="planner-review-grid planner-generate-metrics">
-            <div>
-              <dt>Planned TD</dt>
-              <dd>{finalRecord ? `${round(finalRecord.md, 0)} m` : "—"}</dd>
-            </div>
-            <div>
-              <dt>Planned dip / azimuth</dt>
-              <dd>
-                {firstRecord
-                  ? `${round(firstRecord.dip, 1)}° / ${round(firstRecord.azimuth, 1)}°`
-                  : "—"}
-              </dd>
-            </div>
-            <div>
-              <dt>Station count</dt>
-              <dd>{draft.planRecords.length}</dd>
-            </div>
-            {terminal ? (
+          <fieldset className="targetlock-settings-form-group">
+            <legend>Generated plan</legend>
+            <dl className="planner-review-grid planner-generate-metrics">
               <div>
-                <dt>Terminal offset</dt>
+                <dt>Planned TD</dt>
+                <dd>{finalRecord ? `${round(finalRecord.md, 0)} m` : "—"}</dd>
+              </div>
+              <div>
+                <dt>Planned dip / azimuth</dt>
                 <dd>
-                  E {round(terminal.e, 1)} / N {round(terminal.n, 1)} / D{" "}
-                  {round(terminal.d, 1)} m
+                  {firstRecord
+                    ? `${round(firstRecord.dip, 1)}° / ${round(firstRecord.azimuth, 1)}°`
+                    : "—"}
                 </dd>
               </div>
-            ) : null}
-          </dl>
+              <div>
+                <dt>Station count</dt>
+                <dd>{draft.planRecords.length}</dd>
+              </div>
+              {terminal ? (
+                <div>
+                  <dt>Terminal offset</dt>
+                  <dd>
+                    E {round(terminal.e, 1)} / N {round(terminal.n, 1)} / D{" "}
+                    {round(terminal.d, 1)} m
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+          </fieldset>
         ) : null}
 
         {draft.warnings.length ? (
@@ -99,15 +102,12 @@ export function PlannerGenerateStep({ draft, library, onGenerate }: Props) {
             </ul>
           </div>
         ) : null}
-      </article>
+      </PlannerStepCard>
 
       {generated ? (
-        <article className="targetlock-panel">
-          <div className="targetlock-panel-title">
-            <h3>Planned trace preview</h3>
-          </div>
+        <TargetLockFormCard kicker="Preview" title="Planned trace preview">
           <PlannerPreview planRecords={draft.planRecords} />
-        </article>
+        </TargetLockFormCard>
       ) : null}
     </div>
   );

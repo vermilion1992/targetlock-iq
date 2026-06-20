@@ -18,6 +18,8 @@ export const NEXT_INTERVAL_AIM_TIP =
 export const ACTION_PLAN_PANEL_TIP =
   "Decision support for the next survey interval: current status, next-interval aim, and escalation guidance. Not a permanent drilling directive — site approval applies.";
 
+export const ACTION_PLAN_HEADER_KICKER = "Decision support";
+
 export const NEXT_INTERVAL_AIM_STATION_NOTE =
   "Next-interval aim. Re-survey and recalculate at the next station.";
 
@@ -55,6 +57,7 @@ export function formatRecoveryActionDisplay(
   }
   if (action === "Correct now") return "Correction advisable";
   if (action === "Steering review") return "Steering review recommended";
+  if (action === "Supervisor review") return "Supervisor review required";
   if (action === "Wedge or branch review") return "Wedge / branch review recommended";
   return action;
 }
@@ -183,7 +186,11 @@ export function actionGuidanceTip(action: RecoveryAction | string): string {
     case "Correction advisable":
       return "Off plan but may still be recoverable within configured dogleg — review the recommended aim with site procedures.";
     case "Steering review":
+    case "Steering review recommended":
       return "Required dogleg may exceed normal correction assumptions — involve supervisor or directional crew.";
+    case "Supervisor review":
+    case "Supervisor review required":
+      return "A configured steering rule requires supervisor sign-off before continuing.";
     case "Wedge or branch review":
       return "Smooth recovery is unlikely — review wedge, branch, or revised hole objective.";
     default:

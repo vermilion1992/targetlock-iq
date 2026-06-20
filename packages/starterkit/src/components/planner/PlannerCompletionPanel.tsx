@@ -4,6 +4,7 @@ import { useState } from "react";
 import { round } from "@/lib/drilling/format";
 import type { PlannerCompletionSnapshot } from "@/lib/drilling/planner-types";
 import type { SavedHoleProject } from "@/lib/drilling/storage";
+import { PlannerSubPanel } from "./ui/PlannerSubPanel";
 
 type Props = {
   hole: SavedHoleProject;
@@ -97,16 +98,13 @@ export function PlannerCompletionPanel({
 
   if (status === "completed" && snapshot) {
     return (
-      <article className="targetlock-panel">
-        <div className="targetlock-panel-title">
-          <h3>Plan completed</h3>
-        </div>
+      <PlannerSubPanel kicker="Complete" title="Plan completed">
         <CompletedSummary
           snapshot={snapshot}
           hole={hole}
           onCreateRevision={onCreateRevision}
         />
-      </article>
+      </PlannerSubPanel>
     );
   }
 
@@ -118,10 +116,7 @@ export function PlannerCompletionPanel({
   };
 
   return (
-    <article className="targetlock-panel">
-      <div className="targetlock-panel-title">
-        <h3>Mark plan completed</h3>
-      </div>
+    <PlannerSubPanel kicker="Complete" title="Mark plan completed">
       <p className="targetlock-panel-copy">{COMPLETION_CONFIRM}</p>
       <label className="targetlock-field">
         <span>Completed by</span>
@@ -149,6 +144,6 @@ export function PlannerCompletionPanel({
       >
         Mark completed
       </button>
-    </article>
+    </PlannerSubPanel>
   );
 }

@@ -9,6 +9,7 @@ import {
 import { plannerStatus } from "@/lib/drilling/planner-status";
 import type { SavedHoleProject } from "@/lib/drilling/storage";
 import { PlannerStatusBadge } from "./PlannerStatusBadge";
+import { PlannerSubPanel } from "./ui/PlannerSubPanel";
 
 type Props = {
   hole: SavedHoleProject | null;
@@ -60,30 +61,33 @@ export function PlannerHandoffChecklist({
 
   if (!hole) {
     return (
-      <article className="targetlock-panel planner-side-panel">
-        <div className="targetlock-panel-title">
-          <h3>Handoff checklist</h3>
-        </div>
+      <PlannerSubPanel
+        kicker="Handoff"
+        title="Handoff checklist"
+        className="planner-side-panel"
+      >
         <p className="targetlock-panel-copy">
           Select a plan to review handoff readiness.
         </p>
-      </article>
+      </PlannerSubPanel>
     );
   }
 
   const status = plannerStatus(hole);
 
   return (
-    <article className="targetlock-panel planner-side-panel planner-handoff-checklist">
-      <div className="targetlock-panel-title">
-        <h3>Handoff — {hole.holeName}</h3>
+    <PlannerSubPanel
+      kicker="Handoff"
+      title={`Handoff — ${hole.holeName}`}
+      className="planner-side-panel planner-handoff-checklist"
+      meta={
         <span
           className={`planner-handoff-ready planner-handoff-ready--${readiness?.ready ? "yes" : "no"}`}
         >
           {readiness?.ready ? "Ready" : "Blocked"}
         </span>
-      </div>
-
+      }
+    >
       <p className="targetlock-panel-copy">
         Status: <PlannerStatusBadge status={status} />
       </p>
@@ -180,6 +184,6 @@ export function PlannerHandoffChecklist({
           Approve the plan before marking it active for drilling.
         </p>
       ) : null}
-    </article>
+    </PlannerSubPanel>
   );
 }

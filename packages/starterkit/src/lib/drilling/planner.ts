@@ -2,6 +2,7 @@ import {
   addTarget,
   createBranchProgramOnMother,
   createDaughterFromKickoff,
+  updateTarget,
 } from "./branch-program-library";
 import {
   buildDaughterPlanFromKickoff,
@@ -491,6 +492,102 @@ export function publishStandardPlannerDraft(
   return { library: nextLib, holeId };
 }
 
+/**
+ * Update an existing daughter plan in place rather than creating a new daughter
+ * hole + branch target on every save. Preserves daughter lineage fields
+ * (parentHoleId, branchTargetId, branchMethod, holeRole) and syncs the existing
+ * branch target coordinates and daughter ref kickoff MD.
+ */
+function updateDaughterPlannerDraft(
+  draft: PlannerDraft,
+  library: HoleLibrary,
+  existing: SavedHoleProject,
+  opts: PublishPlannerOpts
+): { library: HoleLibrary; holeId: string } | null {
+  const kickoff = draft.daughterKickoff;
+  if (!kickoff || !draft.planRecords.length) return null;
+
+  try {
+    assertPlannerPlanEditable(existing);
+  } catch {
+    return null;
+  }
+
+  let nextLib = library;
+  const motherId = existing.parentHoleId ?? kickoff.motherHoleId;
+  const mother = findHole(nextLib, motherId);
+  const { e, n, d } = resolveTargetEnu(draft);
+
+  if (mother?.branchProgram && existing.branchTargetId) {
+    const withTarget = updateTarget(nextLib, motherId, existing.branchTargetId, {
+      label: draft.holeName?.trim() || undefined,
+      e,
+      n,
+      d,
+      toleranceM: draft.target.tolerance,
+    });
+    if (withTarget) nextLib = withTarget;
+
+    const refreshedMother = findHole(nextLib, motherId);
+    if (refreshedMother?.branchProgram) {
+      nextLib = upsertHole(nextLib, {
+        ...refreshedMother,
+        branchProgram: {
+          ...refreshedMother.branchProgram,
+          daughters: refreshedMother.branchProgram.daughters.map((ref) =>
+            ref.daughterHoleId === existing.holeId
+              ? { ...ref, kickoffMd: kickoff.kickoffMd }
+              : ref
+          ),
+        },
+      });
+    }
+  }
+
+  const kickoffStation = mother
+    ? kickoffStationFromMother(mother.actualRecords, kickoff.kickoffMd)
+    : null;
+
+  const enriched: SavedHoleProject = {
+    ...existing,
+    holeName: draft.holeName?.trim() || existing.holeName,
+    siteName: draft.projectName.trim() || existing.siteName,
+    planRecords: draft.planRecords,
+    target: buildTargetConfigFromDraft(draft, draft.planRecords),
+    referenceSystem: plannerReferenceSystem(
+      draft.northReference,
+      draft.projectCoordinateSystem ?? existing.plannerMeta?.projectCoordinateSystem
+    ),
+    kickoffMd: kickoff.kickoffMd,
+    kickoffE: kickoffStation?.e ?? existing.kickoffE,
+    kickoffN: kickoffStation?.n ?? existing.kickoffN,
+    kickoffD: kickoffStation?.d ?? existing.kickoffD,
+    kickoffDip: kickoffStation?.motherDip ?? existing.kickoffDip,
+    kickoffAzimuth: kickoffStation?.motherAzimuth ?? existing.kickoffAzimuth,
+    plannerMeta: {
+      ...buildPlannerMetadata(draft, existing.plannerMeta),
+      programId:
+        draft.programId ?? existing.programId ?? existing.plannerMeta?.programId,
+      programName:
+        draft.programName ??
+        (draft.projectName.trim() || existing.plannerMeta?.programName),
+    },
+    programId:
+      draft.programId ?? existing.programId ?? buildPlannerMetadata(draft).programId,
+    updatedAt: new Date().toISOString(),
+  };
+  nextLib = upsertHole(nextLib, enriched);
+
+  if (opts.activate) {
+    const activated = activatePlannerPlanForExecution(nextLib, existing.holeId, {
+      allowUnapproved: true,
+    });
+    if (!activated) return null;
+    return { library: activated, holeId: existing.holeId };
+  }
+  return { library: nextLib, holeId: existing.holeId };
+}
+
 export function publishDaughterPlannerDraft(
   draft: PlannerDraft,
   library: HoleLibrary,
@@ -498,6 +595,13 @@ export function publishDaughterPlannerDraft(
 ): { library: HoleLibrary; holeId: string } | null {
   const kickoff = draft.daughterKickoff;
   if (!kickoff || !draft.planRecords.length) return null;
+
+  if (draft.editingHoleId) {
+    const existing = findHole(library, draft.editingHoleId);
+    if (existing && existing.holeRole === "daughter") {
+      return updateDaughterPlannerDraft(draft, library, existing, opts);
+    }
+  }
 
   let nextLib = library;
   const mother = findHole(nextLib, kickoff.motherHoleId);

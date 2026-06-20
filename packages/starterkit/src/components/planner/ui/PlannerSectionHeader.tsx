@@ -9,6 +9,7 @@ type Props = {
   actions?: React.ReactNode;
   badge?: React.ReactNode;
   as?: "h2" | "h3";
+  accent?: boolean;
 };
 
 export function PlannerSectionHeader(props: Props) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { HoleLibrary } from "@/lib/drilling/hole-library";
 import {
   buildHolePlanningReportData,
@@ -10,6 +10,7 @@ import {
   buildHolePlanningReportText,
   buildProgramPlanningReportText,
 } from "@/lib/drilling/planner-report-text";
+import { PlannerCollapsibleCard } from "./ui/PlannerCollapsibleCard";
 
 type HoleProps = {
   mode: "hole";
@@ -26,8 +27,6 @@ type ProgramProps = {
 type Props = HoleProps | ProgramProps;
 
 export function PlannerReportPreview(props: Props) {
-  const [open, setOpen] = useState(false);
-
   const text = useMemo(() => {
     if (props.mode === "hole") {
       const data = buildHolePlanningReportData(props.library, props.holeId);
@@ -51,33 +50,22 @@ export function PlannerReportPreview(props: Props) {
   }
 
   return (
-    <article className="targetlock-panel planner-side-panel planner-report-preview">
-      <div className="targetlock-panel-title">
-        <h3>Report preview</h3>
-        <button
-          type="button"
-          className="targetlock-btn targetlock-btn-sm"
-          onClick={() => setOpen((v) => !v)}
-        >
-          {open ? "Hide" : "Show"}
-        </button>
-      </div>
-      {open ? (
-        <>
-          <pre className="planner-report-preview-text">{text}</pre>
-          <button
-            type="button"
-            className="targetlock-btn targetlock-btn-secondary"
-            onClick={handleCopy}
-          >
-            Copy to clipboard
-          </button>
-        </>
-      ) : (
-        <p className="targetlock-panel-copy">
-          Preview the planning TXT report before export or handoff.
-        </p>
-      )}
-    </article>
+    <PlannerCollapsibleCard
+      kicker="Package"
+      title="Report preview"
+      className="planner-side-panel planner-report-preview"
+    >
+      <p className="targetlock-panel-copy">
+        Preview the planning TXT report before export or handoff.
+      </p>
+      <pre className="planner-report-preview-text">{text}</pre>
+      <button
+        type="button"
+        className="targetlock-btn targetlock-btn-secondary"
+        onClick={handleCopy}
+      >
+        Copy to clipboard
+      </button>
+    </PlannerCollapsibleCard>
   );
 }

@@ -33,12 +33,15 @@ Optional — limit redeploys to TargetLock changes only:
 
 In **Variables**, set (recommended for Railway networking on port 8080):
 
-| Variable | Value |
-|----------|--------|
-| `PORT` | `8080` |
-| `HOSTNAME` | `0.0.0.0` |
+| Variable | Value | Required |
+|----------|--------|----------|
+| `PORT` | `8080` | Auto-injected by Railway |
+| `HOSTNAME` | `0.0.0.0` | Optional (start script defaults to this) |
+| `NEXT_PUBLIC_MAPBOX_TOKEN` | `pk.…` Mapbox **public** token | Only for the Planner satellite map |
 
 Railway also injects `PORT` automatically; `npm run start` runs [`scripts/start-railway.mjs`](../../packages/starterkit/scripts/start-railway.mjs), which sets the same defaults if variables are missing. Deploy logs should include a line like `[start-railway] Listening on http://0.0.0.0:8080 (standalone)` before Next.js reports ready.
+
+> **Important — `NEXT_PUBLIC_MAPBOX_TOKEN` is read at _build time_.** Next.js inlines `NEXT_PUBLIC_*` variables into the client bundle during `npm run build`, not at runtime. The token **must exist in Railway Variables before the build runs**; adding it afterwards requires a **redeploy/rebuild** to take effect. Without it, the app still runs but the Planner satellite view stays disabled (it shows an explicit "satellite provider not configured" message, not a silent failure). Use a Mapbox **public** token (`pk.…`); it is safe to expose in the browser. Grid-only/local maps work without it.
 
 ## Generate a public URL
 

@@ -88,7 +88,7 @@ export function BranchApprovalPanel({
       {readOnly ? (
         <p className="targetlock-panel-copy">
           Planner-managed daughters use Hole Planner approval and execution lock. Review the
-          execution banner and Validation tab for the institutional sign-off trail.
+          execution banner and Execution tab for the institutional sign-off trail.
         </p>
       ) : (
         <>

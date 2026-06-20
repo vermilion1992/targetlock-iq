@@ -5,6 +5,7 @@ import type { HoleLibrary } from "@/lib/drilling/hole-library";
 import { plannerStatus } from "@/lib/drilling/planner-status";
 import type { PlannerPlanStatus } from "@/lib/drilling/planner-types";
 import type { SavedHoleProject } from "@/lib/drilling/storage";
+import { PlannerSubPanel } from "./ui/PlannerSubPanel";
 
 const LIFECYCLE_STEPS: PlannerPlanStatus[] = [
   "draft",
@@ -59,11 +60,12 @@ export function PlannerLifecycleTimeline({
   );
 
   return (
-    <article className="targetlock-panel planner-lifecycle-timeline">
-      <div className="targetlock-panel-title">
-        <h3>Lifecycle</h3>
-        <span className="planner-lifecycle-revision">R{revision}</span>
-      </div>
+    <PlannerSubPanel
+      kicker="Track"
+      title="Lifecycle"
+      className="planner-lifecycle-timeline"
+      meta={<span className="planner-lifecycle-revision">R{revision}</span>}
+    >
       <ol className="planner-lifecycle-steps">
         {LIFECYCLE_STEPS.map((step, idx) => {
           const reached = currentIdx >= idx || status === "archived";
@@ -135,6 +137,6 @@ export function PlannerLifecycleTimeline({
           </ul>
         </div>
       ) : null}
-    </article>
+    </PlannerSubPanel>
   );
 }

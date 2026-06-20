@@ -8,16 +8,17 @@ import {
   type Scene3DHole,
 } from "@/components/three/ProgramScene3DLazy";
 import { TrajectoryCanvas } from "@/components/charts/TrajectoryCanvas";
-import { DecisionHistoryPanel } from "@/components/dashboard/DecisionHistoryPanel";
-import { FileDropzone } from "@/components/planner/ui/FileDropzone";
 import { HoleDetailsPanel } from "@/components/dashboard/HoleDetailsPanel";
 import { HoleLibraryPanel } from "@/components/dashboard/HoleLibraryPanel";
 import { ActionPlanPanel } from "@/components/dashboard/ActionPlanPanel";
-import { HoleModeAdvisoryPanel } from "@/components/dashboard/HoleModeAdvisoryPanel";
-import { ReferenceSystemPanel } from "@/components/dashboard/ReferenceSystemPanel";
+import { ChartPanel } from "@/components/dashboard/ChartPanel";
+import { AdvancedTabHero } from "@/components/dashboard/AdvancedTabHero";
+import { SteeringSettingsTab } from "@/components/dashboard/SteeringSettingsTab";
 import { BranchProgramPanel } from "@/components/dashboard/BranchProgramPanel";
 import { BranchProgramSimpleStrip } from "@/components/dashboard/BranchProgramSimpleStrip";
+import { SurveysPanel } from "@/components/dashboard/SurveysPanel";
 import { SurveyImportTargetModal } from "@/components/dashboard/SurveyImportTargetModal";
+import { FileDropzone } from "@/components/planner/ui/FileDropzone";
 import {
   CsvImportAssistantModal,
   type ImportSummary,
@@ -27,12 +28,8 @@ import {
   type CreateDaughterInput,
 } from "@/lib/drilling/branch-program-library";
 import { findHole } from "@/lib/drilling/hole-library";
-import { CapabilityAssumptionsEditor } from "@/components/dashboard/CapabilityAssumptionsEditor";
 import { HowItWorksView } from "@/components/dashboard/HowItWorksView";
 import { RoadmapPanel } from "@/components/dashboard/RoadmapPanel";
-import { QaPanel } from "@/components/dashboard/QaPanel";
-import { ValidationPanel } from "@/components/dashboard/ValidationPanel";
-import { DesurveyCrosscheckPanel } from "@/components/dashboard/DesurveyCrosscheckPanel";
 import { PlannerExecutionBanner } from "@/components/dashboard/PlannerExecutionBanner";
 import { PlanCompletionPanel } from "@/components/dashboard/PlanCompletionPanel";
 import { PlanLockStatusPanel } from "@/components/dashboard/PlanLockStatusPanel";
@@ -40,11 +37,7 @@ import { ActualVsPlannedPanel } from "@/components/dashboard/ActualVsPlannedPane
 import { ActualVsPlannedStrip } from "@/components/dashboard/ActualVsPlannedStrip";
 import { ExecutionAuditPanel } from "@/components/dashboard/ExecutionAuditPanel";
 import { ExecutionPackagePanel } from "@/components/dashboard/ExecutionPackagePanel";
-import { PlanCorridorEditor } from "@/components/dashboard/PlanCorridorEditor";
-import { SurveyToolProfilePanel } from "@/components/dashboard/SurveyToolProfilePanel";
 import { ScenarioLabModal } from "@/components/dashboard/ScenarioLabModal";
-import { SteeringFeasibilityPanel } from "@/components/dashboard/SteeringFeasibilityPanel";
-import { SupervisorApprovalPanel } from "@/components/dashboard/SupervisorApprovalPanel";
 import { InfoTip } from "@/components/layout/InfoTip";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { GuideCenterModal } from "@/components/pitch/GuideCenterModal";
@@ -61,14 +54,8 @@ import { computeHole } from "@/lib/drilling/compute";
 import { buildStations } from "@/lib/drilling/desurvey";
 import { round } from "@/lib/drilling/format";
 import { normalizeAngle } from "@/lib/drilling/geometry";
-import {
-  entryForSupervisorDecision,
-  suggestedNextInterval,
-  type SupervisorDecisionKind,
-} from "@/lib/drilling/approval";
 import { entryForSurvey } from "@/lib/drilling/history";
 import { buildCorridorStatus } from "@/lib/drilling/plan-corridor";
-import { buildQaFlags } from "@/lib/drilling/qa";
 import { assessSurveyUncertainty } from "@/lib/drilling/survey-tool-profile";
 import {
   assessTargetUncertainty,
@@ -81,7 +68,6 @@ import { findScenario } from "@/lib/drilling/test-scenarios";
 import type { SyntheticHoleParams } from "@/lib/drilling/synthetic-hole-builder";
 import {
   confirmClearAssumptionsSignOff,
-  confirmClearDecisionHistory,
   confirmImportHolePackage,
   confirmLoadScenario,
   confirmResetActiveHole as resetActiveHoleConfirm,
@@ -94,12 +80,10 @@ import {
   describeImportTargetCancelConfirm,
 } from "@/lib/drilling/workspace-action-contract";
 import {
-  buildCorrectionOptions,
   planTargetFromStations,
 } from "@/lib/drilling/recommendation";
 import {
   assumptionsValidationStatus,
-  buildPlanSanityCheck,
 } from "@/lib/drilling/validation";
 import { downloadReportPdf } from "@/lib/drilling/report-pdf";
 import { downloadReport } from "@/lib/drilling/report";
@@ -132,15 +116,12 @@ import {
 } from "@/lib/drilling/sidebar-input-validation";
 import type { SurveyRecord, TargetConfig } from "@/lib/drilling/types";
 
-const ADVANCED_TABS: { id: AdvancedTab; label: string }[] = [
+const BASE_ADVANCED_TABS: { id: AdvancedTab; label: string }[] = [
   { id: "trajectory", label: "Trajectory" },
+  { id: "surveys", label: "Surveys" },
+  { id: "settings", label: "Settings" },
   { id: "branch-program", label: "Branch program" },
-  { id: "steering", label: "Steering feasibility" },
-  { id: "qaqc", label: "QA/QC" },
-  { id: "decisions", label: "Decisions" },
   { id: "roadmap", label: "Roadmap" },
-  { id: "validation", label: "Validation" },
-  { id: "setup", label: "Setup / assumptions" },
 ];
 
 export default function TargetLockApp() {
@@ -166,7 +147,6 @@ export default function TargetLockApp() {
     logRecommendation,
     loadSampleData,
     resetHole,
-    clearHistory,
     library,
     switchHole,
     createNewHole,
@@ -201,6 +181,9 @@ export default function TargetLockApp() {
     setSurveyToolProfile,
     referenceSystem,
     setReferenceSystem,
+    steeringSettings,
+    setSteeringSettings,
+    resetSteeringSettings,
     seedPlanCorridorFromPlan,
     storageHealth,
     storageError,
@@ -209,9 +192,10 @@ export default function TargetLockApp() {
     importHolePackage,
     completePlannerPlanExecution,
     planEditNotice,
+    planFieldsLocked,
   } = useTargetLockProject(guidePersistenceOff);
 
-  const [advancedTab, setAdvancedTab] = useState<AdvancedTab>("steering");
+  const [advancedTab, setAdvancedTab] = useState<AdvancedTab>("trajectory");
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
   const guide = useGuideMode({
@@ -309,6 +293,7 @@ export default function TargetLockApp() {
     actualStations,
     recommendation,
     steering,
+    steeringPolicy,
     referenceWarnings,
     holeModeAssessment,
   } = useMemo(
@@ -319,9 +304,18 @@ export default function TargetLockApp() {
         target,
         recoveryAssumptions,
         planCorridor,
-        referenceSystem
+        referenceSystem,
+        steeringSettings
       ),
-    [planRecords, actualRecords, target, recoveryAssumptions, planCorridor, referenceSystem]
+    [
+      planRecords,
+      actualRecords,
+      target,
+      recoveryAssumptions,
+      planCorridor,
+      referenceSystem,
+      steeringSettings,
+    ]
   );
 
   const corridorStatus = useMemo(
@@ -378,19 +372,6 @@ export default function TargetLockApp() {
     [holeId, holeName, planStations, actualStations, target]
   );
 
-  const correctionOptions = useMemo(
-    () => (recommendation ? buildCorrectionOptions(recommendation) : []),
-    [recommendation]
-  );
-
-  const qaFlags = useMemo(
-    () =>
-      recommendation
-        ? buildQaFlags(recommendation, actualStations, corridorStatus)
-        : [],
-    [recommendation, actualStations, corridorStatus]
-  );
-
   const plannerExecutionContext = useMemo(() => {
     if (!activeHoleMeta || !library) return null;
     if (!isPlannerCreatedHole(activeHoleMeta)) return null;
@@ -428,6 +409,20 @@ export default function TargetLockApp() {
     recommendation,
   ]);
 
+  const advancedTabs = useMemo(() => {
+    const tabs = [...BASE_ADVANCED_TABS];
+    if (plannerExecutionContext) {
+      tabs.splice(4, 0, { id: "execution", label: "Execution" });
+    }
+    return tabs;
+  }, [plannerExecutionContext]);
+
+  useEffect(() => {
+    if (!advancedTabs.some((tab) => tab.id === advancedTab)) {
+      setAdvancedTab("trajectory");
+    }
+  }, [advancedTab, advancedTabs]);
+
   const plannerExecutionReport = useMemo(() => {
     if (!activeHoleMeta || !library || !actualVsPlanned) return null;
     if (actualVsPlanned.status === "no-locked-plan") return null;
@@ -454,11 +449,6 @@ export default function TargetLockApp() {
   useEffect(() => {
     if (planEditNotice) setDataMessage(planEditNotice);
   }, [planEditNotice]);
-
-  const planSanity = useMemo(
-    () => buildPlanSanityCheck(planStations, target),
-    [planStations, target]
-  );
 
   const planFinalMd = planStations[planStations.length - 1]?.md;
 
@@ -562,17 +552,6 @@ export default function TargetLockApp() {
       fillNextSurveyFromAim();
     }
   }, [hydrated, recommendation, manualMd, fillNextSurveyFromAim]);
-
-  const handleSupervisorDecision = useCallback(
-    (kind: SupervisorDecisionKind, notes: string) => {
-      pushHistory(entryForSupervisorDecision(kind, recommendation, notes));
-      const interval = suggestedNextInterval(target.nextInterval, kind);
-      if (interval != null) {
-        setTarget((prev) => ({ ...prev, nextInterval: interval }));
-      }
-    },
-    [pushHistory, recommendation, target.nextInterval, setTarget]
-  );
 
   const finishImport = useCallback(
     (
@@ -681,12 +660,6 @@ export default function TargetLockApp() {
       actionTaken: "Undo import",
     });
   }, [importUndo, holeId, importSurveysToHole, setPlanCorridor, pushHistory]);
-
-  const handleClearHistory = useCallback(async () => {
-    if (!(await confirm(confirmClearDecisionHistory()))) return;
-    clearHistory();
-    setAppMessage("Decision history cleared for this hole.");
-  }, [clearHistory, confirm, setAppMessage]);
 
   const handleResetRecoveryAssumptions = useCallback(async () => {
     if (!(await confirm(confirmResetRecoveryAssumptions()))) return;
@@ -1426,111 +1399,21 @@ export default function TargetLockApp() {
           </div>
 
           <section className="targetlock-panel targetlock-sidebar-advanced-panel advanced-only">
-            <h2>
-              Target setup{" "}
-              <InfoTip tip="Target is an offset from the collar in this demo. Positive down means deeper below collar." />
-            </h2>
-            <div className="targetlock-form-grid">
-              <label>
-                <span>
-                  Target MD{" "}
-                  <InfoTip tip="Measured depth (MD) where the planned target should be reached." />
-                </span>
-                <input
-                  type="number"
-                  value={target.md}
-                  step={1}
-                  onChange={(e) => updateTargetField("md", Number(e.target.value))}
-                />
-              </label>
-              <label>
-                <span>East</span>
-                <input
-                  type="number"
-                  value={target.e}
-                  step={0.1}
-                  onChange={(e) => updateTargetField("e", Number(e.target.value))}
-                />
-              </label>
-              <label>
-                <span>North</span>
-                <input
-                  type="number"
-                  value={target.n}
-                  step={0.1}
-                  onChange={(e) => updateTargetField("n", Number(e.target.value))}
-                />
-              </label>
-              <label>
-                <span>Down</span>
-                <input
-                  type="number"
-                  value={target.d}
-                  step={0.1}
-                  onChange={(e) => updateTargetField("d", Number(e.target.value))}
-                />
-              </label>
-              <label>
-                <span>
-                  Tolerance m{" "}
-                  <InfoTip tip="Allowed 3D distance from target before the hole is outside the target envelope." />
-                </span>
-                <input
-                  type="number"
-                  value={target.tolerance}
-                  step={0.1}
-                  min={0.1}
-                  onChange={(e) => updateTargetField("tolerance", Number(e.target.value))}
-                />
-              </label>
-              <label>
-                <span>
-                  Max DLS{" "}
-                  <InfoTip tip="Maximum dogleg severity (DLS) allowed for the correction, in degrees per 30 m." />
-                </span>
-                <input
-                  type="number"
-                  value={target.maxDls}
-                  step={0.1}
-                  min={0.1}
-                  onChange={(e) => updateTargetField("maxDls", Number(e.target.value))}
-                />
-              </label>
-              <label className="col-span-2">
-                <span>
-                  Next interval{" "}
-                  <InfoTip tip="Metres to drill before the next survey or review. Shorten when the hole is drifting." />
-                </span>
-                <input
-                  type="number"
-                  value={target.nextInterval}
-                  step={1}
-                  min={1}
-                  onChange={(e) => updateTargetField("nextInterval", Number(e.target.value))}
-                />
-              </label>
-            </div>
+            <h2>Steering settings</h2>
+            <p className="targetlock-panel-copy">
+              Target, gear, corridor, assumptions, and escalation rules live in the{" "}
+              <strong>Settings</strong> tab.
+            </p>
             <button
               type="button"
               className="targetlock-btn"
-              onClick={() => applyPlanTarget()}
-              disabled={!canUsePlanTarget}
-              title={
-                canUsePlanTarget
-                  ? "Set target E/N/D from the planned trajectory at target MD"
-                  : "Import a hole plan with a station at the target MD first"
-              }
+              onClick={() => {
+                setMode("advanced");
+                setAdvancedTab("settings");
+              }}
             >
-              Use planned target
+              Open Settings
             </button>
-            <div className={ph("plan-corridor")}>
-              <PlanCorridorEditor
-                corridor={planCorridor}
-                status={corridorStatus}
-                onChange={setPlanCorridor}
-                sanitizeField={sanitizePlanCorridorField}
-              />
-            </div>
           </section>
         </aside>
 
@@ -1771,20 +1654,23 @@ export default function TargetLockApp() {
               recommendation={recommendation}
               steering={steering}
               holeModeAssessment={holeModeAssessment}
+              steeringPolicy={steeringPolicy}
             />
           </div>
 
           {/* Basic trajectory — Simple mode only (Advanced shows full set in Trajectory tab) */}
           <section className={`targetlock-charts-band targetlock-charts-band--basic simple-only ${ph("charts")}`}>
-            <article className="targetlock-panel targetlock-chart-panel">
-              <div className="targetlock-panel-title">
-                <h2>Plan view</h2>
+            <ChartPanel
+              kicker="Trajectory maps"
+              title="Plan view"
+              meta={
                 <span className="targetlock-legend text-xs text-[var(--tl-muted)]">
                   <i className="plan-line" />
                   Plan <i className="actual-line" />
                   Actual
                 </span>
-              </div>
+              }
+            >
               <TrajectoryCanvas
                 kind="plan"
                 planStations={planStations}
@@ -1793,15 +1679,17 @@ export default function TargetLockApp() {
                 className="chart-canvas-wrap"
                 corridorStatus={corridorStatus}
               />
-            </article>
-            <article className="targetlock-panel targetlock-chart-panel">
-              <div className="targetlock-panel-title">
-                <h2>Vertical section</h2>
+            </ChartPanel>
+            <ChartPanel
+              kicker="Trajectory maps"
+              title="Vertical section"
+              meta={
                 <span className="targetlock-legend text-xs text-[var(--tl-muted)]">
                   <i className="targetlock-legend plan-line" style={{ background: "#b42318", width: 8, height: 8, borderRadius: "50%" }} />
                   Target
                 </span>
-              </div>
+              }
+            >
               <TrajectoryCanvas
                 kind="section"
                 planStations={planStations}
@@ -1810,13 +1698,13 @@ export default function TargetLockApp() {
                 className="chart-canvas-wrap"
                 corridorStatus={corridorStatus}
               />
-            </article>
+            </ChartPanel>
           </section>
 
           {/* Advanced mode — grouped tabs (Why is that the answer?) */}
           <section className="targetlock-advanced advanced-only" aria-label="Advanced detail">
             <div className="targetlock-tabs" role="tablist" aria-label="Advanced sections">
-              {ADVANCED_TABS.map((tab) => (
+              {advancedTabs.map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
@@ -1832,16 +1720,23 @@ export default function TargetLockApp() {
 
             {advancedTab === "trajectory" ? (
               <div className="targetlock-tabpanel" role="tabpanel">
+                <AdvancedTabHero
+                  eyebrow="Plan vs actual"
+                  title="Trajectory"
+                  copy="Full plan and actual views — vertical section, 3D trajectories, and deviation from plan."
+                />
                 <section className={`targetlock-charts-band ${ph("charts")}`}>
-                  <article className="targetlock-panel targetlock-chart-panel">
-                    <div className="targetlock-panel-title">
-                      <h2>Plan view</h2>
+                  <ChartPanel
+                    kicker="Trajectory maps"
+                    title="Plan view"
+                    meta={
                       <span className="targetlock-legend text-xs text-[var(--tl-muted)]">
                         <i className="plan-line" />
                         Plan <i className="actual-line" />
                         Actual
                       </span>
-                    </div>
+                    }
+                  >
                     <TrajectoryCanvas
                       kind="plan"
                       planStations={planStations}
@@ -1850,15 +1745,17 @@ export default function TargetLockApp() {
                       className="chart-canvas-wrap"
                       corridorStatus={corridorStatus}
                     />
-                  </article>
-                  <article className="targetlock-panel targetlock-chart-panel">
-                    <div className="targetlock-panel-title">
-                      <h2>Vertical section</h2>
+                  </ChartPanel>
+                  <ChartPanel
+                    kicker="Trajectory maps"
+                    title="Vertical section"
+                    meta={
                       <span className="targetlock-legend text-xs text-[var(--tl-muted)]">
                         <i className="targetlock-legend plan-line" style={{ background: "#b42318", width: 8, height: 8, borderRadius: "50%" }} />
                         Target
                       </span>
-                    </div>
+                    }
+                  >
                     <TrajectoryCanvas
                       kind="section"
                       planStations={planStations}
@@ -1867,51 +1764,64 @@ export default function TargetLockApp() {
                       className="chart-canvas-wrap"
                       corridorStatus={corridorStatus}
                     />
-                  </article>
-                  <article className="targetlock-panel targetlock-chart-panel targetlock-chart-3d-panel">
-                    <div className="targetlock-panel-title">
-                      <h2>
+                  </ChartPanel>
+                  <ChartPanel
+                    kicker="3D view"
+                    className="targetlock-chart-3d-panel"
+                    title={
+                      <>
                         3D trajectory{" "}
                         <InfoTip tip="Plan and actual paths in east, north, and down. Use zoom buttons, scroll wheel, or drag to explore." />
-                      </h2>
+                      </>
+                    }
+                    meta={
                       <span className="targetlock-legend text-xs text-[var(--tl-muted)]">
                         <i className="plan-line" />
                         Plan <i className="actual-line" />
                         Actual
                       </span>
-                    </div>
+                    }
+                  >
                     <Trajectory3D
                       planStations={planStations}
                       actualStations={actualStations}
                       recommendation={recommendation}
                       corridorStatus={corridorStatus}
                     />
-                  </article>
-                  <article className="targetlock-panel targetlock-chart-panel targetlock-chart-3d-panel">
-                    <div className="targetlock-panel-title">
-                      <h2>
+                  </ChartPanel>
+                  <ChartPanel
+                    kicker="3D view"
+                    className="targetlock-chart-3d-panel"
+                    title={
+                      <>
                         Interactive 3D scene{" "}
                         <InfoTip tip="WebGL scene with plan, actual, target tolerance sphere, and uncertainty envelopes from the configured survey tool (ISCWSA-inspired simplified model)." />
-                      </h2>
-                    </div>
+                      </>
+                    }
+                  >
                     <ProgramScene3DLazy
                       holes={scene3dHoles}
                       heightPx={420}
                       snapshotName={`targetlock-${holeName || "hole"}-3d`}
                     />
-                  </article>
-                  <article className="targetlock-panel targetlock-chart-panel targetlock-chart-deviation-panel">
-                    <div className="targetlock-panel-title">
-                      <h2>
+                  </ChartPanel>
+                  <ChartPanel
+                    kicker="Trajectory maps"
+                    className="targetlock-chart-deviation-panel"
+                    title={
+                      <>
                         Deviation from plan{" "}
                         <InfoTip tip="3D offset from the planned path at each survey MD. The dashed line is target tolerance." />
-                      </h2>
+                      </>
+                    }
+                    meta={
                       <span className="targetlock-mini-tag">
                         {actualStations.length
                           ? `${actualStations.length} actual surveys`
                           : "--"}
                       </span>
-                    </div>
+                    }
+                  >
                     <TrajectoryCanvas
                       kind="deviation"
                       planStations={planStations}
@@ -1920,50 +1830,22 @@ export default function TargetLockApp() {
                       className="chart-canvas-wrap"
                       corridorStatus={corridorStatus}
                     />
-                  </article>
+                  </ChartPanel>
                 </section>
+              </div>
+            ) : null}
 
-                <section className="targetlock-panel targetlock-surveys-panel">
-                  <div className="targetlock-panel-title">
-                    <h2>
-                      Actual surveys{" "}
-                      <InfoTip tip="Desurveyed actual path using minimum curvature." />
-                    </h2>
-                    <span className="targetlock-mini-tag">
-                      {recommendation
-                        ? `Latest survey ${round(recommendation.current.md, 0)} m`
-                        : "--"}
-                    </span>
-                  </div>
-                  <div className="targetlock-table-wrap targetlock-table-wrap--surveys">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>MD</th>
-                          <th>Dip</th>
-                          <th>Azimuth</th>
-                          <th>East</th>
-                          <th>North</th>
-                          <th>Down</th>
-                          <th>DLS</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {actualStations.map((station) => (
-                          <tr key={station.md}>
-                            <td>{round(station.md, 0)}</td>
-                            <td>{round(station.dip, 1)}</td>
-                            <td>{round(station.azimuth, 1)}</td>
-                            <td>{round(station.e, 1)}</td>
-                            <td>{round(station.n, 1)}</td>
-                            <td>{round(station.d, 1)}</td>
-                            <td>{round(station.dls, 2)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
+            {advancedTab === "surveys" ? (
+              <div className={`targetlock-tabpanel ${ph("surveys-panel")}`} role="tabpanel">
+                <AdvancedTabHero
+                  eyebrow="Desurveyed path"
+                  title="Surveys"
+                  copy="Minimum-curvature desurvey of every actual station — imported from CSV or entered manually in the sidebar. Each new survey refreshes KPIs and the action plan."
+                />
+                <SurveysPanel
+                  actualStations={actualStations}
+                  latestSurveyMd={recommendation?.current.md}
+                />
               </div>
             ) : null}
 
@@ -1998,15 +1880,17 @@ export default function TargetLockApp() {
 
             {advancedTab === "branch-program" && !branchProgram ? (
               <div className={`targetlock-tabpanel ${ph("branch-program")}`} role="tabpanel">
+                <AdvancedTabHero
+                  eyebrow="Mother hole branching"
+                  title="Branch program"
+                  copy="Define branch targets, rank kickoff depths, and track daughter approval and handover. Planning estimates only — confirm kickoff and toolface with the directional contractor before drilling."
+                />
                 {branchPlannerContext &&
                 (branchPlannerContext.blockBranchInit ||
                   branchPlannerContext.isPlannerHole) ? (
                   <BranchPlannerWorkflowBanner context={branchPlannerContext} />
                 ) : null}
                 <article className="targetlock-panel">
-                  <div className="targetlock-panel-title">
-                    <h2>Branch program</h2>
-                  </div>
                   {branchPlannerContext?.blockBranchInit ? (
                     <p className="targetlock-panel-copy">
                       This mother hole is managed in Hole Planner. Add targets and daughter plans
@@ -2039,110 +1923,8 @@ export default function TargetLockApp() {
               </div>
             ) : null}
 
-            {advancedTab === "steering" ? (
-              <div className={`targetlock-tabpanel ${ph("steering-panel")}`} role="tabpanel">
-                <HoleModeAdvisoryPanel assessment={holeModeAssessment} />
-                {steering ? (
-                  <SteeringFeasibilityPanel
-                    steering={steering}
-                    corridorStatus={corridorStatus}
-                  />
-                ) : (
-                  <article className="targetlock-panel">
-                    <p className="targetlock-helper">
-                      Load plan and actual surveys to assess steering feasibility.
-                    </p>
-                  </article>
-                )}
-
-                <article className="targetlock-panel targetlock-correction-panel">
-                  <div className="targetlock-panel-title">
-                    <h2>
-                      Correction options{" "}
-                      <InfoTip tip="How much of the required turn can be achieved over different drilling intervals." />
-                    </h2>
-                    <span className="targetlock-mini-tag">
-                      {correctionOptions.length ? `${correctionOptions.length} options` : "--"}
-                    </span>
-                  </div>
-                  <div className="targetlock-table-wrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Interval</th>
-                          <th>Aim dip</th>
-                          <th>Aim azi</th>
-                          <th>Turn</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {correctionOptions.map((option) => (
-                          <tr key={option.interval}>
-                            <td>{option.label}</td>
-                            <td>{round(option.aimDip, 1)}°</td>
-                            <td>{round(option.aimAzimuth, 1)}°</td>
-                            <td>
-                              {round(option.turn, 1)}° / {round(option.dls, 2)}°/30 m
-                            </td>
-                            <td
-                              className={
-                                option.status === "Can point at target"
-                                  ? "status-ok"
-                                  : "status-watch"
-                              }
-                            >
-                              {option.status}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </article>
-              </div>
-            ) : null}
-
-            {advancedTab === "qaqc" ? (
-              <div className={`targetlock-tabpanel ${ph("qa-panel")}`} role="tabpanel">
-                <QaPanel flags={qaFlags} />
-              </div>
-            ) : null}
-
-            {advancedTab === "decisions" ? (
-              <div className="targetlock-tabpanel" role="tabpanel">
-                <SupervisorApprovalPanel
-                  recommendation={recommendation}
-                  onDecision={handleSupervisorDecision}
-                />
-                <div className={ph("history")}>
-                  <DecisionHistoryPanel entries={history} onClear={handleClearHistory} />
-                </div>
-              </div>
-            ) : null}
-
-            {advancedTab === "roadmap" ? (
-              <div className="targetlock-tabpanel" role="tabpanel">
-                <RoadmapPanel />
-              </div>
-            ) : null}
-
-            {advancedTab === "validation" ? (
-              <div className={`targetlock-tabpanel ${ph("validation-panel")}`} role="tabpanel">
-                <ValidationPanel
-                  sanity={planSanity}
-                  planStations={planStations}
-                  actualStations={actualStations}
-                  status={validationStatus}
-                  signOff={assumptionSignOff}
-                  onSignOff={signOffAssumptions}
-                  onClearSignOff={clearAssumptionsSignOff}
-                  referenceWarnings={referenceWarnings}
-                />
-                <DesurveyCrosscheckPanel
-                  planRecords={planRecords}
-                  actualRecords={actualRecords}
-                />
+            {advancedTab === "execution" ? (
+              <div className={`targetlock-tabpanel ${ph("execution-panel")}`} role="tabpanel">
                 {plannerExecutionContext && activeHoleMeta ? (
                   <PlanCompletionPanel
                     hole={activeHoleMeta}
@@ -2193,60 +1975,44 @@ export default function TargetLockApp() {
               </div>
             ) : null}
 
-            {advancedTab === "setup" ? (
-              <div className={`targetlock-tabpanel ${ph("setup-panel")}`} role="tabpanel">
-                <article className={`targetlock-panel ${ph("hole-package")}`}>
-                  <div className="targetlock-panel-title">
-                    <h2>
-                      Hole package backup{" "}
-                      <InfoTip tip="JSON backup of all holes, branch programs, and settings on this browser. Import replaces local data — export before reset or shared-machine use." />
-                    </h2>
-                  </div>
-                  <p className="targetlock-helper">
-                    Export the full multi-hole library (branch programs, daughters, approvals,
-                    assumptions) as JSON. Import restores everything on this browser — decision
-                    support only; validate before field use.
-                  </p>
-                  <div className="targetlock-btn-row">
-                    <button
-                      type="button"
-                      className="targetlock-btn targetlock-btn-primary"
-                      onClick={handleExportHolePackage}
-                      disabled={!library}
-                    >
-                      Export full hole package
-                    </button>
-                  </div>
-                  <div className="mt-3">
-                    <FileDropzone
-                      compact
-                      accept=".json,application/json"
-                      label="Import hole package JSON"
-                      lead="Import hole package — drop JSON or browse"
-                      hint="Import replaces local data"
-                      icon="JSON"
-                      onFiles={(files) => void handleImportHolePackage(files[0])}
-                    />
-                  </div>
-                </article>
-                <CapabilityAssumptionsEditor
-                  assumptions={recoveryAssumptions}
-                  onChange={setRecoveryAssumptions}
-                  onReset={handleResetRecoveryAssumptions}
-                  validationStatus={validationStatus}
+            {advancedTab === "roadmap" ? (
+              <div className="targetlock-tabpanel" role="tabpanel">
+                <RoadmapPanel />
+              </div>
+            ) : null}
+
+            {advancedTab === "settings" ? (
+              <div className={`targetlock-tabpanel ${ph("settings-panel")}`} role="tabpanel">
+                <SteeringSettingsTab
+                  steeringSettings={steeringSettings}
+                  onSteeringSettingsChange={setSteeringSettings}
+                  target={target}
+                  onTargetChange={setTarget}
+                  onUsePlannedTarget={() => applyPlanTarget()}
+                  canUsePlanTarget={canUsePlanTarget}
+                  planCorridor={planCorridor}
+                  corridorStatus={corridorStatus}
+                  onPlanCorridorChange={setPlanCorridor}
+                  sanitizePlanCorridorField={sanitizePlanCorridorField}
+                  recoveryAssumptions={recoveryAssumptions}
+                  onRecoveryAssumptionsChange={setRecoveryAssumptions}
+                  onResetRecoveryAssumptions={handleResetRecoveryAssumptions}
+                  assumptionsValidationStatus={validationStatus}
+                  assumptionSignOff={assumptionSignOff}
+                  onAssumptionSignOff={signOffAssumptions}
+                  onClearAssumptionSignOff={clearAssumptionsSignOff}
+                  surveyToolProfile={surveyToolProfile}
+                  surveyAssessment={surveyAssessment}
+                  onSurveyToolProfileChange={setSurveyToolProfile}
+                  referenceSystem={referenceSystem}
+                  referenceWarnings={referenceWarnings}
+                  onReferenceSystemChange={setReferenceSystem}
+                  onExportHolePackage={handleExportHolePackage}
+                  onImportHolePackage={(file) => void handleImportHolePackage(file)}
+                  canExportPackage={Boolean(library)}
+                  planFieldsLocked={planFieldsLocked}
+                  planEditNotice={planEditNotice}
                 />
-                <ReferenceSystemPanel
-                  config={referenceSystem}
-                  warnings={referenceWarnings}
-                  onChange={setReferenceSystem}
-                />
-                <div className={ph("survey-tool-profile")}>
-                  <SurveyToolProfilePanel
-                    profile={surveyToolProfile}
-                    assessment={surveyAssessment}
-                    onChange={setSurveyToolProfile}
-                  />
-                </div>
               </div>
             ) : null}
           </section>

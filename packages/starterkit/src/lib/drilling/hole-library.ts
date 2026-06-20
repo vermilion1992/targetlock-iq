@@ -11,6 +11,7 @@ import type { CapabilityAssumptions } from "./capability-assumptions";
 import type { PlanCorridorConfig } from "./plan-corridor";
 import type { ReferenceSystemConfig } from "./reference-system";
 import type { SurveyToolProfile } from "./survey-tool-profile";
+import type { SteeringSettings } from "./steering-settings";
 import type { AssumptionSignOff } from "./validation";
 import type { PersistedBranchProgram } from "./branch-program-types";
 import type {
@@ -189,6 +190,7 @@ export function snapshotProject(fields: {
   planCorridor?: PlanCorridorConfig | null;
   surveyToolProfile?: SurveyToolProfile | null;
   referenceSystem?: ReferenceSystemConfig | null;
+  steeringSettings?: SteeringSettings | null;
   holeRole?: HoleRole;
   programId?: string;
   parentHoleId?: string;
@@ -221,6 +223,7 @@ export function snapshotProject(fields: {
     planCorridor: fields.planCorridor ?? null,
     surveyToolProfile: fields.surveyToolProfile ?? null,
     referenceSystem: fields.referenceSystem ?? null,
+    steeringSettings: fields.steeringSettings ?? null,
     holeRole: fields.holeRole,
     programId: fields.programId,
     parentHoleId: fields.parentHoleId,

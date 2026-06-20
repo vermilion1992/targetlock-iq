@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
+import { SettingsNumberField } from "@/components/dashboard/SettingsNumberField";
+import { SettingsTextField } from "@/components/dashboard/SettingsTextField";
 import { coordinateModeLabel, validateCoordinateInputs } from "@/lib/drilling/coordinate-system";
 import { computeMagneticDeclination } from "@/lib/drilling/geomag";
 import { gridConvergenceDeg, gridToLatLon, latLonToGrid, resolveGrid } from "@/lib/drilling/grid-crs";
@@ -13,10 +15,10 @@ import type {
   PlannerProjectCoordinateSystem,
 } from "@/lib/drilling/planner-types";
 import { PlannerModeSwitch } from "./ui/PlannerModeSwitch";
+import { PlannerStepCard } from "./PlannerStepCard";
 
 type Props = {
   draft: PlannerDraft;
-  /** Resolved program coordinate system (for lat/long ⇄ grid conversion). */
   pcs?: PlannerProjectCoordinateSystem;
   onChange: (patch: Partial<PlannerDraft>) => void;
 };
@@ -66,7 +68,6 @@ export function CollarStep({ draft, pcs, onChange }: Props) {
   const hasEastNorth =
     Number.isFinite(draft.collar?.easting) && Number.isFinite(draft.collar?.northing);
 
-  /** Read-only geodesy preview at the collar lat/long. */
   const geodesyPreview = useMemo(() => {
     if (!hasLatLon) return null;
     const parts: string[] = [];
@@ -121,180 +122,160 @@ export function CollarStep({ draft, pcs, onChange }: Props) {
   };
 
   return (
-    <article className="targetlock-panel planner-step-panel planner-coordinate-step">
-      <div className="targetlock-panel-title">
-        <h2>Collar coordinates</h2>
-      </div>
-      <p className="targetlock-panel-copy">
-        Collar position and orientation reference for this hole. Grid collar plus grid target
-        will derive local E/N/D offsets automatically.
-      </p>
-
-      <div className="planner-field-switch-row">
-        <div className="planner-field-switch">
-          <span className="planner-field-switch-label">Coordinate mode</span>
-          <PlannerModeSwitch
-            options={COORD_MODES.map((mode) => ({
-              id: mode,
-              label: coordinateModeLabel(mode),
-            }))}
-            value={draft.coordinateMode}
-            onChange={(mode) =>
-              onChange({ coordinateMode: mode as PlannerCoordinateMode })
-            }
-            label="Coordinate mode"
-          />
-        </div>
-        <div className="planner-field-switch">
-          <span className="planner-field-switch-label">North reference</span>
-          <PlannerModeSwitch
-            options={NORTH_REFS.map((ref) => ({
-              id: ref,
-              label:
-                ref === "grid" ? "Grid north" : ref === "true" ? "True north" : "Magnetic north",
-            }))}
-            value={draft.northReference}
-            onChange={(ref) =>
-              onChange({ northReference: ref as PlannerNorthReference })
-            }
-            label="North reference"
-          />
-        </div>
-      </div>
-
-      <div className="targetlock-survey-fields planner-coordinate-fields">
-        {showGrid ? (
-          <div className="targetlock-survey-field-row planner-coordinate-grid-row">
-            <label className="targetlock-survey-field">
-              <span>Easting (m)</span>
-              <input
-                type="number"
-                step="0.1"
-                value={draft.collar?.easting ?? ""}
-                onChange={(e) =>
-                  onChange(updateCollar(draft, { easting: parseNum(e.target.value) }))
-                }
-              />
-            </label>
-            <label className="targetlock-survey-field">
-              <span>Northing (m)</span>
-              <input
-                type="number"
-                step="0.1"
-                value={draft.collar?.northing ?? ""}
-                onChange={(e) =>
-                  onChange(updateCollar(draft, { northing: parseNum(e.target.value) }))
-                }
-              />
-            </label>
-            <label className="targetlock-survey-field">
-              <span>Elevation / RL (m)</span>
-              <input
-                type="number"
-                step="0.1"
-                value={draft.collar?.elevation ?? ""}
-                onChange={(e) =>
-                  onChange(updateCollar(draft, { elevation: parseNum(e.target.value) }))
-                }
-              />
-            </label>
+    <PlannerStepCard
+      kicker="Collar"
+      title="Collar coordinates"
+      copy="Collar position and orientation reference for this hole. Grid collar plus grid target will derive local E/N/D offsets automatically."
+      className="planner-coordinate-step"
+    >
+      <fieldset className="targetlock-settings-form-group">
+        <legend>Reference frame</legend>
+        <div className="planner-field-switch-row">
+          <div className="planner-field-switch">
+            <span className="planner-field-switch-label">Coordinate mode</span>
+            <PlannerModeSwitch
+              options={COORD_MODES.map((mode) => ({
+                id: mode,
+                label: coordinateModeLabel(mode),
+              }))}
+              value={draft.coordinateMode}
+              onChange={(mode) =>
+                onChange({ coordinateMode: mode as PlannerCoordinateMode })
+              }
+              label="Coordinate mode"
+            />
           </div>
-        ) : (
-          <p className="targetlock-helper targetlock-survey-field--full">
-            Local collar-relative mode — collar is the plan origin (0, 0, 0). Enter target
-            offsets from this collar in the next step.
-          </p>
-        )}
-
-        {showOptionalGps ? (
-          <div className="targetlock-survey-field-row">
-            <label className="targetlock-survey-field">
-              <span>Latitude (optional, WGS84)</span>
-              <input
-                type="number"
-                step="0.000001"
-                value={draft.collar?.latitude ?? ""}
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  onChange(
-                    updateCollar(draft, {
-                      latitude: raw === "" ? undefined : parseNum(raw, NaN),
-                    })
-                  );
-                }}
-              />
-            </label>
-            <label className="targetlock-survey-field">
-              <span>Longitude (optional, WGS84)</span>
-              <input
-                type="number"
-                step="0.000001"
-                value={draft.collar?.longitude ?? ""}
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  onChange(
-                    updateCollar(draft, {
-                      longitude: raw === "" ? undefined : parseNum(raw, NaN),
-                    })
-                  );
-                }}
-              />
-            </label>
+          <div className="planner-field-switch">
+            <span className="planner-field-switch-label">North reference</span>
+            <PlannerModeSwitch
+              options={NORTH_REFS.map((ref) => ({
+                id: ref,
+                label:
+                  ref === "grid" ? "Grid north" : ref === "true" ? "True north" : "Magnetic north",
+              }))}
+              value={draft.northReference}
+              onChange={(ref) =>
+                onChange({ northReference: ref as PlannerNorthReference })
+              }
+              label="North reference"
+            />
           </div>
-        ) : null}
+        </div>
+      </fieldset>
 
-        {showGrid && resolvedGrid ? (
-          <div className="planner-collar-geodesy targetlock-survey-field--full">
-            <div className="planner-collar-geodesy-actions">
-              <button
-                type="button"
-                className="targetlock-btn targetlock-btn-sm"
-                onClick={handleEastNorthFromLatLon}
-                disabled={!hasLatLon}
-                title={
-                  hasLatLon
-                    ? `Project the lat/long onto ${resolvedGrid.name}`
-                    : "Enter a collar lat/long first"
-                }
-              >
-                Compute E/N from lat/long
-              </button>
-              <button
-                type="button"
-                className="targetlock-btn targetlock-btn-sm"
-                onClick={handleLatLonFromEastNorth}
-                disabled={!hasEastNorth}
-                title={
-                  hasEastNorth
-                    ? `Inverse-project the E/N from ${resolvedGrid.name}`
-                    : "Enter collar easting/northing first"
-                }
-              >
-                Compute lat/long from E/N
-              </button>
+      {showGrid ? (
+        <fieldset className="targetlock-settings-form-group">
+          <legend>Grid collar</legend>
+          <div className="targetlock-settings-form-grid targetlock-settings-form-grid--3">
+            <SettingsNumberField
+              label="Easting"
+              unit="m"
+              value={draft.collar?.easting ?? 0}
+              step={0.1}
+              slider={false}
+              onChange={(v) => onChange(updateCollar(draft, { easting: v }))}
+            />
+            <SettingsNumberField
+              label="Northing"
+              unit="m"
+              value={draft.collar?.northing ?? 0}
+              step={0.1}
+              slider={false}
+              onChange={(v) => onChange(updateCollar(draft, { northing: v }))}
+            />
+            <SettingsNumberField
+              label="Elevation / RL"
+              unit="m"
+              value={draft.collar?.elevation ?? 0}
+              step={0.1}
+              slider={false}
+              onChange={(v) => onChange(updateCollar(draft, { elevation: v }))}
+            />
+          </div>
+        </fieldset>
+      ) : (
+        <p className="targetlock-helper">
+          Local collar-relative mode — collar is the plan origin (0, 0, 0). Enter target offsets
+          from this collar in the next step.
+        </p>
+      )}
+
+      {showOptionalGps ? (
+        <fieldset className="targetlock-settings-form-group">
+          <legend>WGS84 (optional)</legend>
+          <div className="targetlock-settings-form-grid targetlock-settings-form-grid--2">
+            <SettingsTextField
+              label="Latitude"
+              value={
+                draft.collar?.latitude !== undefined ? String(draft.collar.latitude) : ""
+              }
+              placeholder="Optional"
+              onChange={(raw) =>
+                onChange(
+                  updateCollar(draft, {
+                    latitude: raw === "" ? undefined : parseNum(raw, NaN),
+                  })
+                )
+              }
+            />
+            <SettingsTextField
+              label="Longitude"
+              value={
+                draft.collar?.longitude !== undefined ? String(draft.collar.longitude) : ""
+              }
+              placeholder="Optional"
+              onChange={(raw) =>
+                onChange(
+                  updateCollar(draft, {
+                    longitude: raw === "" ? undefined : parseNum(raw, NaN),
+                  })
+                )
+              }
+            />
+          </div>
+          {showGrid && resolvedGrid ? (
+            <div className="planner-collar-geodesy">
+              <div className="planner-collar-geodesy-actions">
+                <button
+                  type="button"
+                  className="targetlock-btn targetlock-btn-sm"
+                  onClick={handleEastNorthFromLatLon}
+                  disabled={!hasLatLon}
+                >
+                  Compute E/N from lat/long
+                </button>
+                <button
+                  type="button"
+                  className="targetlock-btn targetlock-btn-sm"
+                  onClick={handleLatLonFromEastNorth}
+                  disabled={!hasEastNorth}
+                >
+                  Compute lat/long from E/N
+                </button>
+              </div>
+              {geodesyPreview ? (
+                <small className="planner-pcs-hint">{geodesyPreview}</small>
+              ) : null}
             </div>
-            {geodesyPreview ? (
-              <small className="planner-pcs-hint">{geodesyPreview}</small>
-            ) : null}
-          </div>
-        ) : null}
-        {showGrid && !resolvedGrid && pcs?.epsgCode?.trim() ? (
-          <p className="targetlock-helper targetlock-survey-field--full">
-            Program grid “{pcs.epsgCode}” isn’t a recognized EPSG grid — lat/long ⇄ E/N
-            conversion unavailable (metadata only).
-          </p>
-        ) : null}
+          ) : null}
+          {showGrid && !resolvedGrid && pcs?.epsgCode?.trim() ? (
+            <p className="targetlock-helper">
+              Program grid “{pcs.epsgCode}” isn’t a recognized EPSG grid — lat/long ⇄ E/N
+              conversion unavailable (metadata only).
+            </p>
+          ) : null}
+        </fieldset>
+      ) : null}
 
-        <label className="targetlock-survey-field targetlock-survey-field--full">
-          <span>Coordinate source / notes</span>
-          <input
-            type="text"
-            value={draft.coordinateSourceNotes ?? ""}
-            onChange={(e) => onChange({ coordinateSourceNotes: e.target.value })}
-            placeholder="Survey contractor, pick-up method, grid zone…"
-          />
-        </label>
-      </div>
+      <fieldset className="targetlock-settings-form-group">
+        <legend>Provenance</legend>
+        <SettingsTextField
+          label="Coordinate source / notes"
+          value={draft.coordinateSourceNotes ?? ""}
+          placeholder="Survey contractor, pick-up method, grid zone…"
+          onChange={(v) => onChange({ coordinateSourceNotes: v })}
+        />
+      </fieldset>
 
       {showGpsHonesty ? (
         <p className="planner-gps-honesty-inline">{GPS_COORDINATE_HONESTY_WARNING}</p>
@@ -304,6 +285,6 @@ export function CollarStep({ draft, pcs, onChange }: Props) {
           {w}
         </p>
       ))}
-    </article>
+    </PlannerStepCard>
   );
 }

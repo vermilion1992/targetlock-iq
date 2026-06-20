@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseSurveyCsv } from "@/lib/drilling/csv";
 import { buildStations } from "@/lib/drilling/desurvey";
 import {
@@ -69,6 +69,11 @@ import {
   type ReferenceSystemConfig,
 } from "@/lib/drilling/reference-system";
 import {
+  DEFAULT_STEERING_SETTINGS,
+  normalizeSteeringSettings,
+  type SteeringSettings,
+} from "@/lib/drilling/steering-settings";
+import {
   addTarget as libAddTarget,
   archiveDaughter as libArchiveDaughter,
   branchProgramViewModel,
@@ -118,6 +123,7 @@ function applyProjectToState(
     setPlanCorridor: (c: PlanCorridorConfig) => void;
     setSurveyToolProfile: (p: SurveyToolProfile) => void;
     setReferenceSystem: (r: ReferenceSystemConfig) => void;
+    setSteeringSettings: (s: SteeringSettings) => void;
   }
 ) {
   setters.setHoleId(project.holeId);
@@ -139,6 +145,9 @@ function applyProjectToState(
   );
   setters.setReferenceSystem(
     normalizeReferenceSystem(project.referenceSystem ?? DEFAULT_REFERENCE_SYSTEM)
+  );
+  setters.setSteeringSettings(
+    normalizeSteeringSettings(project.steeringSettings)
   );
 }
 
@@ -169,6 +178,9 @@ export function useTargetLockProject(suspendPersistence = false) {
   );
   const [referenceSystem, setReferenceSystemState] = useState<ReferenceSystemConfig>(
     DEFAULT_REFERENCE_SYSTEM
+  );
+  const [steeringSettings, setSteeringSettingsState] = useState<SteeringSettings>(
+    DEFAULT_STEERING_SETTINGS
   );
   const [library, setLibrary] = useState<HoleLibrary | null>(null);
   const [storageHealth, setStorageHealth] = useState<StorageLoadStatus>("missing");
@@ -271,6 +283,7 @@ export function useTargetLockProject(suspendPersistence = false) {
       planCorridor,
       surveyToolProfile,
       referenceSystem,
+      steeringSettings,
       holeRole,
       branchProgram: holeRole === "mother" ? persistedBranchProgram : null,
     });
@@ -324,6 +337,7 @@ export function useTargetLockProject(suspendPersistence = false) {
     planCorridor,
     surveyToolProfile,
     referenceSystem,
+    steeringSettings,
     holeRole,
     persistedBranchProgram,
   ]);
@@ -354,6 +368,13 @@ export function useTargetLockProject(suspendPersistence = false) {
     },
     [holeId]
   );
+
+  const planFieldsLocked = useMemo(() => {
+    if (!library) return false;
+    const active = findHole(library, holeId);
+    if (!active) return false;
+    return guardLockedPlanEdit(active, "target") != null;
+  }, [library, holeId]);
 
   const setPlanRecordsGuarded = useCallback(
     (records: SurveyRecord[]) => {
@@ -414,6 +435,7 @@ export function useTargetLockProject(suspendPersistence = false) {
         setPlanCorridor,
         setSurveyToolProfile,
         setReferenceSystem,
+        setSteeringSettings: setSteeringSettingsState,
       });
     },
     []
@@ -510,6 +532,7 @@ export function useTargetLockProject(suspendPersistence = false) {
     planCorridor,
     surveyToolProfile,
     referenceSystem,
+    steeringSettings,
     holeRole,
     persistedBranchProgram,
     suspendPersistence,
@@ -519,6 +542,14 @@ export function useTargetLockProject(suspendPersistence = false) {
 
   const resetRecoveryAssumptions = useCallback(() => {
     setRecoveryAssumptions({ ...DEFAULT_CAPABILITY_ASSUMPTIONS });
+  }, []);
+
+  const resetSteeringSettings = useCallback(() => {
+    setSteeringSettingsState(normalizeSteeringSettings(null));
+  }, []);
+
+  const setSteeringSettings = useCallback((next: SteeringSettings) => {
+    setSteeringSettingsState(normalizeSteeringSettings(next));
   }, []);
 
   const switchHole = useCallback(
@@ -987,11 +1018,15 @@ export function useTargetLockProject(suspendPersistence = false) {
     planCorridor,
     setPlanCorridor: setPlanCorridorGuarded,
     planEditNotice,
+    planFieldsLocked,
     setPlanEditNotice,
     surveyToolProfile,
     setSurveyToolProfile,
     referenceSystem,
     setReferenceSystem,
+    steeringSettings,
+    setSteeringSettings,
+    resetSteeringSettings,
     seedPlanCorridorFromPlan,
     storageHealth,
     storageError,

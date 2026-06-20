@@ -2,6 +2,7 @@
 
 import type { PlannerHoleQaSummary } from "@/lib/drilling/planner-types";
 import { PlannerQaBadge } from "./PlannerQaBadge";
+import { PlannerSubPanel } from "./ui/PlannerSubPanel";
 
 type Props = {
   summaries: PlannerHoleQaSummary[];
@@ -19,11 +20,11 @@ export function PlannerDrillabilityPanel({
   const selected = summaries.find((s) => s.holeId === selectedHoleId);
 
   return (
-    <article className="targetlock-panel planner-drillability-panel">
-      <div className="targetlock-panel-title">
-        <h3>Drillability</h3>
-      </div>
-
+    <PlannerSubPanel
+      className="planner-drillability-panel"
+      kicker="QA"
+      title="Drillability"
+    >
       <ul className="planner-drillability-hole-list">
         {summaries.map((summary) => (
           <li key={summary.holeId}>
@@ -60,6 +61,6 @@ export function PlannerDrillabilityPanel({
       ) : (
         <p className="targetlock-panel-copy">Select a hole to view drillability checks.</p>
       )}
-    </article>
+    </PlannerSubPanel>
   );
 }

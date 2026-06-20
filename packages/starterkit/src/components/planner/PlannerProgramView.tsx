@@ -17,12 +17,13 @@ import type {
 } from "@/lib/drilling/planner-types";
 import { firstCollarLatLon } from "@/lib/drilling/coordinate-system";
 import { evaluateProgramReadiness } from "@/lib/drilling/planner-command-center";
+import { AdvancedTabHero } from "@/components/dashboard/AdvancedTabHero";
 import { PlannerRelationshipTree } from "./PlannerRelationshipTree";
 import { PlannerStatusBadge } from "./PlannerStatusBadge";
 import { ProjectCoordinatePanel } from "./ProjectCoordinatePanel";
+import { PlannerEmptyState } from "./ui/PlannerEmptyState";
 import { PlannerMetricRow } from "./ui/PlannerMetricRow";
-import { PlannerPanel } from "./ui/PlannerPanel";
-import { PlannerSectionHeader } from "./ui/PlannerSectionHeader";
+import { PlannerSubPanel } from "./ui/PlannerSubPanel";
 import { PlannerWarningList } from "./ui/PlannerWarningList";
 
 type Props = {
@@ -75,11 +76,14 @@ export function PlannerProgramView({
 
   if (!programs.length) {
     return (
-      <PlannerPanel title="Program">
-        <p className="targetlock-panel-copy">
-          No planner programs yet. Create plans and assign a program name in project setup.
-        </p>
-      </PlannerPanel>
+      <div className="planner-program-view">
+        <AdvancedTabHero
+          eyebrow="Visualise"
+          title="Program"
+          copy="Program operations — relationships, counts, and coordinate setup."
+        />
+        <PlannerEmptyState message="No planner programs yet. Create plans and assign a program name in project setup." />
+      </div>
     );
   }
 
@@ -102,10 +106,11 @@ export function PlannerProgramView({
 
   return (
     <div className="planner-program-view">
-      <PlannerSectionHeader
+      <AdvancedTabHero
+        eyebrow="Visualise"
         title={program?.name ?? "Program"}
-        subtitle="Program operations — relationships, counts, and coordinate setup."
-        badge={program ? <PlannerStatusBadge status={program.status} /> : null}
+        copy="Program operations — relationships, counts, and coordinate setup."
+        meta={program ? <PlannerStatusBadge status={program.status} /> : null}
         actions={
           selectedHoleId && onOpenReview ? (
             <button
@@ -120,9 +125,9 @@ export function PlannerProgramView({
       />
 
       {programMetrics.length ? (
-        <PlannerPanel title="Status breakdown" as="h3">
+        <PlannerSubPanel kicker="Program" title="Status breakdown">
           <PlannerMetricRow metrics={programMetrics} />
-        </PlannerPanel>
+        </PlannerSubPanel>
       ) : null}
 
       {programReadiness?.blockers.length ? (
@@ -140,12 +145,12 @@ export function PlannerProgramView({
         />
       ) : null}
 
-      <PlannerPanel title="Relationship tree" as="h3">
+      <PlannerSubPanel kicker="Program" title="Relationship tree">
         <PlannerRelationshipTree nodes={tree} />
-      </PlannerPanel>
+      </PlannerSubPanel>
 
       {programReadiness ? (
-        <PlannerPanel title="Package readiness" as="h3">
+        <PlannerSubPanel kicker="Program" title="Package readiness">
           <ul className="planner-checklist">
             {programReadiness.gates.map((g) => (
               <li
@@ -166,7 +171,7 @@ export function PlannerProgramView({
               </li>
             ))}
           </ul>
-        </PlannerPanel>
+        </PlannerSubPanel>
       ) : null}
 
       {programId ? (

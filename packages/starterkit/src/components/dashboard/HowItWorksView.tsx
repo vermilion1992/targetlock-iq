@@ -1,5 +1,7 @@
 "use client";
 
+import { AdvancedTabHero } from "@/components/dashboard/AdvancedTabHero";
+import { HeroSubPanel } from "@/components/dashboard/HeroSubPanel";
 import { ReferenceDocSection } from "@/components/dashboard/ReferenceDocSection";
 import { MathReferencePanel } from "@/components/dashboard/MathReferencePanel";
 import type { Recommendation } from "@/lib/drilling/types";
@@ -25,12 +27,12 @@ const ROLES: { label: string; detail: string }[] = [
   {
     label: "Supervisors",
     detail:
-      "Decision history, sign-off, and handover reports — a defensible record of what was decided and when.",
+      "Settings sign-off, handover PDFs, and export packages — a defensible record of assumptions and hole state.",
   },
   {
     label: "Directional contractors",
     detail:
-      "Structured plan-vs-actual context for feasibility and correction review before committing a tool.",
+      "Structured plan-vs-actual context and math reference for feasibility review before committing a tool.",
   },
 ];
 
@@ -80,26 +82,28 @@ const CONVENTIONS: { term: string; definition: string }[] = [
 export function HowItWorksView({ recommendation, steering, onClose }: Props) {
   return (
     <div className="targetlock-howitworks-view">
-      <div className="targetlock-howitworks-head">
-        <div>
-          <p className="targetlock-topbar-eyebrow">Reference</p>
-          <h2>How TargetLock IQ works</h2>
-          <p className="targetlock-howitworks-sub">
-            What the dashboard computes from your surveys, the math behind every number, and why
-            the output can be trusted. Reference only — opening this page never changes a
-            calculation.
-          </p>
-        </div>
-        <button type="button" className="targetlock-btn" onClick={onClose}>
-          ← Back to dashboard
-        </button>
-      </div>
+      <AdvancedTabHero
+        eyebrow="Reference"
+        title="How TargetLock IQ works"
+        copy={
+          <>
+            What the dashboard computes from your surveys, the math behind every number, and why the
+            output can be trusted. Reference only — opening this page never changes a calculation.
+          </>
+        }
+        meta={
+          <button type="button" className="targetlock-btn" onClick={onClose}>
+            ← Back to dashboard
+          </button>
+        }
+      />
 
-      <article className="targetlock-panel targetlock-ref-panel">
-        <div className="targetlock-panel-title">
-          <h2>Purpose &amp; workflow</h2>
-          <span className="targetlock-mini-tag targetlock-ref-tag">Reference</span>
-        </div>
+      <HeroSubPanel
+        className="targetlock-ref-panel"
+        kicker="Reference"
+        title="Purpose & workflow"
+        meta={<span className="targetlock-mini-tag targetlock-ref-tag">Reference</span>}
+      >
         <div className="targetlock-ref-lead">
           <span className="targetlock-ref-lead-kicker">What this is</span>
           <p>
@@ -126,9 +130,9 @@ export function HowItWorksView({ recommendation, steering, onClose }: Props) {
             <p>
               Work starts from two inputs: the planned trajectory and the actual surveys measured in
               the hole. Either can be typed in, imported from CSV, pulled from a planner package, or
-              loaded as a demo scenario. Survey tool, plan corridor, and target tolerance are set in
-              Setup so the rest of the dashboard reflects the tool actually running and the tolerance
-              the geologist accepts.
+              loaded as a demo scenario. Survey tool, plan corridor, target tolerance, and reference
+              system are set in the <strong>Settings</strong> tab so the rest of the dashboard
+              reflects the tool actually running and the tolerance the geologist accepts.
             </p>
           </ReferenceDocSection>
 
@@ -154,31 +158,34 @@ export function HowItWorksView({ recommendation, steering, onClose }: Props) {
             <p>
               From the current position the dashboard solves the required dip and azimuth to hit the
               target and the dogleg severity that implies, then checks it against the configured
-              capability assumptions. It reports whether a smooth recovery is realistic and estimates
-              the point of no return. Capability profiles are assumptions you set — not a universal
-              bend rating.
+              capability assumptions in Settings. The result drives the <strong>Action plan</strong>{" "}
+              — current action, method guidance, and escalation — with fuller method detail in
+              handover exports. Capability profiles are assumptions you set — not a universal bend
+              rating.
             </p>
           </ReferenceDocSection>
 
-          <ReferenceDocSection badge="05" title="The QA / QC gate">
+          <ReferenceDocSection badge="05" title="Survey checks (embedded)">
             <p>
-              QA/QC flags interval gaps, excessive dogleg, plan offset, recovery risk, target risk,
-              and reference-system mismatches. Near-vertical and high-angle geometry raises advisories
-              because steering assumptions weaken there. Flags are surfaced so a survey is validated
-              before anyone acts on the recommendation.
+              Interval gaps, excessive dogleg, plan offset, recovery risk, and target risk are
+              evaluated on every survey. The KPI strip and Action plan surface the headline numbers;
+              near-vertical and high-angle geometry raises advisories because steering assumptions
+              weaken there. Full check lists appear in handover PDF and TXT exports — there is no
+              separate QA tab in the dashboard.
             </p>
           </ReferenceDocSection>
 
           <ReferenceDocSection
             badge="06"
-            title="Decisions, sign-off, and handover"
+            title="Sign-off, exports, and handover"
             variant="integration"
           >
             <p>
-              Decisions and supervisor approvals are recorded with their context, and handover PDFs
-              and TXT reports capture plan-vs-actual, recommendation, and assumptions for the next
-              shift. When the hole came from a locked planner plan, actuals are compared back against
-              that exact approved geometry — closing the loop from design to drilled hole.
+              Capability assumptions are signed off in the <strong>Settings</strong> tab. Session
+              events (imports, surveys, target changes) are logged automatically and included in
+              handover PDFs and TXT reports together with plan-vs-actual context and QA flags. When
+              the hole came from a locked planner plan, the <strong>Execution</strong> tab compares
+              actuals back against that approved geometry.
             </p>
           </ReferenceDocSection>
         </div>
@@ -189,11 +196,11 @@ export function HowItWorksView({ recommendation, steering, onClose }: Props) {
               <li>Hole plan vs actual survey comparison and current position</li>
               <li>Projected target miss and offset from plan</li>
               <li>Simple action plan for the next survey interval</li>
-              <li>Steering feasibility and recovery capability context</li>
-              <li>QA/QC warnings on interval, reference, and target risk</li>
-              <li>Plan corridor and target tolerance checks</li>
+              <li>Steering feasibility context (action plan + export detail)</li>
+              <li>Survey checks in KPIs, action plan, and handover exports</li>
+              <li>Plan corridor and target tolerance checks (Settings)</li>
               <li>Survey-tool uncertainty context (assumption-based)</li>
-              <li>Decision history, supervisor sign-off, and handover reports</li>
+              <li>Assumption sign-off, session log, and handover reports</li>
               <li>Branch / daughter hole planning support</li>
             </ul>
           </ReferenceDocSection>
@@ -218,13 +225,14 @@ export function HowItWorksView({ recommendation, steering, onClose }: Props) {
             </p>
           </ReferenceDocSection>
         </div>
-      </article>
+      </HeroSubPanel>
 
-      <article className="targetlock-panel targetlock-ref-panel">
-        <div className="targetlock-panel-title">
-          <h2>Conventions &amp; definitions</h2>
-          <span className="targetlock-mini-tag">Glossary</span>
-        </div>
+      <HeroSubPanel
+        className="targetlock-ref-panel"
+        kicker="Glossary"
+        title="Conventions & definitions"
+        meta={<span className="targetlock-mini-tag">Glossary</span>}
+      >
         <p className="targetlock-panel-copy">
           Every formula below uses these conventions. They match the hole planner exactly, so a plan
           and the hole drilled against it are always measured the same way.
@@ -237,19 +245,20 @@ export function HowItWorksView({ recommendation, steering, onClose }: Props) {
             </div>
           ))}
         </div>
-      </article>
+      </HeroSubPanel>
 
       <MathReferencePanel recommendation={recommendation} steering={steering} />
 
-      <article className="targetlock-panel targetlock-validation-panel">
-        <div className="targetlock-panel-title">
-          <h2>Why the numbers can be trusted</h2>
-          <span className="targetlock-mini-tag">Evidence</span>
-        </div>
+      <HeroSubPanel
+        className="targetlock-validation-panel"
+        kicker="Evidence"
+        title="Why the numbers can be trusted"
+        meta={<span className="targetlock-mini-tag">Evidence</span>}
+      >
         <p className="targetlock-panel-copy">
           Trust here is a property of how the dashboard is built: exact geometry where exactness is
           possible, published methods where it is not, transparent assumptions, and a traceable
-          decision record around the result.
+          export record around the result.
         </p>
         <div className="targetlock-ref-sections">
           <ReferenceDocSection
@@ -270,9 +279,9 @@ export function HowItWorksView({ recommendation, steering, onClose }: Props) {
             <p>
               Minimum curvature, balanced tangential, and radius of curvature are run against the
               same build-and-turn path in the test suite and agree within centimetres at tight
-              station spacing, shrinking exactly as theory predicts. The Validation tab exposes the
-              same cross-check so a bottom-hole position can be reconciled against a contractor or
-              mine database that uses a different convention.
+              station spacing, shrinking exactly as theory predicts. The math reference on this page
+              shows the same basis the code runs — reconcile against contractor or mine software
+              using exported station coordinates.
             </p>
           </ReferenceDocSection>
 
@@ -289,8 +298,8 @@ export function HowItWorksView({ recommendation, steering, onClose }: Props) {
             <p>
               Plan, survey, and display north can differ. Every azimuth is converted through true
               north using grid convergence and magnetic declination before any trajectory math, and
-              mixed-reference or missing-parameter situations raise warnings in Setup and Validation
-              rather than failing silently.
+              mixed-reference or missing-parameter situations raise warnings in{" "}
+              <strong>Settings</strong> rather than failing silently.
             </p>
           </ReferenceDocSection>
 
@@ -298,8 +307,8 @@ export function HowItWorksView({ recommendation, steering, onClose }: Props) {
             <p>
               Recovery feasibility and uncertainty depend on ground, rig, rods, hole size, tool
               capability, survey quality, and approval. Those capability and survey-tool profiles are
-              editable in Setup, and the values that fed every number are shown live in the math
-              reference — nothing is baked in behind the scenes.
+              editable in the <strong>Settings</strong> tab, and the values that fed every number are
+              shown live in the math reference — nothing is baked in behind the scenes.
             </p>
           </ReferenceDocSection>
 
@@ -318,7 +327,7 @@ export function HowItWorksView({ recommendation, steering, onClose }: Props) {
           Decision support only. TargetLock IQ informs the decision — it does not replace survey
           contractors, geology sign-off, or site procedures.
         </p>
-      </article>
+      </HeroSubPanel>
 
       <div className="targetlock-howitworks-foot">
         <button type="button" className="targetlock-btn" onClick={onClose}>

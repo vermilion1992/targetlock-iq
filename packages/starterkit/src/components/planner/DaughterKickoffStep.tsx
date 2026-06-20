@@ -1,9 +1,12 @@
 "use client";
 
+import { SettingsNumberField } from "@/components/dashboard/SettingsNumberField";
+import { SettingsSelectField } from "@/components/dashboard/SettingsSelectField";
 import { normalizePlannerCollar } from "@/lib/drilling/coordinate-system";
 import { round } from "@/lib/drilling/format";
 import type { PlannerDraft } from "@/lib/drilling/planner-types";
 import type { SavedHoleProject } from "@/lib/drilling/storage";
+import { PlannerStepCard } from "./PlannerStepCard";
 
 type Props = {
   draft: PlannerDraft;
@@ -11,11 +14,6 @@ type Props = {
   onChange: (patch: Partial<PlannerDraft>) => void;
   onKickoffMdChange: (motherId: string, kickoffMd: number) => void;
 };
-
-function parseNum(value: string, fallback = 0): number {
-  const n = Number.parseFloat(value);
-  return Number.isFinite(n) ? n : fallback;
-}
 
 export function DaughterKickoffStep({
   draft,
@@ -36,21 +34,17 @@ export function DaughterKickoffStep({
       ? {
           e: motherCollar.easting + kickoff.e,
           n: motherCollar.northing + kickoff.n,
-          // True RL: kickoff depth below the mother collar subtracts from collar RL.
           rl: motherCollar.elevation - kickoff.d,
         }
       : null;
 
   return (
-    <article className="targetlock-panel planner-step-panel planner-coordinate-step">
-      <div className="targetlock-panel-title">
-        <h2>Mother + kickoff</h2>
-      </div>
-      <p className="targetlock-panel-copy">
-        Kickoff is calculated from the mother hole <strong>actual</strong> survey path, not
-        the plan. Resolved kickoff coordinates feed the daughter target step.
-      </p>
-
+    <PlannerStepCard
+      kicker="Branch kickoff"
+      title="Mother + kickoff"
+      copy="Kickoff is calculated from the mother hole actual survey path, not the plan. Resolved kickoff coordinates feed the daughter target step."
+      className="planner-coordinate-step"
+    >
       {motherHoles.length === 0 ? (
         <p className="planner-warning-banner" role="status">
           No mother holes in the library. Create or load a mother hole in the TargetLock
@@ -58,13 +52,14 @@ export function DaughterKickoffStep({
         </p>
       ) : null}
 
-      <div className="targetlock-survey-fields planner-coordinate-fields">
-        <label className="targetlock-survey-field targetlock-survey-field--full">
-          <span>Mother hole</span>
-          <select
+      <fieldset className="targetlock-settings-form-group">
+        <legend>Kickoff selection</legend>
+        <div className="targetlock-settings-form-grid targetlock-settings-form-grid--2">
+          <SettingsSelectField
+            label="Mother hole"
             value={kickoff?.motherHoleId ?? ""}
-            onChange={(e) => {
-              const hole = motherHoles.find((h) => h.holeId === e.target.value);
+            onChange={(motherId) => {
+              const hole = motherHoles.find((h) => h.holeId === motherId);
               if (!hole) return;
               const defaultMd = hole.actualRecords.at(-1)?.md
                 ? Math.round(hole.actualRecords.at(-1)!.md * 0.7)
@@ -79,25 +74,22 @@ export function DaughterKickoffStep({
                 {hole.actualRecords.length ? "" : " (no actual surveys)"}
               </option>
             ))}
-          </select>
-        </label>
-
-        <label className="targetlock-survey-field">
-          <span>Kickoff MD (m)</span>
-          <input
-            type="number"
+          </SettingsSelectField>
+          <SettingsNumberField
+            label="Kickoff MD"
+            unit="m"
+            value={kickoff?.kickoffMd ?? 0}
             min={0}
             max={maxMd}
             step={1}
-            value={kickoff?.kickoffMd ?? ""}
             disabled={!kickoff?.motherHoleId}
-            onChange={(e) => {
+            onChange={(v) => {
               if (!kickoff?.motherHoleId) return;
-              onKickoffMdChange(kickoff.motherHoleId, parseNum(e.target.value, 0));
+              onKickoffMdChange(kickoff.motherHoleId, v);
             }}
           />
-        </label>
-      </div>
+        </div>
+      </fieldset>
 
       {motherMissingSurveys ? (
         <p className="planner-warning-banner" role="status">
@@ -107,35 +99,38 @@ export function DaughterKickoffStep({
       ) : null}
 
       {kickoff ? (
-        <dl className="planner-kickoff-preview">
-          <div>
-            <dt>Resolved kickoff local E / N / D</dt>
-            <dd>
-              {round(kickoff.e, 1)} / {round(kickoff.n, 1)} / {round(kickoff.d, 1)} m
-            </dd>
-          </div>
-          <div>
-            <dt>Kickoff dip / azimuth</dt>
-            <dd>
-              {round(kickoff.dip, 1)}° / {round(kickoff.azimuth, 1)}°
-            </dd>
-          </div>
-          {gridKickoff ? (
+        <fieldset className="targetlock-settings-form-group">
+          <legend>Resolved kickoff</legend>
+          <dl className="planner-kickoff-preview">
             <div>
-              <dt>Resolved kickoff grid E / N / RL</dt>
+              <dt>Resolved kickoff local E / N / D</dt>
               <dd>
-                E {round(gridKickoff.e, 1)} / N {round(gridKickoff.n, 1)} / RL{" "}
-                {round(gridKickoff.rl, 1)} m
+                {round(kickoff.e, 1)} / {round(kickoff.n, 1)} / {round(kickoff.d, 1)} m
               </dd>
             </div>
-          ) : (
             <div>
-              <dt>Grid kickoff</dt>
-              <dd>— (mother collar grid coordinates not set)</dd>
+              <dt>Kickoff dip / azimuth</dt>
+              <dd>
+                {round(kickoff.dip, 1)}° / {round(kickoff.azimuth, 1)}°
+              </dd>
             </div>
-          )}
-        </dl>
+            {gridKickoff ? (
+              <div>
+                <dt>Resolved kickoff grid E / N / RL</dt>
+                <dd>
+                  E {round(gridKickoff.e, 1)} / N {round(gridKickoff.n, 1)} / RL{" "}
+                  {round(gridKickoff.rl, 1)} m
+                </dd>
+              </div>
+            ) : (
+              <div>
+                <dt>Grid kickoff</dt>
+                <dd>— (mother collar grid coordinates not set)</dd>
+              </div>
+            )}
+          </dl>
+        </fieldset>
       ) : null}
-    </article>
+    </PlannerStepCard>
   );
 }

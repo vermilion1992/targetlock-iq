@@ -18,6 +18,7 @@ import {
   type GeologyZConvention,
 } from "@/lib/drilling/geology-store";
 import { FileDropzone } from "./ui/FileDropzone";
+import { PlannerCollapsibleCard } from "./ui/PlannerCollapsibleCard";
 
 type Props = {
   programId: string;
@@ -38,7 +39,6 @@ export function PlannerGeologyPanel({
   onUpdate,
   onRemove,
 }: Props) {
-  const [expanded, setExpanded] = useState(assets.length === 0);
   const [pendingFilename, setPendingFilename] = useState<string | null>(null);
   const [parsed, setParsed] = useState<GeologyParseResult | null>(null);
   const [offsetE, setOffsetE] = useState(0);
@@ -84,23 +84,17 @@ export function PlannerGeologyPanel({
   };
 
   return (
-    <section className="planner-geology">
-      <div className="planner-geology-header">
-        <h3>
-          Geology overlays{" "}
-          <span className="text-xs text-[var(--tl-muted)]">
-            ({assets.length} asset{assets.length === 1 ? "" : "s"})
-          </span>
-        </h3>
-        <button
-          type="button"
-          className="targetlock-btn targetlock-btn-sm"
-          onClick={() => setExpanded((v) => !v)}
-        >
-          {expanded ? "Hide" : "Manage"}
-        </button>
-      </div>
-
+    <PlannerCollapsibleCard
+      kicker="Visualise"
+      title="Geology overlays"
+      className="planner-geology"
+      defaultOpen={assets.length === 0}
+      meta={
+        <span className="text-xs text-[var(--tl-muted)]">
+          {assets.length} asset{assets.length === 1 ? "" : "s"}
+        </span>
+      }
+    >
       {sizeStatus.message ? (
         <p
           className={
@@ -113,15 +107,13 @@ export function PlannerGeologyPanel({
         </p>
       ) : null}
 
-      {expanded ? (
-        <>
-          <p className="targetlock-panel-copy">
-            Import wireframes or surfaces exported from Leapfrog / Surpac /
-            Micromine / Vulcan as OBJ or DXF (3DFACE, polyface mesh, polylines).
-            Display-only — no geological interpretation is performed.
-          </p>
+      <p className="targetlock-panel-copy">
+        Import wireframes or surfaces exported from Leapfrog / Surpac /
+        Micromine / Vulcan as OBJ or DXF (3DFACE, polyface mesh, polylines).
+        Display-only — no geological interpretation is performed.
+      </p>
 
-          <div className="planner-geology-upload">
+      <div className="planner-geology-upload">
             <div className="targetlock-survey-field">
               <span>Geology file (.obj / .dxf)</span>
               <FileDropzone
@@ -276,8 +268,6 @@ export function PlannerGeologyPanel({
               })}
             </ul>
           ) : null}
-        </>
-      ) : null}
-    </section>
+    </PlannerCollapsibleCard>
   );
 }

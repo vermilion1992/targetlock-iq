@@ -21,9 +21,11 @@ import {
 } from "@/lib/drilling/planner-export";
 import type { PlannerProjectCoordinateSystem } from "@/lib/drilling/planner-types";
 import { firstCollarLatLon } from "@/lib/drilling/coordinate-system";
+import { AdvancedTabHero } from "@/components/dashboard/AdvancedTabHero";
 import { ProjectCoordinatePanel } from "./ProjectCoordinatePanel";
 import { PlannerCoordinateStatusBadge } from "./PlannerCoordinateStatusBadge";
-import { PlannerSectionHeader } from "./ui/PlannerSectionHeader";
+import { PlannerEmptyState } from "./ui/PlannerEmptyState";
+import { PlannerSubPanel } from "./ui/PlannerSubPanel";
 import { PlannerWarningList } from "./ui/PlannerWarningList";
 
 type Props = {
@@ -108,25 +110,25 @@ export function PlannerCoordinatesView({
 
   if (!programId) {
     return (
-      <article className="targetlock-panel">
-        <PlannerSectionHeader
+      <div className="planner-coordinates-view">
+        <AdvancedTabHero
+          eyebrow="Plan"
           title="Coordinates"
-          subtitle="Project coordinate system, collars, targets, and daughter kickoffs."
+          copy="Project coordinate system, collars, targets, and daughter kickoffs."
         />
-        <p className="targetlock-panel-copy">
-          No program selected. Create plans or import a program to manage coordinates.
-        </p>
-      </article>
+        <PlannerEmptyState message="No program selected. Create plans or import a program to manage coordinates." />
+      </div>
     );
   }
 
   return (
     <div className="planner-coordinates-view">
-      <PlannerSectionHeader
+      <AdvancedTabHero
+        eyebrow="Plan"
         title="Coordinates"
-        subtitle="Program-wide register for review and export — enter coordinates in Create."
+        copy="Program-wide register for review and export — enter coordinates in Create."
         actions={
-          <div className="targetlock-btn-row">
+          <>
             {onImportPlanned ? (
               <button
                 type="button"
@@ -169,7 +171,7 @@ export function PlannerCoordinatesView({
             >
               PCS CSV
             </button>
-          </div>
+          </>
         }
       />
 
@@ -194,10 +196,7 @@ export function PlannerCoordinatesView({
         />
       ) : null}
 
-      <article className="targetlock-panel">
-        <div className="targetlock-panel-title">
-          <h3>Collar coordinates</h3>
-        </div>
+      <PlannerSubPanel kicker="Coordinates" title="Collar coordinates">
         {collarRows.length ? (
           <div className="planner-table-wrap">
             <table className="planner-table planner-coord-table">
@@ -242,12 +241,9 @@ export function PlannerCoordinatesView({
         ) : (
           <p className="targetlock-panel-copy">No planned holes in this program.</p>
         )}
-      </article>
+      </PlannerSubPanel>
 
-      <article className="targetlock-panel">
-        <div className="targetlock-panel-title">
-          <h3>Target coordinates</h3>
-        </div>
+      <PlannerSubPanel kicker="Coordinates" title="Target coordinates">
         {targetRows.length ? (
           <div className="planner-table-wrap">
             <table className="planner-table planner-coord-table">
@@ -292,13 +288,10 @@ export function PlannerCoordinatesView({
         ) : (
           <p className="targetlock-panel-copy">No targets defined yet.</p>
         )}
-      </article>
+      </PlannerSubPanel>
 
       {kickoffRows.length ? (
-        <article className="targetlock-panel">
-          <div className="targetlock-panel-title">
-            <h3>Daughter kickoff coordinates</h3>
-          </div>
+        <PlannerSubPanel kicker="Coordinates" title="Daughter kickoff coordinates">
           <div className="planner-table-wrap">
             <table className="planner-table planner-coord-table">
               <thead>
@@ -343,7 +336,7 @@ export function PlannerCoordinatesView({
               </tbody>
             </table>
           </div>
-        </article>
+        </PlannerSubPanel>
       ) : null}
 
       {selectedHoleId ? (

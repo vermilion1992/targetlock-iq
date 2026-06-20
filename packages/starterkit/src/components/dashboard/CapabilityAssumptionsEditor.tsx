@@ -1,6 +1,7 @@
 "use client";
 
 import { InfoTip } from "@/components/layout/InfoTip";
+import { SettingsNumberField } from "@/components/dashboard/SettingsNumberField";
 import {
   DEFAULT_CAPABILITY_ASSUMPTIONS,
   normalizeCapabilityAssumptions,
@@ -63,11 +64,6 @@ function rangeBadge(min: number, max: number): string {
   return `${min.toFixed(1)}–${max.toFixed(1)}°/30 m`;
 }
 
-function parseNum(value: string, fallback: number): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
 export function CapabilityAssumptionsEditor({
   assumptions,
   onChange,
@@ -83,12 +79,15 @@ export function CapabilityAssumptionsEditor({
   };
 
   return (
-    <article className="targetlock-panel targetlock-assumptions-panel">
-      <div className="targetlock-panel-title">
-        <h2>
-          Recovery capability assumptions{" "}
-          <InfoTip tip="Site-specific DLS ranges used for steering feasibility only. Not guaranteed tool performance — depends on ground, rig, tools, and approval." />
-        </h2>
+    <article className="targetlock-settings-form-card">
+      <header className="targetlock-settings-form-card-head">
+        <div className="targetlock-form-card-head-text">
+          <p className="targetlock-settings-form-card-kicker">Achievable correction</p>
+          <h3 className="targetlock-settings-form-card-title">
+            Recovery capability assumptions{" "}
+            <InfoTip tip="Site-specific DLS ranges used for steering feasibility only. Not guaranteed tool performance — depends on ground, rig, tools, and approval." />
+          </h3>
+        </div>
         <button
           type="button"
           className="targetlock-btn targetlock-btn-sm"
@@ -97,107 +96,85 @@ export function CapabilityAssumptionsEditor({
         >
           Reset to defaults
         </button>
-      </div>
-      <p className="targetlock-panel-copy">
-        Configurable assumptions for this hole. Real ability depends on ground, rods, rig, hole
-        size, pump, depth, survey quality, contractor, and geologist approval.
-      </p>
+      </header>
 
-      {validationStatus && validationStatus.state !== "validated" ? (
-        <p className="targetlock-assumptions-validation-note" role="note">
-          <strong>{validationStatus.label}.</strong> {validationStatus.detail} Sign off in the{" "}
-          <strong>Validation</strong> tab before relying on steering feasibility.
+      <div className="targetlock-settings-form-card-body">
+        <p className="targetlock-settings-form-card-copy">
+          Configurable assumptions for this hole. Real ability depends on ground, rods, rig, hole
+          size, pump, depth, survey quality, contractor, and geologist approval.
         </p>
-      ) : null}
 
-      <div className="targetlock-assumptions-grid">
-        {RANGE_FIELDS.map((field) => (
-          <div
-            key={field.label}
-            className="targetlock-assumption-card"
-            role="group"
-            aria-label={field.label}
-          >
-            <div className="targetlock-assumption-card-head">
-              <span className="targetlock-assumption-card-name">{field.label}</span>
-              <span className="targetlock-assumption-badge">
-                {rangeBadge(normalized[field.minKey], normalized[field.maxKey])}
-              </span>
-            </div>
-            <p className="targetlock-assumption-desc">{field.description}</p>
-            <div className="targetlock-assumption-inputs">
-              <label>
-                <span>Min °/30 m</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={30}
-                  step={field.step ?? 0.1}
-                  value={normalized[field.minKey]}
-                  onChange={(e) =>
-                    update({
-                      [field.minKey]: parseNum(e.target.value, normalized[field.minKey]),
-                    } as Partial<CapabilityAssumptions>)
-                  }
-                />
-              </label>
-              <label>
-                <span>Max °/30 m</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={30}
-                  step={field.step ?? 0.1}
-                  value={normalized[field.maxKey]}
-                  onChange={(e) =>
-                    update({
-                      [field.maxKey]: parseNum(e.target.value, normalized[field.maxKey]),
-                    } as Partial<CapabilityAssumptions>)
-                  }
-                />
-              </label>
-            </div>
-          </div>
-        ))}
-
-        <div
-          className="targetlock-assumption-card"
-          role="group"
-          aria-label="Wedge / branch review"
-        >
-          <div className="targetlock-assumption-card-head">
-            <span className="targetlock-assumption-card-name">
-              Wedge / branch review{" "}
-              <InfoTip tip="When the DLS required to rejoin plan exceeds this, the app suggests reviewing a wedge or branch instead of in-hole steering. It flags a decision, not a guarantee." />
-            </span>
-            <span className="targetlock-assumption-badge">
-              Trigger &gt; {normalized.wedgeReviewThresholdDls.toFixed(1)}°/30 m
-            </span>
-          </div>
-          <p className="targetlock-assumption-desc">
-            Flag a sidetrack or branch review when required DLS to rejoin exceeds this — a
-            recovery decision, not smooth in-hole steering.
+        {validationStatus && validationStatus.state !== "validated" ? (
+          <p className="targetlock-assumptions-validation-note" role="note">
+            <strong>{validationStatus.label}.</strong> {validationStatus.detail} Sign off below
+            before relying on steering feasibility.
           </p>
-          <div className="targetlock-assumption-inputs">
-            <label>
-              <span>When required DLS exceeds (°/30 m)</span>
-              <input
-                type="number"
-                min={0}
-                max={30}
-                step={0.1}
-                value={normalized.wedgeReviewThresholdDls}
-                onChange={(e) =>
-                  update({
-                    wedgeReviewThresholdDls: parseNum(
-                      e.target.value,
-                      normalized.wedgeReviewThresholdDls
-                    ),
-                  })
-                }
-              />
-            </label>
-          </div>
+        ) : null}
+
+        <div className="targetlock-settings-assumptions-grid">
+          {RANGE_FIELDS.map((field) => (
+            <fieldset
+              key={field.label}
+              className="targetlock-settings-form-group targetlock-settings-assumption-group"
+            >
+              <legend>
+                <span>{field.label}</span>
+                <span className="targetlock-assumption-badge">
+                  {rangeBadge(normalized[field.minKey], normalized[field.maxKey])}
+                </span>
+              </legend>
+              <p className="targetlock-assumption-desc">{field.description}</p>
+              <div className="targetlock-settings-form-grid targetlock-settings-form-grid--2">
+                <SettingsNumberField
+                  label="Min DLS"
+                  unit="°/30 m"
+                  value={normalized[field.minKey]}
+                  min={0}
+                  max={30}
+                  step={field.step ?? 0.1}
+                  onChange={(v) =>
+                    update({ [field.minKey]: v } as Partial<CapabilityAssumptions>)
+                  }
+                />
+                <SettingsNumberField
+                  label="Max DLS"
+                  unit="°/30 m"
+                  value={normalized[field.maxKey]}
+                  min={0}
+                  max={30}
+                  step={field.step ?? 0.1}
+                  onChange={(v) =>
+                    update({ [field.maxKey]: v } as Partial<CapabilityAssumptions>)
+                  }
+                />
+              </div>
+            </fieldset>
+          ))}
+
+          <fieldset className="targetlock-settings-form-group targetlock-settings-assumption-group">
+            <legend>
+              <span>
+                Wedge / branch review{" "}
+                <InfoTip tip="When the DLS required to rejoin plan exceeds this, the app suggests reviewing a wedge or branch instead of in-hole steering. It flags a decision, not a guarantee." />
+              </span>
+              <span className="targetlock-assumption-badge">
+                Trigger &gt; {normalized.wedgeReviewThresholdDls.toFixed(1)}°/30 m
+              </span>
+            </legend>
+            <p className="targetlock-assumption-desc">
+              Flag a sidetrack or branch review when required DLS to rejoin exceeds this — a
+              recovery decision, not smooth in-hole steering.
+            </p>
+            <SettingsNumberField
+              label="When required DLS exceeds"
+              unit="°/30 m"
+              value={normalized.wedgeReviewThresholdDls}
+              min={0}
+              max={30}
+              step={0.1}
+              onChange={(v) => update({ wedgeReviewThresholdDls: v })}
+            />
+          </fieldset>
         </div>
       </div>
     </article>

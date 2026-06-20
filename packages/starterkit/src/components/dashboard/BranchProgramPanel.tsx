@@ -28,7 +28,9 @@ import { BranchDaughterList } from "./branch-program/BranchDaughterList";
 import { BranchProgramSummary } from "./branch-program/BranchProgramSummary";
 import { BranchTargetEditor } from "./branch-program/BranchTargetEditor";
 import { KickoffPlannerPanel } from "./branch-program/KickoffPlannerPanel";
+import { AdvancedTabHero } from "@/components/dashboard/AdvancedTabHero";
 import { BranchPlannerWorkflowBanner } from "./BranchPlannerWorkflowBanner";
+import { ChartPanel } from "@/components/dashboard/ChartPanel";
 import type { BranchPlannerContext } from "@/lib/drilling/planner-branch-context";
 
 type Props = {
@@ -159,6 +161,11 @@ export function BranchProgramPanel({
 
   return (
     <div className="branch-program-panel">
+      <AdvancedTabHero
+        eyebrow="Mother hole branching"
+        title="Branch program"
+        copy="Define branch targets, rank kickoff depths, and track daughter approval and handover. Planning estimates only — confirm kickoff and toolface with the directional contractor before drilling."
+      />
       {branchPlannerContext &&
       (branchPlannerContext.planningReadOnly ||
         branchPlannerContext.blockBranchInit ||
@@ -257,20 +264,24 @@ export function BranchProgramPanel({
       ) : null}
 
       <section className="targetlock-charts-band" aria-label="Program map">
-        <article className="targetlock-panel targetlock-chart-panel">
-          <div className="targetlock-panel-title">
-            <h2>Program map — plan</h2>
+        <ChartPanel
+          kicker="Program map"
+          title="Plan view"
+          meta={
             <span className="targetlock-legend text-xs text-[var(--tl-muted)]">
               <i className="plan-line" />
               Plan <i className="actual-line" />
               Actual
             </span>
-          </div>
-          <p className="targetlock-panel-copy">
-            {holeRole === "daughter"
-              ? "Mother (muted) · siblings · active daughter"
-              : "Mother · daughters · kickoffs · targets"}
-          </p>
+          }
+          lead={
+            <p className="targetlock-settings-form-card-copy">
+              {holeRole === "daughter"
+                ? "Mother (muted) · siblings · active daughter"
+                : "Mother · daughters · kickoffs · targets"}
+            </p>
+          }
+        >
           <TrajectoryCanvas
             kind="plan"
             planStations={planStations}
@@ -279,26 +290,31 @@ export function BranchProgramPanel({
             branchOverlay={branchOverlay}
             className="chart-canvas-wrap"
           />
-        </article>
-        <article className="targetlock-panel targetlock-chart-panel targetlock-chart-3d-panel">
-          <div className="targetlock-panel-title">
-            <h2>
-              Program map — 3D{" "}
+        </ChartPanel>
+        <ChartPanel
+          kicker="Program map"
+          className="targetlock-chart-3d-panel"
+          title={
+            <>
+              3D view{" "}
               <InfoTip tip="Plan and actual paths in east, north, and down. Branch overlays show mother, daughters, and kickoff nodes." />
-            </h2>
+            </>
+          }
+          meta={
             <span className="targetlock-legend text-xs text-[var(--tl-muted)]">
               <i className="plan-line" />
               Plan <i className="actual-line" />
               Actual
             </span>
-          </div>
+          }
+        >
           <Trajectory3D
             planStations={planStations}
             actualStations={actualStations}
             recommendation={recommendation}
             branchOverlay={branchOverlay}
           />
-        </article>
+        </ChartPanel>
       </section>
 
       <article className="targetlock-panel">

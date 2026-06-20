@@ -27,7 +27,10 @@ import {
   getPlannerMapFramePath,
 } from "@/lib/drilling/planner-spatial";
 import type { PlannerQaReport } from "@/lib/drilling/planner-types";
+import { AdvancedTabHero } from "@/components/dashboard/AdvancedTabHero";
 import { PlannerGeologyPanel } from "./PlannerGeologyPanel";
+import { PlannerEmptyState } from "./ui/PlannerEmptyState";
+import { PlannerSubPanel } from "./ui/PlannerSubPanel";
 
 type Props = {
   library: HoleLibrary;
@@ -129,33 +132,51 @@ export function Planner3DView({
 
   if (!model || !holes.length) {
     return (
-      <article className="targetlock-panel planner-step-panel">
-        <div className="targetlock-panel-title">
-          <h2>3D scene</h2>
-        </div>
-        <p className="targetlock-panel-copy">
-          Select a program with at least one planned hole to view the 3D scene.
-        </p>
-      </article>
+      <div className="planner-scene3d-view">
+        <AdvancedTabHero
+          eyebrow="Visualise"
+          title="3D scene"
+          copy="Planned and actual trajectories, targets, clearance risks, uncertainty envelopes, and geology in 3D."
+        />
+        <PlannerEmptyState message="Select a program with at least one planned hole to view the 3D scene." />
+      </div>
     );
   }
 
   return (
-    <article className="targetlock-panel planner-step-panel">
-      <div className="targetlock-panel-title">
-        <h2>Program 3D scene</h2>
-        <span className="targetlock-legend text-xs text-[var(--tl-muted)]">
-          Planned · Actual · Targets · Clearance risks · Uncertainty envelopes ·
-          Geology
-        </span>
-      </div>
-      <ProgramScene3D
-        holes={holes}
-        clearanceLinks={clearanceLinks}
-        surfaces={surfaces}
-        heightPx={540}
-        snapshotName={`targetlock-program-${model.programId}-3d`}
+    <div className="planner-scene3d-view">
+      <AdvancedTabHero
+        eyebrow="Visualise"
+        title="3D scene"
+        copy="Planned and actual trajectories, targets, clearance risks, uncertainty envelopes, and geology in 3D."
       />
+
+      <PlannerSubPanel
+        kicker="Visualise"
+        title="Program 3D scene"
+        meta={
+          <span className="targetlock-legend text-xs text-[var(--tl-muted)]">
+            Planned · Actual · Targets · Clearance risks · Uncertainty envelopes ·
+            Geology
+          </span>
+        }
+      >
+        <ProgramScene3D
+          holes={holes}
+          clearanceLinks={clearanceLinks}
+          surfaces={surfaces}
+          heightPx={540}
+          snapshotName={`targetlock-program-${model.programId}-3d`}
+        />
+        {model.programWarnings.length ? (
+          <ul className="targetlock-helper" style={{ marginTop: 8 }}>
+            {model.programWarnings.slice(0, 4).map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        ) : null}
+      </PlannerSubPanel>
+
       <PlannerGeologyPanel
         programId={model.programId}
         assets={programAssets}
@@ -171,13 +192,6 @@ export function Planner3DView({
           persistGeology(removeGeologyAsset(geologyStore, assetId))
         }
       />
-      {model.programWarnings.length ? (
-        <ul className="targetlock-helper" style={{ marginTop: 8 }}>
-          {model.programWarnings.slice(0, 4).map((warning) => (
-            <li key={warning}>{warning}</li>
-          ))}
-        </ul>
-      ) : null}
-    </article>
+    </div>
   );
 }

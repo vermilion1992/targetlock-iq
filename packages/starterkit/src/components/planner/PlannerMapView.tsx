@@ -22,8 +22,10 @@ import { PlannerCoordinateCard } from "./PlannerCoordinateCard";
 import { PlannerMapLegend } from "./PlannerMapLegend";
 import { PlannerMapWarnings } from "./PlannerMapWarnings";
 import { PlannerMiniMap, type PlannerMapFitMode } from "./PlannerMiniMap";
+import { AdvancedTabHero } from "@/components/dashboard/AdvancedTabHero";
+import { PlannerEmptyState } from "./ui/PlannerEmptyState";
 import { PlannerModeSwitch } from "./ui/PlannerModeSwitch";
-import { PlannerSectionHeader } from "./ui/PlannerSectionHeader";
+import { PlannerSubPanel } from "./ui/PlannerSubPanel";
 
 const PlannerSatelliteMap = dynamic(
   () =>
@@ -147,31 +149,36 @@ export function PlannerMapView({
 
   if (!programs.length) {
     return (
-      <article className="targetlock-panel">
-        <div className="targetlock-panel-title">
-          <h2>Plan map</h2>
-        </div>
-        <p className="targetlock-panel-copy">
-          No planner programs yet. Use Create or Import to build a program map.
-        </p>
-        {onCreatePlan ? (
-          <button
-            type="button"
-            className="targetlock-btn targetlock-btn-primary"
-            onClick={onCreatePlan}
-          >
-            Create plan
-          </button>
-        ) : null}
-      </article>
+      <div className="planner-map-view">
+        <AdvancedTabHero
+          eyebrow="Visualise"
+          title="Plan map"
+          copy="Local plan view or satellite imagery — layers, clearance highlights, and selected hole context."
+        />
+        <PlannerEmptyState
+          message="No planner programs yet. Use Create or Import to build a program map."
+          actions={
+            onCreatePlan ? (
+              <button
+                type="button"
+                className="targetlock-btn targetlock-btn-primary"
+                onClick={onCreatePlan}
+              >
+                Create plan
+              </button>
+            ) : null
+          }
+        />
+      </div>
     );
   }
 
   return (
     <div className="planner-map-view">
-      <PlannerSectionHeader
+      <AdvancedTabHero
+        eyebrow="Visualise"
         title="Plan map"
-        subtitle="Local plan view or satellite imagery — layers, clearance highlights, and selected hole context."
+        copy="Local plan view or satellite imagery — layers, clearance highlights, and selected hole context."
       />
       <div className="planner-map-body">
         <div className="planner-map-canvas-panel targetlock-panel">
@@ -255,21 +262,24 @@ export function PlannerMapView({
 
         <aside className="planner-map-sidebar">
           {selectedHole && selectedSummary && selectedReadiness ? (
-            <article className="targetlock-panel planner-map-selected-panel">
-              <div className="targetlock-panel-title">
-                <h3>{selectedSummary.holeName}</h3>
-                {selectedDisplay ? (
+            <PlannerSubPanel
+              className="planner-map-selected-panel"
+              kicker="Selected hole"
+              title={selectedSummary.holeName}
+              meta={
+                selectedDisplay ? (
                   <span className={`planner-status-badge ${selectedDisplay.cssClass}`}>
                     {selectedDisplay.label}
                   </span>
-                ) : null}
-              </div>
+                ) : null
+              }
+            >
               <p className="targetlock-panel-copy">
                 {selectedSummary.planType === "daughter" ? "Daughter" : "Standard"} · Readiness{" "}
                 {selectedReadiness.score}/100
               </p>
               <p className="targetlock-panel-copy">{selectedReadiness.nextAction}</p>
-            </article>
+            </PlannerSubPanel>
           ) : (
             <article className="targetlock-panel planner-map-selected-panel">
               <p className="targetlock-panel-copy">

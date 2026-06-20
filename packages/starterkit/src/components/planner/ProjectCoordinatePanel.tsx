@@ -1,5 +1,6 @@
 "use client";
 
+import { TargetLockFormCard } from "@/components/targetlock/TargetLockFormCard";
 import { useEffect, useMemo, useState } from "react";
 import { normalizeProjectCoordinateSystem } from "@/lib/drilling/coordinate-system";
 import { computeMagneticDeclination } from "@/lib/drilling/geomag";
@@ -135,18 +136,17 @@ export function ProjectCoordinatePanel({
     : null;
 
   return (
-    <article
-      className={`targetlock-panel planner-pcs-panel${compact ? " planner-pcs-panel--compact" : ""}`}
+    <TargetLockFormCard
+      kicker="Coordinate system"
+      title="Project coordinates"
+      className={`planner-pcs-panel${compact ? " planner-pcs-panel--compact" : ""}`}
     >
-      <div className="targetlock-panel-title">
-        <h3>Project coordinates</h3>
-      </div>
-      <p className="targetlock-panel-copy">
+      <p className="targetlock-form-card-copy">
         Metadata for grid/GPS display. TargetLock math stays collar-relative internally.
       </p>
 
       <div className="planner-pcs-form">
-        <div className="planner-form-group">
+        <div className="targetlock-form-group planner-form-group">
           <h4 className="planner-form-group-title">Grid system</h4>
           <div className="targetlock-survey-fields">
             <label className="targetlock-survey-field">
@@ -214,7 +214,7 @@ export function ProjectCoordinatePanel({
           </div>
         </div>
 
-        <div className="planner-form-group">
+        <div className="targetlock-form-group planner-form-group">
           <h4 className="planner-form-group-title">Project origin</h4>
           <div className="targetlock-survey-fields">
             <label className="targetlock-survey-field">
@@ -266,7 +266,7 @@ export function ProjectCoordinatePanel({
           </div>
         </div>
 
-        <div className="planner-form-group">
+        <div className="targetlock-form-group planner-form-group">
           <h4 className="planner-form-group-title">Magnetic &amp; convergence</h4>
           <div className="targetlock-survey-fields">
             <label className="targetlock-survey-field">
@@ -339,7 +339,7 @@ export function ProjectCoordinatePanel({
           </div>
         </div>
 
-        <div className="planner-form-group">
+        <div className="targetlock-form-group planner-form-group">
           <h4 className="planner-form-group-title">Notes</h4>
           <div className="targetlock-survey-fields">
             <label className="targetlock-survey-field targetlock-survey-field--full">
@@ -355,7 +355,7 @@ export function ProjectCoordinatePanel({
         </div>
       </div>
 
-      <div className="planner-pcs-actions">
+      <div className="targetlock-form-actions planner-pcs-actions">
         <button
           type="button"
           className="targetlock-btn targetlock-btn-primary"
@@ -364,6 +364,6 @@ export function ProjectCoordinatePanel({
           Save project coordinates
         </button>
       </div>
-    </article>
+    </TargetLockFormCard>
   );
 }

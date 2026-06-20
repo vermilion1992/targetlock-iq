@@ -162,7 +162,9 @@ async function main() {
     const advancedTab = page.getByRole("tab", { name: /^Advanced$/i }).first();
     await advancedTab.click();
     await page.waitForTimeout(300);
-    await page.getByRole("tab", { name: /^Validation$/i }).first().click();
+    // Execution exports live under the "Execution" advanced tab (present when the
+    // active hole has a planner execution context / locked plan).
+    await page.getByRole("tab", { name: /^Execution$/i }).first().click();
     await page.waitForTimeout(400);
 
     await page.getByRole("button", { name: /^Export execution TXT$/i }).waitFor({

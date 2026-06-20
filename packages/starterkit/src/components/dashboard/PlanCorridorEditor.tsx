@@ -1,6 +1,7 @@
 "use client";
 
 import { InfoTip } from "@/components/layout/InfoTip";
+import { SettingsNumberField } from "@/components/dashboard/SettingsNumberField";
 import type { PlanCorridorConfig, PlanCorridorStatus } from "@/lib/drilling/plan-corridor";
 
 type Props = {
@@ -12,107 +13,139 @@ type Props = {
     raw: number,
     previous: PlanCorridorConfig
   ) => number;
+  readOnly?: boolean;
 };
 
-export function PlanCorridorEditor({ corridor, status, onChange, sanitizeField }: Props) {
+export function PlanCorridorEditor({ corridor, status, onChange, sanitizeField, readOnly = false }: Props) {
   const set = (field: keyof PlanCorridorConfig, value: number) => {
-    const next = sanitizeField
-      ? sanitizeField(field, value, corridor)
-      : value;
+    if (readOnly) return;
+    const next = sanitizeField ? sanitizeField(field, value, corridor) : value;
     onChange({ ...corridor, [field]: next });
   };
 
   return (
-    <div className="targetlock-plan-corridor advanced-only">
-      <h3 className="targetlock-subpanel-title">
-        Plan corridor tolerance{" "}
-        <InfoTip tip="Checks whether the hole is still inside the planned path corridor (per-interval behaviour and position offset), separately from final target recoverability." />
-      </h3>
-      <div className="targetlock-form-grid">
-        <label>
-          <span>Interval (m)</span>
-          <input
-            type="number"
-            value={corridor.intervalM}
-            step={1}
-            onChange={(e) => set("intervalM", Number(e.target.value))}
-          />
-        </label>
-        <label>
-          <span>Expected lift/drop (°/interval)</span>
-          <input
-            type="number"
-            step={0.05}
-            value={corridor.expectedLiftDropDeg}
-            onChange={(e) => set("expectedLiftDropDeg", Number(e.target.value))}
-          />
-        </label>
-        <label>
-          <span>Expected swing (°/interval)</span>
-          <input
-            type="number"
-            step={0.05}
-            value={corridor.expectedSwingDeg}
-            onChange={(e) => set("expectedSwingDeg", Number(e.target.value))}
-          />
-        </label>
-        <label>
-          <span>Allowed dip deviation (°)</span>
-          <input
-            type="number"
-            step={0.05}
-            value={corridor.allowedDipDevDeg}
-            onChange={(e) => set("allowedDipDevDeg", Number(e.target.value))}
-          />
-        </label>
-        <label>
-          <span>Allowed azimuth deviation (°)</span>
-          <input
-            type="number"
-            step={0.05}
-            value={corridor.allowedAziDevDeg}
-            onChange={(e) => set("allowedAziDevDeg", Number(e.target.value))}
-          />
-        </label>
-        <label>
-          <span>Position offset (m)</span>
-          <input
-            type="number"
-            step={0.1}
-            value={corridor.positionOffsetM}
-            onChange={(e) => set("positionOffsetM", Number(e.target.value))}
-          />
-        </label>
-        <label>
-          <span>Widen per 100 m (m)</span>
-          <input
-            type="number"
-            step={0.1}
-            value={corridor.positionWidenPer100m ?? 0}
-            onChange={(e) => set("positionWidenPer100m", Number(e.target.value))}
-          />
-        </label>
-      </div>
-      {status ? (
-        <div className="targetlock-corridor-status" role="status">
-          <p>
-            <strong>Latest interval:</strong>{" "}
-            {status.latestIntervalInside ? "Inside" : "Outside"} planned behaviour
-            tolerance
-          </p>
-          <p>
-            <strong>Plan offset:</strong> {status.planOffsetM.toFixed(1)} m (allowed{" "}
-            {status.allowedPositionOffsetM.toFixed(1)} m)
-          </p>
-          <p>
-            <strong>Final target:</strong>{" "}
-            {status.targetStillRecoverable ? "Still recoverable" : "At risk"}
-          </p>
-          <p className="targetlock-helper">{status.detailPhrase}</p>
+    <article className="targetlock-form-card targetlock-settings-corridor-card">
+      <header className="targetlock-form-card-head">
+        <div className="targetlock-form-card-head-text">
+          <p className="targetlock-form-card-kicker">Planned path</p>
+          <h3 className="targetlock-form-card-title">
+            Plan corridor tolerance{" "}
+            <InfoTip tip="Checks whether the hole is still inside the planned path corridor (per-interval behaviour and position offset), separately from final target recoverability." />
+          </h3>
         </div>
-      ) : (
-        <p className="targetlock-helper">Load plan and actual surveys to evaluate corridor.</p>
-      )}
-    </div>
+        {status ? (
+          <div className="targetlock-settings-corridor-status" role="status">
+            <span
+              className={`targetlock-settings-corridor-chip ${status.latestIntervalInside ? "targetlock-settings-corridor-chip--ok" : "targetlock-settings-corridor-chip--warn"}`}
+            >
+              Interval {status.latestIntervalInside ? "inside" : "outside"}
+            </span>
+            <span className="targetlock-settings-corridor-chip targetlock-settings-corridor-chip--neutral">
+              Offset {status.planOffsetM.toFixed(1)} / {status.allowedPositionOffsetM.toFixed(1)} m
+            </span>
+            <span
+              className={`targetlock-settings-corridor-chip ${status.targetStillRecoverable ? "targetlock-settings-corridor-chip--ok" : "targetlock-settings-corridor-chip--risk"}`}
+            >
+              Target {status.targetStillRecoverable ? "recoverable" : "at risk"}
+            </span>
+          </div>
+        ) : null}
+      </header>
+
+      <div className="targetlock-form-card-body targetlock-settings-corridor-body">
+        <p className="targetlock-form-card-copy">
+          Per-interval dip, swing, and position limits along the planned survey.
+        </p>
+        <fieldset className="targetlock-settings-form-group">
+          <legend>Interval behaviour</legend>
+          <div className="targetlock-settings-form-grid targetlock-settings-form-grid--4">
+            <SettingsNumberField
+              label="Interval"
+              unit="m"
+              value={corridor.intervalM}
+              min={5}
+              max={60}
+              step={1}
+              onChange={(v) => set("intervalM", v)}
+              disabled={readOnly}
+            />
+            <SettingsNumberField
+              label="Expected lift/drop"
+              unit="°/int"
+              value={corridor.expectedLiftDropDeg}
+              min={0}
+              max={5}
+              step={0.05}
+              onChange={(v) => set("expectedLiftDropDeg", v)}
+              disabled={readOnly}
+            />
+            <SettingsNumberField
+              label="Expected swing"
+              unit="°/int"
+              value={corridor.expectedSwingDeg}
+              min={0}
+              max={5}
+              step={0.05}
+              onChange={(v) => set("expectedSwingDeg", v)}
+              disabled={readOnly}
+            />
+            <SettingsNumberField
+              label="Allowed dip deviation"
+              unit="°"
+              value={corridor.allowedDipDevDeg}
+              min={0}
+              max={10}
+              step={0.05}
+              onChange={(v) => set("allowedDipDevDeg", v)}
+              disabled={readOnly}
+            />
+          </div>
+        </fieldset>
+
+        <fieldset className="targetlock-settings-form-group">
+          <legend>Position envelope</legend>
+          <div className="targetlock-settings-form-grid targetlock-settings-form-grid--3">
+            <SettingsNumberField
+              label="Allowed azimuth deviation"
+              unit="°"
+              value={corridor.allowedAziDevDeg}
+              min={0}
+              max={10}
+              step={0.05}
+              onChange={(v) => set("allowedAziDevDeg", v)}
+              disabled={readOnly}
+            />
+            <SettingsNumberField
+              label="Position offset"
+              unit="m"
+              value={corridor.positionOffsetM}
+              min={0}
+              max={20}
+              step={0.1}
+              onChange={(v) => set("positionOffsetM", v)}
+              disabled={readOnly}
+            />
+            <SettingsNumberField
+              label="Widen per 100 m"
+              unit="m"
+              value={corridor.positionWidenPer100m ?? 0}
+              min={0}
+              max={5}
+              step={0.1}
+              onChange={(v) => set("positionWidenPer100m", v)}
+              disabled={readOnly}
+            />
+          </div>
+        </fieldset>
+
+        {status ? (
+          <p className="targetlock-settings-corridor-detail">{status.detailPhrase}</p>
+        ) : (
+          <p className="targetlock-settings-corridor-detail targetlock-settings-corridor-detail--empty">
+            Load plan and actual surveys to evaluate corridor status.
+          </p>
+        )}
+      </div>
+    </article>
   );
 }

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { SettingsTextField } from "@/components/dashboard/SettingsTextField";
 import type { PlannerDraft, PlannerPlanType } from "@/lib/drilling/planner-types";
 import { FileDropzone } from "./ui/FileDropzone";
 import { PlannerModeSwitch } from "./ui/PlannerModeSwitch";
+import { PlannerStepCard } from "./PlannerStepCard";
 
 type Props = {
   draft: PlannerDraft;
@@ -21,75 +23,65 @@ export function ProjectCoordinateStep({ draft, onChange, onImportFile }: Props) 
   const [importedFileName, setImportedFileName] = useState<string | null>(null);
 
   return (
-    <article className="targetlock-panel planner-step-panel">
-      <div className="targetlock-panel-title">
-        <h2>Program / hole identity</h2>
-      </div>
-      <p className="targetlock-panel-copy">
-        Name the program and hole, then choose the plan type. Collar and target coordinates
-        are entered in the next steps — coordinates are the plan.
-      </p>
-
-      <div className="targetlock-survey-fields">
-        <label className="targetlock-survey-field targetlock-survey-field--full">
-          <span>Project / site name</span>
-          <input
-            type="text"
+    <PlannerStepCard
+      kicker="Program setup"
+      title="Program / hole identity"
+      copy="Name the program and hole, then choose the plan type. Collar and target coordinates are entered in the next steps — coordinates are the plan."
+    >
+      <fieldset className="targetlock-settings-form-group">
+        <legend>Identity</legend>
+        <div className="targetlock-settings-form-grid targetlock-settings-form-grid--2">
+          <SettingsTextField
+            label="Project / site name"
             value={draft.projectName}
-            onChange={(e) => onChange({ projectName: e.target.value })}
             placeholder="North Camp — Phase 1"
+            onChange={(v) => onChange({ projectName: v })}
           />
-        </label>
-
-        <label className="targetlock-survey-field targetlock-survey-field--full">
-          <span>Program name</span>
-          <input
-            type="text"
+          <SettingsTextField
+            label="Program name"
             value={draft.programName ?? ""}
-            onChange={(e) =>
+            placeholder="DDH-0247 program"
+            onChange={(v) =>
               onChange({
-                programName: e.target.value,
+                programName: v,
                 programId: draft.programId,
               })
             }
-            placeholder="DDH-0247 program"
           />
-        </label>
-
-        {draft.planType !== "import" ? (
-          <label className="targetlock-survey-field targetlock-survey-field--full">
-            <span>{planType === "daughter" ? "Daughter hole ID" : "Hole ID"}</span>
-            <input
-              type="text"
+          {draft.planType !== "import" ? (
+            <SettingsTextField
+              label={planType === "daughter" ? "Daughter hole ID" : "Hole ID"}
               value={draft.holeName ?? ""}
-              onChange={(e) => onChange({ holeName: e.target.value })}
               placeholder={planType === "daughter" ? "DDH-0247A" : "DDH-0247"}
+              onChange={(v) => onChange({ holeName: v })}
             />
-          </label>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      </fieldset>
 
-      <PlannerModeSwitch
-        options={SEGMENT_MODES}
-        value={planType}
-        onChange={(nextType) => onChange({ planType: nextType })}
-        label="Plan type"
-      />
-
-      <button
-        type="button"
-        className={`targetlock-btn targetlock-btn-sm planner-import-mode-btn${
-          draft.planType === "import" ? " planner-import-mode-btn--active" : ""
-        }`}
-        onClick={() => onChange({ planType: "import" })}
-      >
-        Import planned survey CSV
-      </button>
+      <fieldset className="targetlock-settings-form-group">
+        <legend>Plan type</legend>
+        <PlannerModeSwitch
+          options={SEGMENT_MODES}
+          value={planType}
+          onChange={(nextType) => onChange({ planType: nextType })}
+          label="Plan type"
+        />
+        <button
+          type="button"
+          className={`targetlock-btn targetlock-btn-sm planner-import-mode-btn${
+            draft.planType === "import" ? " planner-import-mode-btn--active" : ""
+          }`}
+          onClick={() => onChange({ planType: "import" })}
+        >
+          Import planned survey CSV
+        </button>
+      </fieldset>
 
       {draft.planType === "import" ? (
-        <div className="planner-import-block">
-          <div className="targetlock-survey-field targetlock-survey-field--full">
-            <span>Planned survey CSV</span>
+        <fieldset className="targetlock-settings-form-group">
+          <legend>Import planned survey</legend>
+          <div className="planner-import-block">
             <FileDropzone
               compact
               accept=".csv,text/csv"
@@ -105,17 +97,16 @@ export function ProjectCoordinateStep({ draft, onChange, onImportFile }: Props) 
                 reader.readAsText(file);
               }}
             />
-          </div>
-          <label className="targetlock-survey-field targetlock-survey-field--full">
-            <span>Or paste CSV</span>
-            <textarea
-              rows={6}
+            <SettingsTextField
+              label="Or paste CSV"
               value={draft.importCsvText ?? ""}
-              onChange={(e) => onChange({ importCsvText: e.target.value })}
               placeholder="md,dip,azimuth"
+              multiline
+              rows={6}
+              onChange={(v) => onChange({ importCsvText: v })}
             />
-          </label>
-        </div>
+          </div>
+        </fieldset>
       ) : null}
 
       {draft.planType === "standard" ? (
@@ -128,6 +119,6 @@ export function ProjectCoordinateStep({ draft, onChange, onImportFile }: Props) 
           Next: mother kickoff, daughter target coordinates, and path constraints.
         </p>
       ) : null}
-    </article>
+    </PlannerStepCard>
   );
 }

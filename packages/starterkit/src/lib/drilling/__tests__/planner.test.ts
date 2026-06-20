@@ -10,6 +10,7 @@ import {
   generatePlannerPlan,
   plannerDraftToSavedHoleProject,
   publishPlannerDraft,
+  savedHoleToPlannerDraft,
   validatePlannerDraft,
 } from "../planner";
 import { buildHolePackage, parseHolePackage } from "../hole-package";
@@ -345,6 +346,66 @@ describe("planner", () => {
     expect(hole?.plannerMeta?.createdFromPlanner).toBe(true);
     expect(hole?.plannerMeta?.programName).toBe("Package Prog");
     expect(hole?.plannerMeta?.status).toBe("planned");
+  });
+
+  it("re-publishing an edited daughter plan updates in place without duplicating", () => {
+    const lib = createLibraryWithHole({
+      ...buildBlankProject("DDH-MOTHER", "Branch site", "mother-1"),
+      planRecords: MOTHER_PLAN,
+      actualRecords: MOTHER_ACTUAL,
+    });
+
+    const draft = createEmptyPlannerDraft();
+    draft.planType = "daughter";
+    draft.projectName = "Branch site";
+    draft.holeName = "DDH-0247A";
+    draft.daughterKickoff = {
+      motherHoleId: "mother-1",
+      motherHoleName: "DDH-MOTHER",
+      kickoffMd: 300,
+      e: 0,
+      n: 0,
+      d: 0,
+      dip: -60,
+      azimuth: 90,
+    };
+    draft.target = {
+      e: 80,
+      n: 20,
+      d: 120,
+      tolerance: 8,
+      inputMode: "collar-relative",
+      md: 480,
+    };
+
+    const generated = generatePlannerPlan(draft, lib);
+    const first = publishPlannerDraft(generated, lib);
+    expect(first).not.toBeNull();
+
+    const daughterCountAfterFirst = first!.library.holes.filter(
+      (h) => h.holeRole === "daughter"
+    ).length;
+    const mother1 = findHole(first!.library, "mother-1")!;
+    const targetCountAfterFirst = mother1.branchProgram?.targets.length ?? 0;
+    expect(daughterCountAfterFirst).toBe(1);
+    expect(targetCountAfterFirst).toBe(1);
+
+    // Re-open the saved daughter for editing and re-publish (tweaked target).
+    const savedDaughter = findHole(first!.library, first!.holeId)!;
+    const editDraft = savedHoleToPlannerDraft(savedDaughter);
+    editDraft.target = { ...editDraft.target, e: 95, d: 130 };
+    const regenerated = generatePlannerPlan(editDraft, first!.library);
+    const second = publishPlannerDraft(regenerated, first!.library);
+    expect(second).not.toBeNull();
+
+    expect(second!.holeId).toBe(first!.holeId);
+    const daughterCountAfterSecond = second!.library.holes.filter(
+      (h) => h.holeRole === "daughter"
+    ).length;
+    const mother2 = findHole(second!.library, "mother-1")!;
+    const targetCountAfterSecond = mother2.branchProgram?.targets.length ?? 0;
+    expect(daughterCountAfterSecond).toBe(1);
+    expect(targetCountAfterSecond).toBe(1);
   });
 
   it("exportPlannerCsv matches surveysToCsv format", () => {

@@ -5,6 +5,7 @@ import { buildPlanRevisionLineage } from "@/lib/drilling/plan-revision";
 import type { HoleLibrary } from "@/lib/drilling/hole-library";
 import type { SavedHoleProject } from "@/lib/drilling/storage";
 import { PlannerStatusBadge } from "./PlannerStatusBadge";
+import { PlannerSubPanel } from "./ui/PlannerSubPanel";
 
 type Props = {
   library: HoleLibrary;
@@ -23,14 +24,11 @@ export function PlannerRevisionPanel({
 
   if (!hole?.plannerMeta) {
     return (
-      <article className="targetlock-panel planner-side-panel">
-        <div className="targetlock-panel-title">
-          <h3>Revisions</h3>
-        </div>
+      <PlannerSubPanel kicker="Track" title="Revisions" className="planner-side-panel">
         <p className="targetlock-panel-copy">
           Select a saved plan to view revision history.
         </p>
-      </article>
+      </PlannerSubPanel>
     );
   }
 
@@ -41,10 +39,7 @@ export function PlannerRevisionPanel({
     : [hole];
 
   return (
-    <article className="targetlock-panel planner-side-panel">
-      <div className="targetlock-panel-title">
-        <h3>Revisions</h3>
-      </div>
+    <PlannerSubPanel kicker="Track" title="Revisions" className="planner-side-panel">
       <p className="targetlock-panel-copy">
         Current revision: <strong>R{revision}</strong>
       </p>
@@ -104,6 +99,6 @@ export function PlannerRevisionPanel({
       >
         Create revision
       </button>
-    </article>
+    </PlannerSubPanel>
   );
 }

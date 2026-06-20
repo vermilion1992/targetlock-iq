@@ -4,6 +4,8 @@ import { useMemo, type ReactNode } from "react";
 import type { HoleLibrary } from "@/lib/drilling/hole-library";
 import { derivePlannerPrograms } from "@/lib/drilling/planner-program";
 import { ReferenceDocSection } from "@/components/dashboard/ReferenceDocSection";
+import { AdvancedTabHero } from "@/components/dashboard/AdvancedTabHero";
+import { PlannerSubPanel } from "./ui/PlannerSubPanel";
 
 type Props = {
   library?: HoleLibrary | null;
@@ -84,23 +86,18 @@ export function PlannerMethodologyView({ library }: Props) {
 
   return (
     <div className="planner-methodology-view">
-      <div className="targetlock-howitworks-head">
-        <div>
-          <p className="targetlock-topbar-eyebrow">Reference</p>
-          <h2>How the hole planner works</h2>
-          <p className="targetlock-howitworks-sub">
-            What this tool computes from your collars and targets, the math behind every number,
-            and why the output can be trusted. Reference only — opening this page never changes a
-            calculation.
-          </p>
-        </div>
-      </div>
+      <AdvancedTabHero
+        eyebrow="Reference"
+        title="How the hole planner works"
+        copy="What this tool computes from your collars and targets, the math behind every number, and why the output can be trusted. Reference only — opening this page never changes a calculation."
+      />
 
-      <article className="targetlock-panel targetlock-ref-panel">
-        <div className="targetlock-panel-title">
-          <h2>Purpose &amp; workflow</h2>
-          <span className="targetlock-mini-tag targetlock-ref-tag">Reference</span>
-        </div>
+      <PlannerSubPanel
+        className="targetlock-ref-panel"
+        kicker="Reference"
+        title="Purpose & workflow"
+        meta={<span className="targetlock-mini-tag targetlock-ref-tag">Reference</span>}
+      >
         <div className="targetlock-ref-lead">
           <span className="targetlock-ref-lead-kicker">What this is</span>
           <p>
@@ -203,13 +200,14 @@ export function PlannerMethodologyView({ library }: Props) {
             </p>
           </ReferenceDocSection>
         </div>
-      </article>
+      </PlannerSubPanel>
 
-      <article className="targetlock-panel targetlock-ref-panel">
-        <div className="targetlock-panel-title">
-          <h2>Conventions &amp; definitions</h2>
-          <span className="targetlock-mini-tag">Glossary</span>
-        </div>
+      <PlannerSubPanel
+        className="targetlock-ref-panel"
+        kicker="Glossary"
+        title="Conventions & definitions"
+        meta={<span className="targetlock-mini-tag">Glossary</span>}
+      >
         <p className="targetlock-panel-copy">
           Every formula below uses these conventions. They match the TargetLock execution
           dashboard exactly, so a plan and its drilled hole are always in the same frame.
@@ -222,13 +220,14 @@ export function PlannerMethodologyView({ library }: Props) {
             </div>
           ))}
         </div>
-      </article>
+      </PlannerSubPanel>
 
-      <article className="targetlock-panel targetlock-math-panel">
-        <div className="targetlock-panel-title">
-          <h2>The math</h2>
-          <span className="targetlock-mini-tag">Reference</span>
-        </div>
+      <PlannerSubPanel
+        className="targetlock-math-panel"
+        kicker="Reference"
+        title="The math"
+        meta={<span className="targetlock-mini-tag">Reference</span>}
+      >
         <p className="targetlock-panel-copy">
           Plain-English explanation of each computation, with the exact formula the code
           runs. Sections 1–4 cover how a plan is generated, 5–7 how its geometry is measured,
@@ -411,13 +410,14 @@ declination from World Magnetic Model (WMM2025) at site lat/lon/date`}
             </p>
           </MathSection>
         </div>
-      </article>
+      </PlannerSubPanel>
 
-      <article className="targetlock-panel targetlock-validation-panel">
-        <div className="targetlock-panel-title">
-          <h2>Why the numbers can be trusted</h2>
-          <span className="targetlock-mini-tag">Evidence</span>
-        </div>
+      <PlannerSubPanel
+        className="targetlock-validation-panel"
+        kicker="Evidence"
+        title="Why the numbers can be trusted"
+        meta={<span className="targetlock-mini-tag">Evidence</span>}
+      >
         <p className="targetlock-panel-copy">
           Trust here is not a claim — it is a property of how the planner is built: exact
           geometry where exactness is possible, published methods where it is not, and
@@ -508,7 +508,7 @@ declination from World Magnetic Model (WMM2025) at site lat/lon/date`}
           Planning support only. The planner informs the decision — it does not replace
           survey contractors, geology sign-off, or site procedures.
         </p>
-      </article>
+      </PlannerSubPanel>
     </div>
   );
 }

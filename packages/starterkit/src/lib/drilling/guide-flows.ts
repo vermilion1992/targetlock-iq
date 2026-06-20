@@ -35,15 +35,13 @@ export const GUIDE_FLOWS: GuideFlowMeta[] = [
 
 export const GUIDE_HIGHLIGHT_TAB: Partial<Record<GuideHighlight, AdvancedTab>> = {
   charts: "trajectory",
-  "qa-panel": "qaqc",
-  history: "decisions",
-  "steering-panel": "steering",
+  "surveys-panel": "surveys",
   "math-panel": "math",
-  "setup-panel": "setup",
-  "validation-panel": "validation",
-  "survey-tool-profile": "setup",
-  "plan-corridor": "setup",
-  "hole-package": "setup",
+  "settings-panel": "settings",
+  "execution-panel": "execution",
+  "survey-tool-profile": "settings",
+  "plan-corridor": "settings",
+  "hole-package": "settings",
   "branch-program": "branch-program",
   "branch-mother-path": "branch-program",
   "branch-targets": "branch-program",
@@ -66,9 +64,9 @@ export const QUICK_ORIENTATION_STEPS: GuideStep[] = [
   },
   {
     id: "sidebar-setup",
-    title: "Sidebar = setup and data",
+    title: "Sidebar = data entry",
     purpose:
-      "The left sidebar holds hole identity, CSV imports, manual survey entry, target setup, and exports.",
+      "The left sidebar holds hole identity, CSV imports, manual survey entry, and exports. Steering configuration lives in the Settings tab.",
     lookAt: "Hole data uploads and Add survey panels in the sidebar.",
     whyItMatters:
       "Keeping imports and entry on the left leaves the main workspace free for interpretation.",
@@ -101,8 +99,8 @@ export const QUICK_ORIENTATION_STEPS: GuideStep[] = [
     id: "advanced-mode",
     title: "Advanced mode = technical review",
     purpose:
-      "Advanced mode adds trajectory detail, steering feasibility, QA/QC, math reference, method & purpose, validation, and setup.",
-    lookAt: "Switch to Advanced and skim the tab bar (Trajectory, Steering, QA/QC, etc.).",
+      "Advanced mode adds trajectory charts, the survey log, steering settings, branch program, planner execution when applicable, and roadmap.",
+    lookAt: "Switch to Advanced and skim the tab bar (Trajectory, Surveys, Settings, etc.).",
     whyItMatters:
       "Geologists and directional contractors validate recommendations before committing to a correction.",
     highlight: "mode-toggle",
@@ -139,10 +137,10 @@ export const STANDARD_HOLE_STEPS: GuideStep[] = [
     id: "simple-vs-advanced",
     title: "Simple vs Advanced",
     purpose:
-      "Simple mode is for rig-floor decisions; Advanced mode exposes trajectory, steering, QA/QC, and validation detail.",
+      "Simple mode is for rig-floor decisions; Advanced mode adds trajectory detail and settings.",
     lookAt: "The Simple / Advanced toggle in the top bar.",
     whyItMatters:
-      "Most shifts stay in Simple; open Advanced when reviewing feasibility or signing off assumptions.",
+      "Most shifts stay in Simple; open Advanced when tuning settings or signing off assumptions.",
     highlight: "mode-toggle",
     mode: "simple",
   },
@@ -234,9 +232,20 @@ export const STANDARD_HOLE_STEPS: GuideStep[] = [
     advancedTab: "trajectory",
   },
   {
+    id: "surveys-tab",
+    title: "Review the survey log",
+    purpose:
+      "The desurveyed actual path — MD, dip, azimuth, E/N/D, and DLS per station — lives on its own Surveys tab.",
+    lookAt: "Advanced → Surveys for the full station table.",
+    whyItMatters: "Audit trail for what was imported or entered before trusting KPIs and the action plan.",
+    highlight: "surveys-panel",
+    mode: "advanced",
+    advancedTab: "surveys",
+  },
+  {
     id: "open-advanced",
     title: "Open Advanced mode",
-    purpose: "Advanced tabs group trajectory, steering, QA/QC, decisions, math, validation, and setup.",
+    purpose: "Advanced tabs group trajectory, surveys, settings, branch program, and roadmap.",
     lookAt: "Advanced toggle and tab bar under the main workspace.",
     whyItMatters: "Technical review happens here without cluttering the rig-floor Simple view.",
     highlight: "mode-toggle",
@@ -244,39 +253,23 @@ export const STANDARD_HOLE_STEPS: GuideStep[] = [
     advancedTab: "trajectory",
   },
   {
-    id: "steering-feasibility",
-    title: "Review Steering Feasibility",
+    id: "steering-settings",
+    title: "Configure steering settings",
     purpose:
-      "Compares required dogleg to configured limits and classifies natural, motor/Navi, and wedge/branch options.",
-    lookAt: "Advanced → Steering feasibility — verdict summary and method table.",
+      "Gear on site, capability assumptions, target limits, plan corridor, survey tool profile, reference system, and escalation rules are configured in one place.",
+    lookAt:
+      "Advanced → Settings — gear, capability assumptions, target limits, corridor, rules, and sign-off.",
     whyItMatters:
-      "Shows whether the recommended correction is achievable with assumed tooling before escalating.",
-    highlight: "steering-panel",
+      "These inputs drive the action plan, feasibility logic, and export assumptions — keep them aligned with site conditions.",
+    highlight: "settings-panel",
     mode: "advanced",
-    advancedTab: "steering",
-    caution: "Feasibility uses capability assumptions — validate against contractor limits and hole conditions.",
-    demoAction: {
-      kind: "builtin-scenario",
-      scenarioId: "steering-review",
-      label: "Load demo: motor / Navi review",
-    },
-  },
-  {
-    id: "qa-qc",
-    title: "Review QA/QC flags",
-    purpose:
-      "Interval, DLS, plan offset, recovery, and target QA flags highlight data or trajectory risks per station.",
-    lookAt: "Advanced → QA/QC tab and flag list.",
-    whyItMatters: "Supervisors and geologists use flags to validate surveys before acting on the action plan.",
-    highlight: "qa-panel",
-    mode: "advanced",
-    advancedTab: "qaqc",
+    advancedTab: "settings",
   },
   {
     id: "math-reference",
     title: "Check Math Reference",
     purpose: "Shows desurvey basis, required DLS, and vector geometry behind the recommendation.",
-    lookAt: "Topbar → How it works → Math reference.",
+    lookAt: "Topbar → How it works (opens the reference page with the math section).",
     whyItMatters: "Supports peer review and alignment with offline spreadsheet checks.",
     highlight: "math-panel",
     mode: "advanced",
@@ -287,21 +280,22 @@ export const STANDARD_HOLE_STEPS: GuideStep[] = [
     title: "Set Survey Tool Profile",
     purpose:
       "Documents assumed survey tool accuracy and tolerance bands used in uncertainty messaging.",
-    lookAt: "Advanced → Setup / assumptions → Survey tool profile section.",
+    lookAt: "Advanced → Settings → Survey tool profile section.",
     whyItMatters: "Aligns QA messaging with the tool actually running in the hole.",
     highlight: "survey-tool-profile",
     mode: "advanced",
-    advancedTab: "setup",
+    advancedTab: "settings",
   },
   {
     id: "plan-corridor",
     title: "Adjust Plan Corridor / Target setup",
     purpose:
-      "Plan corridor width and target MD/E/N/D define tolerance and recoverability context in the sidebar (Advanced).",
-    lookAt: "Target setup and Plan corridor editor in the sidebar (visible in Advanced).",
+      "Plan corridor width and target MD/E/N/D define tolerance and recoverability context for the action plan.",
+    lookAt: "Advanced → Settings — Target limits and Plan corridor cards.",
     whyItMatters: "Corridor and target geometry drive offset and miss calculations — keep them aligned with the geologic model.",
     highlight: "plan-corridor",
     mode: "advanced",
+    advancedTab: "settings",
   },
   {
     id: "scenario-lab",
@@ -332,23 +326,23 @@ export const STANDARD_HOLE_STEPS: GuideStep[] = [
     title: "Export / import full hole package",
     purpose:
       "JSON hole package backs up the entire local library — all holes, branch programs, daughters, and assumptions.",
-    lookAt: "Advanced → Setup / assumptions → Hole package backup section.",
+    lookAt: "Advanced → Settings → Hole package backup section.",
     whyItMatters: "Browser storage can be cleared; export before upgrades or shared-machine use.",
     highlight: "hole-package",
     mode: "advanced",
-    advancedTab: "setup",
+    advancedTab: "settings",
   },
   {
     id: "limitations",
-    title: "Known limitations and validation reminder",
+    title: "Known limitations and sign-off reminder",
     purpose:
-      "TargetLock IQ is decision support. Validate math, assumptions, and recommendations against client standards and field measurements.",
-    lookAt: "Advanced → Validation tab — sanity checks and assumption sign-off.",
+      "TargetLock IQ is decision support. Sign off capability assumptions in Settings before relying on steering outputs operationally.",
+    lookAt: "Advanced → Settings — assumption sign-off and steering configuration.",
     whyItMatters:
       "Pilot and RC builds require explicit validation before relying on outputs for steering or branch commitments.",
-    highlight: "validation-panel",
+    highlight: "settings-panel",
     mode: "advanced",
-    advancedTab: "validation",
+    advancedTab: "settings",
     caution:
       "Do not treat projected miss, toolface, kickoff depth, or branch separation as authoritative without site approval.",
   },

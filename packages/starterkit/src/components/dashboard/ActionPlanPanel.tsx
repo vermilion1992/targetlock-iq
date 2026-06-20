@@ -1,12 +1,13 @@
 "use client";
 
 import { HoleModeAdvisoryPanel } from "@/components/dashboard/HoleModeAdvisoryPanel";
+import { HeroSubHeader } from "@/components/dashboard/HeroSubHeader";
 import { InfoTip } from "@/components/layout/InfoTip";
 import { round } from "@/lib/drilling/format";
 import {
+  ACTION_PLAN_HEADER_KICKER,
   ACTION_PLAN_PANEL_TIP,
   actionGuidanceTip,
-  changeFromLatestSurveyLabel,
   formatRecoveryActionDisplay,
   NEXT_INTERVAL_AIM_HEADING,
   nextCheckDepthMd,
@@ -14,11 +15,11 @@ import {
   nextIntervalAimTooltip,
 } from "@/lib/drilling/action-plan-copy";
 import {
-  actionSentence,
   azimuthInstruction,
   dipInstruction,
 } from "@/lib/drilling/recommendation";
-import type { SteeringFeasibility } from "@/lib/drilling/steering-types";
+import type { RecoveryAction, SteeringFeasibility } from "@/lib/drilling/steering-types";
+import type { SteeringPolicyMatch } from "@/lib/drilling/steering-settings";
 import type { HoleModeAssessment } from "@/lib/drilling/hole-mode";
 import type { Recommendation } from "@/lib/drilling/types";
 
@@ -26,9 +27,10 @@ type Props = {
   recommendation: Recommendation | null;
   steering: SteeringFeasibility | null;
   holeModeAssessment?: HoleModeAssessment | null;
+  steeringPolicy?: SteeringPolicyMatch | null;
 };
 
-function actionClass(action: string): string {
+function actionClass(action: RecoveryAction | string): string {
   switch (action) {
     case "On track":
       return "action-on-track";
@@ -39,7 +41,11 @@ function actionClass(action: string): string {
     case "Correction advisable":
       return "action-correct";
     case "Steering review":
+    case "Steering review recommended":
       return "action-steer";
+    case "Supervisor review":
+    case "Supervisor review required":
+      return "action-supervisor";
     default:
       return "action-risk";
   }
@@ -112,43 +118,57 @@ function MetricCell({
   );
 }
 
+function ActionPlanHeader({ confidenceLabel }: { confidenceLabel?: string | null }) {
+  return (
+    <HeroSubHeader
+      kicker={ACTION_PLAN_HEADER_KICKER}
+      title={
+        <>
+          Action plan <InfoTip tip={ACTION_PLAN_PANEL_TIP} />
+        </>
+      }
+      meta={
+        confidenceLabel ? (
+          <span className="targetlock-mini-tag">{confidenceLabel} confidence</span>
+        ) : null
+      }
+    />
+  );
+}
+
 export function ActionPlanPanel({
   recommendation,
   steering,
   holeModeAssessment,
+  steeringPolicy,
 }: Props) {
   if (!recommendation) {
     return (
-      <article className="targetlock-panel targetlock-action-plan">
-        <div className="targetlock-panel-title">
-          <h2>
-            Action plan{" "}
-            <InfoTip tip={ACTION_PLAN_PANEL_TIP} />
-          </h2>
-        </div>
-        <div className="targetlock-empty">
-          <p className="targetlock-empty-title">No survey data yet</p>
-          <p className="targetlock-empty-text">
-            Load a planned trajectory and actual surveys — or press <strong>Load sample</strong>{" "}
-            — to generate the action plan.
-          </p>
+      <article className="targetlock-settings-form-card targetlock-action-plan">
+        <ActionPlanHeader />
+        <div className="targetlock-settings-form-card-body">
+          <div className="targetlock-empty">
+            <p className="targetlock-empty-title">No survey data yet</p>
+            <p className="targetlock-empty-text">
+              Load a planned trajectory and actual surveys — or press <strong>Load sample</strong>{" "}
+              — to generate the action plan.
+            </p>
+          </div>
         </div>
       </article>
     );
   }
 
-  const internalAction = steering?.simple.currentAction ?? recommendation.classification.label;
+  const internalAction = (steering?.simple.currentAction ??
+    recommendation.classification.label) as RecoveryAction;
   const currentAction = formatRecoveryActionDisplay(
     internalAction,
     steering?.bestMethodId
   );
-  const bestMethod = steering?.simple.bestMethod;
-  const escalation = steering?.simple.escalation;
+  const defaultGuidance = steering?.simple.bestMethod?.trim() ?? "";
+  const ruleGuidance = steeringPolicy?.message?.trim() ?? "";
+  const actionGuidance = ruleGuidance || defaultGuidance;
   const nextAimTip = nextIntervalAimTooltip(recommendation, steering);
-  const changeLabel = changeFromLatestSurveyLabel(
-    recommendation.dipChange,
-    recommendation.aziChange
-  );
   const missDetail =
     recommendation.miss <= recommendation.tolerance
       ? `Inside ${round(recommendation.tolerance, 1)} m envelope`
@@ -161,28 +181,31 @@ export function ActionPlanPanel({
       ? steering.recoveryConfidence
       : recommendation.classification.confidence;
 
-  return (
-    <article className="targetlock-panel targetlock-action-plan">
-      <div className="targetlock-panel-title">
-        <h2>
-          Action plan{" "}
-          <InfoTip tip={ACTION_PLAN_PANEL_TIP} />
-        </h2>
-        <span className="targetlock-mini-tag">{confidenceLabel} confidence</span>
-      </div>
+  const nextIntervalM =
+    steeringPolicy?.nextIntervalM ?? recommendation.target.nextInterval;
 
+  return (
+    <article className="targetlock-settings-form-card targetlock-action-plan">
+      <ActionPlanHeader confidenceLabel={confidenceLabel} />
+
+      <div className="targetlock-settings-form-card-body">
       <HoleModeAdvisoryPanel assessment={holeModeAssessment ?? null} />
 
-      <div className={`targetlock-action-hero ${actionClass(currentAction)}`}>
+      <div className={`targetlock-action-hero ${actionClass(internalAction)}`}>
         <div className="targetlock-action-hero-head">
           <span className="targetlock-action-hero-label">Current action</span>
           <strong className="targetlock-action-hero-value">
             {currentAction}
           </strong>
         </div>
-        {bestMethod ? (
+        {steeringPolicy ? (
+          <p className="targetlock-action-hero-rule">
+            Steering rule — {steeringPolicy.ruleLabel}
+          </p>
+        ) : null}
+        {actionGuidance ? (
           <div className="targetlock-action-hero-method">
-            {bestMethod}{" "}
+            {actionGuidance}{" "}
             <InfoTip tip={actionGuidanceTip(internalAction)} />
           </div>
         ) : null}
@@ -194,9 +217,8 @@ export function ActionPlanPanel({
           <InfoTip tip={nextAimTip} />
         </span>
         <p className="targetlock-instruction-explainer">
-          {nextIntervalAimExplainer(recommendation.target.nextInterval)}
+          {nextIntervalAimExplainer(nextIntervalM)}
         </p>
-        <span className="targetlock-instruction-sublabel">Change from latest survey</span>
         <div className="targetlock-instruction-chips">
           <InstructionChip
             delta={recommendation.dipChange}
@@ -221,10 +243,7 @@ export function ActionPlanPanel({
           />
           <MetricCell
             label="Next check depth"
-            amount={nextCheckDepthMd(
-              recommendation.current.md,
-              recommendation.target.nextInterval
-            )}
+            amount={nextCheckDepthMd(recommendation.current.md, nextIntervalM)}
             tip="Depth to resurvey after drilling the next interval — then update TargetLock with the new station."
           />
           <MetricCell
@@ -239,22 +258,7 @@ export function ActionPlanPanel({
             detail={missDetail}
           />
         </div>
-        <p className="targetlock-metric-change-detail">{changeLabel}</p>
       </div>
-
-      <div className="targetlock-action-footer">
-        {escalation ? (
-          <p className="targetlock-action-escalation">
-            <span className="targetlock-action-escalation-label">
-              Escalate by{" "}
-              <InfoTip tip="Depth by which to involve a supervisor or directional crew if the hole has not recovered. Estimated from current drift and DLS limits." />
-            </span>
-            {escalation}
-          </p>
-        ) : null}
-        <p className={`targetlock-action-text action-${recommendation.classification.className}`}>
-          {actionSentence(recommendation)}
-        </p>
       </div>
     </article>
   );

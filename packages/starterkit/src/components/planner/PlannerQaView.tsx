@@ -5,12 +5,13 @@ import type { HoleLibrary } from "@/lib/drilling/hole-library";
 import { derivePlannerPrograms } from "@/lib/drilling/planner-program";
 import { buildProgramQaReport } from "@/lib/drilling/planner-qa";
 import type { PlannerClearancePair, PlannerQaSettings } from "@/lib/drilling/planner-types";
+import { AdvancedTabHero } from "@/components/dashboard/AdvancedTabHero";
 import { PlannerClearanceTable } from "./PlannerClearanceTable";
 import { PlannerDrillabilityPanel } from "./PlannerDrillabilityPanel";
 import { PlannerQaSettingsPanel } from "./PlannerQaSettingsPanel";
+import { PlannerEmptyState } from "./ui/PlannerEmptyState";
 import { PlannerMetricStrip } from "./ui/PlannerMetricStrip";
-import { PlannerPanel } from "./ui/PlannerPanel";
-import { PlannerSectionHeader } from "./ui/PlannerSectionHeader";
+import { PlannerSubPanel } from "./ui/PlannerSubPanel";
 
 type Props = {
   library: HoleLibrary;
@@ -53,11 +54,14 @@ export function PlannerQaView({
 
   if (!programs.length) {
     return (
-      <PlannerPanel title="Planning QA">
-        <p className="targetlock-panel-copy">
-          No planner programs yet. Create plans to run clearance and drillability checks.
-        </p>
-      </PlannerPanel>
+      <div className="planner-qa-view">
+        <AdvancedTabHero
+          eyebrow="Verify"
+          title="Planning QA"
+          copy="Institutional review board — blockers, clearance pairs, and drillability."
+        />
+        <PlannerEmptyState message="No planner programs yet. Create plans to run clearance and drillability checks." />
+      </div>
     );
   }
 
@@ -97,9 +101,10 @@ export function PlannerQaView({
 
   return (
     <div className="planner-qa-view">
-      <PlannerSectionHeader
+      <AdvancedTabHero
+        eyebrow="Verify"
         title="Planning QA"
-        subtitle="Institutional review board — blockers, clearance pairs, and drillability."
+        copy="Institutional review board — blockers, clearance pairs, and drillability."
       />
 
       {report ? (
@@ -108,7 +113,7 @@ export function PlannerQaView({
 
       {report ? (
         <div className="planner-qa-detail-grid">
-          <PlannerPanel title="Clearance checks" as="h3">
+          <PlannerSubPanel kicker="QA" title="Clearance checks">
             <PlannerClearanceTable
               pairs={report.clearancePairs}
               selectedPairKey={selectedPairKey}
@@ -122,7 +127,7 @@ export function PlannerQaView({
               Approximate planning QA — not a certified anti-collision system. Assumptions
               and formulas are documented in How it works.
             </p>
-          </PlannerPanel>
+          </PlannerSubPanel>
 
           <PlannerDrillabilityPanel
             summaries={report.holeSummaries}
@@ -134,15 +139,10 @@ export function PlannerQaView({
       ) : null}
 
       {report && programId ? (
-        <details className="targetlock-panel planner-qa-settings-details">
-          <summary className="targetlock-panel-title">
-            <h3>QA thresholds &amp; settings</h3>
-          </summary>
-          <PlannerQaSettingsPanel
-            settings={report.settings}
-            onSave={(settings) => onSaveQaSettings(programId, settings)}
-          />
-        </details>
+        <PlannerQaSettingsPanel
+          settings={report.settings}
+          onSave={(settings) => onSaveQaSettings(programId, settings)}
+        />
       ) : null}
     </div>
   );

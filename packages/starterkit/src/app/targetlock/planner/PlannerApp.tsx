@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTargetLockConfirm } from "@/components/targetlock/TargetLockConfirmProvider";
+import { TargetLockFormCard } from "@/components/targetlock/TargetLockFormCard";
 import { ConstraintsStep } from "@/components/planner/ConstraintsStep";
 import { PlannerPlansView } from "@/components/planner/PlannerPlansView";
 import { PlannerCreateView } from "@/components/planner/PlannerCreateView";
@@ -27,6 +28,7 @@ import { PlannerReportPreview } from "@/components/planner/PlannerReportPreview"
 import { PlannerMapView } from "@/components/planner/PlannerMapView";
 import { Planner3DView } from "@/components/planner/Planner3DView";
 import { PlannerPreview } from "@/components/planner/PlannerPreview";
+import { PlannerReviewScene } from "@/components/planner/PlannerReviewScene";
 import { PlannerProgramView } from "@/components/planner/PlannerProgramView";
 import { PlannerQaView } from "@/components/planner/PlannerQaView";
 import type { PlannerPlanAction } from "@/components/planner/PlannerPlanTable";
@@ -59,7 +61,8 @@ import { resolvePlanLockStatusWithApproval } from "@/lib/drilling/plan-lock";
 import { PlannerStatusBadge } from "@/components/planner/PlannerStatusBadge";
 import { PlannerReadinessBadge } from "@/components/planner/ui/PlannerReadinessBadge";
 import { PlannerEmptyState } from "@/components/planner/ui/PlannerEmptyState";
-import { PlannerSectionHeader } from "@/components/planner/ui/PlannerSectionHeader";
+import { PlannerSubPanel } from "@/components/planner/ui/PlannerSubPanel";
+import { AdvancedTabHero } from "@/components/dashboard/AdvancedTabHero";
 import {
   buildProgramMapModel,
   capturePlannerMapPng,
@@ -481,6 +484,24 @@ export default function PlannerApp() {
 
   const handleMarkActiveAndOpen = useCallback(() => {
     if (!library || !selectedHoleId) return;
+    const hole = findHole(library, selectedHoleId);
+    if (!hole) return;
+    // Enforce the same hard handoff gates as the checklist before activation:
+    // QA hard errors must be clear and approval must be current (not stale).
+    // Soft, reviewer-acknowledged items are auto-passed so this quick path is
+    // not blocked by checkbox state that only lives in the handoff checklist UI.
+    const handoff = evaluateHandoffReadiness(hole, library, {
+      coordinateMetadataReviewed: true,
+      coordinateWarningsReviewed: true,
+      handoffBypassSignoffNote: true,
+      packageBackupExported: true,
+    });
+    if (!handoff.ready) {
+      setStatusMessage(
+        `Cannot activate yet — resolve before handoff: ${handoff.blockers.join(" ")}`
+      );
+      return;
+    }
     const result = activatePlannerHoleForExecution(library, selectedHoleId);
     if (!result) {
       setStatusMessage("Could not activate plan — it must be approved first.");
@@ -838,12 +859,9 @@ export default function PlannerApp() {
       <>
         <PlannerCoordinateSummary mode="draft" draft={draft} />
         {draft.planRecords.length && step !== "generate" ? (
-          <article className="targetlock-panel">
-            <div className="targetlock-panel-title">
-              <h3>Plan preview</h3>
-            </div>
+          <TargetLockFormCard kicker="Preview" title="Plan preview">
             <PlannerPreview planRecords={draft.planRecords} />
-          </article>
+          </TargetLockFormCard>
         ) : null}
       </>
     );
@@ -899,11 +917,11 @@ export default function PlannerApp() {
 
     if (!reviewDraft) {
       return (
-        <article className="targetlock-panel">
-          <PlannerSectionHeader
-            title="Plan review"
+        <div className="planner-review-tab">
+          <AdvancedTabHero
             eyebrow="Verify"
-            subtitle="Pick a plan to review readiness, approval, and handoff."
+            title="Plan review"
+            copy="Pick a plan to review readiness, approval, and handoff."
           />
           <PlannerEmptyState
             title="No plan selected"
@@ -927,12 +945,17 @@ export default function PlannerApp() {
               </>
             }
           />
-        </article>
+        </div>
       );
     }
 
     return (
       <div className="planner-review-tab">
+        <AdvancedTabHero
+          eyebrow="Verify"
+          title="Plan review"
+          copy="Readiness, QA, approval, and handoff for the selected plan."
+        />
         <header className="planner-review-decision-head targetlock-panel">
           <div className="planner-review-decision-id">
             <h2 className="planner-review-decision-title">
@@ -1020,95 +1043,125 @@ export default function PlannerApp() {
             <p className="planner-review-qa-blocker">{handoffReadiness.blockers[0]}</p>
           ) : null}
         </header>
-        <div className="planner-review-main">
-          <div className="planner-review-layout">
-            {reviewQaSummary || reviewApproval?.blockers.length ? (
-              <article className="targetlock-panel planner-review-qa-strip">
-                <div className="targetlock-panel-title">
-                  <h3>Planning QA</h3>
-                  {reviewQaSummary ? (
-                    <PlannerQaBadge badge={reviewQaSummary.badge} />
-                  ) : null}
-                </div>
-                {reviewApproval?.blockers.map((b) => (
-                  <p key={b} className="planner-review-qa-blocker">
-                    {b}
-                  </p>
-                ))}
-              </article>
-            ) : null}
-            <PlanReviewStep draft={reviewDraft} />
-            <PlannerPreview planRecords={reviewDraft.planRecords} />
-          </div>
-        </div>
-        <aside className="planner-review-sidebar">
-          <PlannerReviewActionsPanel
-            hole={selectedHole ?? null}
+
+        <PlannerSubPanel
+          className="planner-review-scene-panel"
+          kicker="Visualise"
+          title="Interactive 3D plan"
+          meta={
+            <span className="targetlock-legend text-xs text-[var(--tl-muted)]">
+              Drag to orbit · scroll to zoom · Planned · Actual · Target · Clearance
+              · Uncertainty
+            </span>
+          }
+        >
+          <PlannerReviewScene
             library={library ?? { version: 1, activeHoleId: "", holes: [] }}
-            onTabChange={setActiveTab}
-            onOpenApprove={() => setApproveModalOpen(true)}
-            onMarkActiveAndOpen={handleMarkActiveAndOpen}
-            onOpenTargetLock={handleOpenTargetLock}
-            onCreateRevision={() => {
-              setRevisionSourceHoleId(selectedHoleId);
-              setRevisionModalOpen(true);
-            }}
-            onArchive={handleArchiveSelectedPlan}
-            onExportPackage={() => void handleExportHolePackage()}
+            hole={selectedHole ?? null}
+            draft={reviewDraft}
+            qaReport={qaReport}
           />
-          {library && selectedHole ? (
-            <PlannerLifecycleTimeline
-              library={library}
-              hole={selectedHole}
-              onSelectHole={(id) => {
-                setSelectedHoleId(id);
-                setActiveTab("review");
-              }}
-            />
-          ) : null}
-          <PlannerHandoffChecklist
-            hole={selectedHole ?? null}
-            library={library ?? { version: 1, activeHoleId: "", holes: [] }}
-            onMarkActiveAndOpen={handleMarkActiveAndOpen}
-          />
-          {selectedExecutionContext && selectedActualVsPlanned ? (
-            <PlannerExecutionStatusPanel
-              context={selectedExecutionContext}
-              actualVsPlanned={selectedActualVsPlanned}
-            />
-          ) : null}
-          {selectedHole &&
-          selectedExecutionContext &&
-          selectedActualVsPlanned ? (
-            <PlannerExecutionAuditPanel
-              hole={selectedHole}
-              library={library ?? { version: 1, activeHoleId: "", holes: [] }}
-              context={selectedExecutionContext}
-              actualVsPlanned={selectedActualVsPlanned}
-            />
-          ) : null}
-          {selectedHole &&
-          (plannerStatus(selectedHole) === "active" ||
-            plannerStatus(selectedHole) === "completed") ? (
-            <PlannerCompletionPanel
-              hole={selectedHole}
-              onComplete={handleCompletePlan}
-              onCreateRevision={() => {
-                setRevisionSourceHoleId(selectedHoleId);
-                setRevisionModalOpen(true);
-              }}
-            />
-          ) : null}
-          <PlannerRevisionPanel
-            library={library ?? { version: 1, activeHoleId: "", holes: [] }}
-            hole={selectedHole ?? null}
-            onCreateRevision={(reason) => handleCreateRevision(reason)}
+        </PlannerSubPanel>
+
+        {reviewQaSummary || reviewApproval?.blockers.length ? (
+          <PlannerSubPanel
+            className="planner-review-qa-strip"
+            kicker="Verify"
+            title="Planning QA"
+            meta={
+              reviewQaSummary ? (
+                <PlannerQaBadge badge={reviewQaSummary.badge} />
+              ) : null
+            }
+          >
+            {reviewApproval?.blockers.length ? (
+              reviewApproval.blockers.map((b) => (
+                <p key={b} className="planner-review-qa-blocker">
+                  {b}
+                </p>
+              ))
+            ) : (
+              <p className="targetlock-panel-copy">
+                No QA blockers for this plan.
+              </p>
+            )}
+          </PlannerSubPanel>
+        ) : null}
+
+        <PlanReviewStep draft={reviewDraft} />
+
+        {library && selectedHole ? (
+          <PlannerLifecycleTimeline
+            library={library}
+            hole={selectedHole}
             onSelectHole={(id) => {
               setSelectedHoleId(id);
               setActiveTab("review");
             }}
           />
-        </aside>
+        ) : null}
+
+        {selectedExecutionContext && selectedActualVsPlanned ? (
+          <PlannerExecutionStatusPanel
+            context={selectedExecutionContext}
+            actualVsPlanned={selectedActualVsPlanned}
+          />
+        ) : null}
+
+        {selectedHole &&
+        selectedExecutionContext &&
+        selectedActualVsPlanned ? (
+          <PlannerExecutionAuditPanel
+            hole={selectedHole}
+            library={library ?? { version: 1, activeHoleId: "", holes: [] }}
+            context={selectedExecutionContext}
+            actualVsPlanned={selectedActualVsPlanned}
+          />
+        ) : null}
+
+        {selectedHole &&
+        (plannerStatus(selectedHole) === "active" ||
+          plannerStatus(selectedHole) === "completed") ? (
+          <PlannerCompletionPanel
+            hole={selectedHole}
+            onComplete={handleCompletePlan}
+            onCreateRevision={() => {
+              setRevisionSourceHoleId(selectedHoleId);
+              setRevisionModalOpen(true);
+            }}
+          />
+        ) : null}
+
+        <PlannerRevisionPanel
+          library={library ?? { version: 1, activeHoleId: "", holes: [] }}
+          hole={selectedHole ?? null}
+          onCreateRevision={(reason) => handleCreateRevision(reason)}
+          onSelectHole={(id) => {
+            setSelectedHoleId(id);
+            setActiveTab("review");
+          }}
+        />
+
+        <PlannerHandoffChecklist
+          hole={selectedHole ?? null}
+          library={library ?? { version: 1, activeHoleId: "", holes: [] }}
+          onMarkActiveAndOpen={handleMarkActiveAndOpen}
+        />
+
+        <PlannerReviewActionsPanel
+          hole={selectedHole ?? null}
+          library={library ?? { version: 1, activeHoleId: "", holes: [] }}
+          onTabChange={setActiveTab}
+          onOpenApprove={() => setApproveModalOpen(true)}
+          onMarkActiveAndOpen={handleMarkActiveAndOpen}
+          onOpenTargetLock={handleOpenTargetLock}
+          onCreateRevision={() => {
+            setRevisionSourceHoleId(selectedHoleId);
+            setRevisionModalOpen(true);
+          }}
+          onArchive={handleArchiveSelectedPlan}
+          onExportPackage={() => void handleExportHolePackage()}
+        />
       </div>
     );
   };

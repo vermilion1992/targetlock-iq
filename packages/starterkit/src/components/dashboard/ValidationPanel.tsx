@@ -1,14 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { TargetLockFormCard } from "@/components/targetlock/TargetLockFormCard";
 import { InfoTip } from "@/components/layout/InfoTip";
 import { round } from "@/lib/drilling/format";
 import {
   COORDINATE_CONVENTIONS,
   compareReferenceStations,
   parseReferenceCsv,
-  type AssumptionSignOff,
-  type AssumptionValidationStatus,
   type PlanSanityCheck,
   type ReferenceComparison,
 } from "@/lib/drilling/validation";
@@ -20,30 +19,15 @@ type Props = {
   sanity: PlanSanityCheck;
   planStations: SurveyStation[];
   actualStations: SurveyStation[];
-  status: AssumptionValidationStatus;
-  signOff: AssumptionSignOff | null;
-  onSignOff: (validatedBy: string) => void;
-  onClearSignOff: () => void;
   referenceWarnings?: ReferenceWarning[];
 };
-
-function statusClass(state: AssumptionValidationStatus["state"]): string {
-  if (state === "validated") return "validation-ok";
-  if (state === "stale") return "validation-stale";
-  return "validation-unvalidated";
-}
 
 export function ValidationPanel({
   sanity,
   planStations,
   actualStations,
-  status,
-  signOff,
-  onSignOff,
-  onClearSignOff,
   referenceWarnings = [],
 }: Props) {
-  const [name, setName] = useState("");
   const [comparePath, setComparePath] = useState<"actual" | "plan">("actual");
   const [reference, setReference] = useState<ReferenceComparison | null>(null);
   const [refMessage, setRefMessage] = useState<string | null>(null);
@@ -81,76 +65,16 @@ export function ValidationPanel({
   );
 
   return (
-    <article className="targetlock-panel targetlock-validation-panel">
-      <div className="targetlock-panel-title">
-        <h2>
-          Validation &amp; assumptions{" "}
-          <InfoTip tip="Evidence the inputs and assumptions are trustworthy before relying on the app operationally. Decision support only — not an operational steering authority." />
-        </h2>
-        <span className={`targetlock-validation-pill ${statusClass(status.state)}`}>
-          {status.label}
-        </span>
-      </div>
-
-      {status.state !== "validated" ? (
-        <div className={`targetlock-validation-warning ${statusClass(status.state)}`} role="note">
-          <strong>{status.state === "stale" ? "Re-validate assumptions" : "Assumptions not validated"}</strong>
-          <p>{status.detail}</p>
-        </div>
-      ) : null}
-
-      {/* Assumption sign-off */}
-      <section className="targetlock-validation-section">
-        <h3 className="targetlock-validation-subhead">
-          Assumption sign-off{" "}
-          <InfoTip tip="Record who reviewed the recovery capability assumptions before they influenced decisions. Editing the assumptions afterwards marks the sign-off stale." />
-        </h3>
-        {signOff && status.state !== "unvalidated" ? (
-          <div className="targetlock-validation-signoff">
-            <dl className="targetlock-validation-values">
-              <div>
-                <dt>Validated by</dt>
-                <dd>{signOff.validatedBy}</dd>
-              </div>
-              <div>
-                <dt>Signed</dt>
-                <dd>{new Date(signOff.validatedAt).toLocaleString("en-AU")}</dd>
-              </div>
-            </dl>
-            <button
-              type="button"
-              className="targetlock-btn targetlock-btn-sm"
-              onClick={() => void onClearSignOff?.()}
-            >
-              Clear sign-off
-            </button>
-          </div>
-        ) : (
-          <div className="targetlock-validation-signoff">
-            <label className="targetlock-validation-name">
-              <span>Reviewer name / role</span>
-              <input
-                type="text"
-                value={name}
-                placeholder="e.g. J. Smith — Senior Geologist"
-                onChange={(e) => setName(e.target.value)}
-                aria-label="Reviewer name and role"
-              />
-            </label>
-            <button
-              type="button"
-              className="targetlock-btn targetlock-btn-primary targetlock-btn-sm"
-              disabled={name.trim().length < 2}
-              onClick={() => {
-                onSignOff(name.trim());
-                setName("");
-              }}
-            >
-              Mark assumptions validated
-            </button>
-          </div>
-        )}
-      </section>
+    <TargetLockFormCard
+      kicker="Data review"
+      title={
+        <>
+          Plan &amp; coordinate review{" "}
+          <InfoTip tip="Sanity-check imports and compare desurvey output against trusted reference data. Decision support only — not an operational steering authority." />
+        </>
+      }
+      className="targetlock-validation-panel"
+    >
 
       {/* Plan import sanity check */}
       <section className="targetlock-validation-section">
@@ -293,7 +217,7 @@ export function ValidationPanel({
         <section className="targetlock-validation-section">
           <h3 className="targetlock-validation-subhead">
             Survey reference system{" "}
-            <InfoTip tip="Azimuth north-reference settings from Setup / assumptions. Mixed references are converted internally to true north before trajectory math." />
+            <InfoTip tip="Azimuth north-reference settings from the Settings tab. Mixed references are converted internally to true north before trajectory math." />
           </h3>
           <ul className="targetlock-validation-flags">
             {referenceWarnings.map((warning) => (
@@ -324,6 +248,6 @@ export function ValidationPanel({
         coordinate conventions, tolerance logic, and recovery assumptions against trusted software
         and a directional drilling contractor before operational use.
       </p>
-    </article>
+    </TargetLockFormCard>
   );
 }

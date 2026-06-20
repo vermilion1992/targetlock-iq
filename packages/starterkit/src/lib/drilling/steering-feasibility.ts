@@ -5,6 +5,10 @@ import {
   type CapabilityAssumptions,
 } from "./capability-assumptions";
 import { DEFAULT_CAPABILITY_PROFILES } from "./capability-profiles";
+import {
+  isGearMethodAvailable,
+  type GearAvailability,
+} from "./steering-settings";
 import { round } from "./format";
 import { adjustConfidenceForHoleMode, type HoleMode } from "./hole-mode";
 import {
@@ -149,15 +153,21 @@ export function baseRecoveryConfidence(reco: Recommendation): RecoveryConfidence
 function methodFeasibilityRow(
   profile: CapabilityProfile,
   requiredDls: number,
-  wedgeReviewThresholdDls: number
+  wedgeReviewThresholdDls: number,
+  gear?: GearAvailability
 ): MethodFeasibility {
+  const gearOk = !gear || isGearMethodAvailable(profile.id, gear);
   const feasible =
-    profile.id === "shorten_interval"
-      ? true
-      : profile.id === "wedge_branch"
-        ? requiredDls > wedgeReviewThresholdDls
-        : requiredDls <= profile.dlsMax + EPS;
-  const phrase = feasible ? profile.feasiblePhrase : profile.reviewPhrase;
+    !gearOk ? false
+    : profile.id === "shorten_interval" ? true
+    : profile.id === "wedge_branch" ?
+      requiredDls > wedgeReviewThresholdDls
+    : requiredDls <= profile.dlsMax + EPS;
+  const phrase =
+    !gearOk ?
+      `${profile.label} not available on site — disabled in steering settings.`
+    : feasible ? profile.feasiblePhrase
+    : profile.reviewPhrase;
   return {
     id: profile.id,
     label: profile.label,
@@ -172,7 +182,8 @@ function methodFeasibilityRow(
 function pickBestMethod(
   requiredDls: number,
   action: RecoveryAction,
-  profiles: CapabilityProfile[]
+  profiles: CapabilityProfile[],
+  gear?: GearAvailability
 ): { id: SteeringMethodId; label: string } {
   if (action === "On track") {
     return { id: "natural", label: "Natural correction" };
@@ -185,7 +196,11 @@ function pickBestMethod(
   }
 
   const smooth = profiles.filter(
-    (p) => p.isSteeringMethod && p.id !== "wedge_branch" && requiredDls <= p.dlsMax + EPS
+    (p) =>
+      p.isSteeringMethod &&
+      p.id !== "wedge_branch" &&
+      requiredDls <= p.dlsMax + EPS &&
+      (!gear || isGearMethodAvailable(p.id, gear))
   );
   if (smooth.length) {
     const best = smooth[0];
@@ -257,6 +272,11 @@ export function buildActionHeroGuidance(
         bestRow?.phrase ??
         "Escalate for directional tooling review before drilling another full interval."
       );
+    case "Supervisor review":
+      return (
+        bestRow?.phrase ??
+        "Stop and review with supervisor before drilling the next interval."
+      );
     case "Wedge or branch review":
       return (
         bestRow?.phrase ??
@@ -304,7 +324,8 @@ export function buildSteeringFeasibility(
   profiles: CapabilityProfile[] = DEFAULT_CAPABILITY_PROFILES,
   wedgeReviewThresholdDls: number = DEFAULT_CAPABILITY_ASSUMPTIONS.wedgeReviewThresholdDls,
   planCorridor?: PlanCorridorConfig | null,
-  holeMode: HoleMode = "angle"
+  holeMode: HoleMode = "angle",
+  gear?: GearAvailability
 ): SteeringFeasibility {
   const intervals = buildIntervalBehaviours(
     planStations,
@@ -339,9 +360,9 @@ export function buildSteeringFeasibility(
   });
 
   const methods = profiles.map((p) =>
-    methodFeasibilityRow(p, requiredDlsToTarget, wedgeReviewThresholdDls)
+    methodFeasibilityRow(p, requiredDlsToTarget, wedgeReviewThresholdDls, gear)
   );
-  const best = pickBestMethod(requiredDlsToTarget, currentAction, profiles);
+  const best = pickBestMethod(requiredDlsToTarget, currentAction, profiles, gear);
   const bestMethodRow = methods.find((m) => m.id === best.id);
   const pointOfNoReturnMd = estimatePointOfNoReturn(
     reco.current.md,
@@ -395,7 +416,8 @@ export function computeSteeringFeasibility(
   actualStations: SurveyStation[],
   assumptions?: Partial<CapabilityAssumptions> | null,
   planCorridor?: PlanCorridorConfig | null,
-  holeMode: HoleMode = "angle"
+  holeMode: HoleMode = "angle",
+  gear?: GearAvailability
 ): SteeringFeasibility | null {
   if (!recommendation) return null;
   const normalized = normalizeCapabilityAssumptions(assumptions);
@@ -407,6 +429,7 @@ export function computeSteeringFeasibility(
     profiles,
     normalized.wedgeReviewThresholdDls,
     planCorridor,
-    holeMode
+    holeMode,
+    gear
   );
 }

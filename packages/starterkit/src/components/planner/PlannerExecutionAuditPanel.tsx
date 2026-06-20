@@ -12,6 +12,7 @@ import type { PlannerExecutionContext } from "@/lib/drilling/execution-bridge";
 import { round } from "@/lib/drilling/format";
 import type { HoleLibrary } from "@/lib/drilling/hole-library";
 import type { SavedHoleProject } from "@/lib/drilling/storage";
+import { PlannerSubPanel } from "./ui/PlannerSubPanel";
 
 type Props = {
   hole: SavedHoleProject;
@@ -37,10 +38,7 @@ export function PlannerExecutionAuditPanel({
     <div className="planner-execution-audit-stack">
       <ExecutionAuditPanel audit={audit} />
       {completion ? (
-        <article className="targetlock-panel">
-          <div className="targetlock-panel-title">
-            <h3>Completion snapshot</h3>
-          </div>
+        <PlannerSubPanel kicker="Execution" title="Completion snapshot">
           <dl className="planner-lock-dl">
             <div>
               <dt>Completed at</dt>
@@ -71,19 +69,16 @@ export function PlannerExecutionAuditPanel({
               </div>
             ) : null}
           </dl>
-        </article>
+        </PlannerSubPanel>
       ) : (
-        <article className="targetlock-panel">
-          <div className="targetlock-panel-title">
-            <h3>Latest tracking</h3>
-          </div>
+        <PlannerSubPanel kicker="Execution" title="Latest tracking">
           <p className="targetlock-panel-copy">
             {actualVsPlanned.summary} — offset{" "}
             {actualVsPlanned.latestPlanOffsetM !== null
               ? `${round(actualVsPlanned.latestPlanOffsetM, 2)} m`
               : "—"}
           </p>
-        </article>
+        </PlannerSubPanel>
       )}
       <ExecutionPackagePanel hole={hole} library={library} />
       <Link
