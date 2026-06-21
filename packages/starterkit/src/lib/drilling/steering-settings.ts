@@ -307,7 +307,7 @@ function planDeviationsAtMd(
   return { dipDeg, aziDeg, combinedDeg: dipDeg + aziDeg };
 }
 
-function gateMatches(gate: SteeringRuleGate, reco: Recommendation): boolean {
+export function gateMatches(gate: SteeringRuleGate, reco: Recommendation): boolean {
   const md = reco.current.md;
   const remaining = reco.remaining;
   switch (gate.type) {
@@ -343,7 +343,7 @@ function noSteeringGearAvailable(
   return needsSteeringGear(reco, gear);
 }
 
-function conditionMatches(
+export function conditionMatches(
   condition: SteeringRuleCondition,
   reco: Recommendation,
   planStations: SurveyStation[],
@@ -416,7 +416,7 @@ export function evaluateSteeringPolicy(
   return null;
 }
 
-function actionFromRule(action: SteeringRuleAction): RecoveryAction {
+export function actionFromRule(action: SteeringRuleAction): RecoveryAction {
   switch (action) {
     case "hold":
       return "On track";
@@ -435,7 +435,7 @@ function actionFromRule(action: SteeringRuleAction): RecoveryAction {
   }
 }
 
-function actionRank(action: RecoveryAction): number {
+export function actionRank(action: RecoveryAction): number {
   switch (action) {
     case "On track":
       return 0;

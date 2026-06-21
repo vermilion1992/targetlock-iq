@@ -34,7 +34,7 @@ export function azimuthInstruction(delta: number): string {
   return delta < 0 ? `Swing left ${absDeg(delta, 1)}` : `Swing right ${absDeg(delta, 1)}`;
 }
 
-function classify(reco: Omit<Recommendation, "classification">): Classification {
+export function classify(reco: Omit<Recommendation, "classification">): Classification {
   if (reco.remaining <= 0) {
     return { label: "Target depth passed", className: "risk", confidence: "Review" };
   }

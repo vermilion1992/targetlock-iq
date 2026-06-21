@@ -21,7 +21,10 @@ export function buildStations(records: SurveyRecord[]): SurveyStation[] {
   records.forEach((record, index) => {
     if (index > 0) {
       const previous = records[index - 1];
-      const length = record.md - previous.md;
+      // Clamp non-advancing/decreasing MD to zero so malformed survey data can
+      // never integrate a reversed (backward) trajectory. Upstream import
+      // validation surfaces the underlying data problem to the user.
+      const length = Math.max(0, record.md - previous.md);
       const displacement = minCurveDisplacement(previous, record, length);
       position = add(position, displacement);
     }
@@ -112,8 +115,10 @@ export function interpolateAtMd(
     const a = stations[i - 1];
     const b = stations[i];
     if (md <= b.md) {
-      const span = b.md - a.md || 1;
-      const t = clamp((md - a.md) / span, 0, 1);
+      const span = b.md - a.md;
+      // Duplicate/zero-span stations: snap to the lower station instead of
+      // dividing by the historical `|| 1` fallback (which produced a wrong t).
+      const t = span > EPS ? clamp((md - a.md) / span, 0, 1) : 0;
       const av = vectorFromDipAz(a.dip, a.azimuth);
       const bv = vectorFromDipAz(b.dip, b.azimuth);
       const aim = dipAzFromVector(slerpDirection(av, bv, t));
@@ -233,7 +238,7 @@ export function buildStationsWithMethod(
   records.forEach((record, index) => {
     if (index > 0) {
       const previous = records[index - 1];
-      const length = record.md - previous.md;
+      const length = Math.max(0, record.md - previous.md);
       position = add(
         position,
         displacementWithMethod(previous, record, length, method)

@@ -4,7 +4,7 @@
 
 Hole ID / name:             DDH-0247
 Site / project:             North Camp — Pilot
-Report generated:           Sun, 21 June 2026  07:41 am
+Report generated:           Sun, 21 June 2026  10:08 am
 Latest survey depth:        390.0 m
 Overall status:             Correction needed
 Confidence:                 Medium
@@ -108,8 +108,8 @@ SURVEY QA / QC
 
 RECENT DECISION HISTORY (THIS SESSION)
 ──────────────────────────────────────────────────────────────
-  21 June, 07:41 am  Supervisor: Correct naturally at MD 390 m → Correct naturally
-  21 June, 07:41 am  Sample plan and actual surveys loaded → Load sample
+  21 June, 10:08 am  Supervisor: Correct naturally at MD 390 m → Correct naturally
+  21 June, 10:08 am  Sample plan and actual surveys loaded → Load sample
 
 ──────────────────────────────────────────────────────────────
 DECISION SUPPORT ONLY. STEERING FEASIBILITY DEPENDS ON SITE CONDITIONS, TOOL CAPABILITY, DRILLING CONTRACTOR, AND GEOLOGIST/SUPERVISOR APPROVAL. VERIFY ALL RECOMMENDATIONS AGAINST SITE PROCEDURES, INDEPENDENT DESURVEY, AND OPERATIONAL SIGN-OFF.

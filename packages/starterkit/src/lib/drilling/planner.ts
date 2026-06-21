@@ -96,13 +96,15 @@ export function buildStraightPlan(opts: {
     md += surveyInterval;
   }
 
+  // Always land the exact terminal station. A coarse (0.5 m) guard previously
+  // skipped it when the last regular station was close, leaving the plan up to
+  // 0.5 m short of the target and ignoring an explicit target MD. Snap a
+  // near-duplicate last row (never the mandatory start row) to the exact MD.
   const last = rows[rows.length - 1]!;
-  if (Math.abs(last.md - terminalMd) > 0.5) {
-    rows.push({
-      md: terminalMd,
-      dip: heading.dip,
-      azimuth: heading.azimuth,
-    });
+  if (last.md !== startMd && Math.abs(last.md - terminalMd) < 0.5) {
+    rows[rows.length - 1] = { md: terminalMd, dip: heading.dip, azimuth: heading.azimuth };
+  } else if (Math.abs(last.md - terminalMd) > 1e-6) {
+    rows.push({ md: terminalMd, dip: heading.dip, azimuth: heading.azimuth });
   }
 
   return rows.sort((a, b) => a.md - b.md);

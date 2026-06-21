@@ -94,8 +94,14 @@ function solveArcTangent(
   const ux = x;
   const uy = y - radius;
   const dist = Math.hypot(ux, uy);
-  if (dist < radius - 1e-9) return null;
-  const tangentLengthM = Math.sqrt(Math.max(0, dist * dist - radius * radius));
+  // discriminant == dist^2 - radius^2, but computed as x^2 + y^2 - 2*y*radius to
+  // avoid catastrophic cancellation when radius is enormous (near-on-axis
+  // targets need a near-infinite turn radius). Forming radius^2 and subtracting
+  // two huge near-equal numbers previously lost all precision and could miss the
+  // target by metres.
+  const discriminant = x * x + y * y - 2 * y * radius;
+  if (discriminant < -1e-6) return null; // target strictly inside the turn circle
+  const tangentLengthM = Math.sqrt(Math.max(0, discriminant));
   const phi = Math.atan2(uy, ux);
   let arcAngleRad = phi + Math.asin(Math.min(1, radius / dist));
   // Normalize to forward travel (0..2pi); reject backward solutions later.
@@ -144,26 +150,87 @@ function emitRecords(
     records.push({ md: startMd + s, dip: aim.dip, azimuth: aim.azimuth });
   };
 
+  // Snap the nearest existing station to an exact key MD (arc end / target), or
+  // insert one if none is close. Snapping rather than inserting avoids creating a
+  // sub-interval segment that would otherwise carry a spurious DLS spike, while
+  // still guaranteeing the plan lands exactly on the arc end and the target.
+  const ensureStation = (atS: number) => {
+    const md = startMd + atS;
+    // Already represented by a coincident station: nothing to pin. (Avoids
+    // inserting a micron-spaced station that would explode the desurveyed DLS.)
+    if (records.some((r) => Math.abs(r.md - md) < 1e-3)) return;
+    const aim = dipAzFromVector(directionAt(atS));
+    // Never consume the mandatory start station — snapping it away would delete
+    // the path origin and shift the whole trajectory (a tiny-kickoff hazard).
+    const idx = records.findIndex(
+      (r) => Math.abs(r.md - md) < 0.5 && Math.abs(r.md - startMd) > 1e-6
+    );
+    if (idx >= 0) records[idx] = { md, dip: aim.dip, azimuth: aim.azimuth };
+    else records.push({ md, dip: aim.dip, azimuth: aim.azimuth });
+  };
+
   pushAt(0);
   let s = interval;
   while (s < totalLengthM - 1e-6) {
     pushAt(s);
     s += interval;
   }
-  // Always include the exact arc end so min-curvature reproduces the curve,
-  // plus the terminal station at the target.
+  // Pin every direction discontinuity so min-curvature never smears a segment
+  // across one: the kickoff->build transition, the build->hold (arc end), and
+  // the exact target. Without the kickoff pin, build-and-hold closure drifted
+  // up to ~0.2 m.
+  if (kickoffLengthM > 1e-6 && kickoffLengthM < totalLengthM - 1e-6) ensureStation(kickoffLengthM);
   const arcEnd = kickoffLengthM + arcLengthM;
-  if (
-    arcEnd > 1e-6 &&
-    arcEnd < totalLengthM - 1e-6 &&
-    !records.some((r) => Math.abs(r.md - (startMd + arcEnd)) < 0.5)
-  ) {
-    pushAt(arcEnd);
-  }
-  if (!records.some((r) => Math.abs(r.md - (startMd + totalLengthM)) < 0.5)) {
-    pushAt(totalLengthM);
-  }
+  if (arcEnd > 1e-6 && arcEnd < totalLengthM - 1e-6) ensureStation(arcEnd);
+  ensureStation(totalLengthM);
 
+  return records.sort((a, b) => a.md - b.md);
+}
+
+/**
+ * Emit a straight leg that holds the start direction through any kickoff, then
+ * points directly at the target. Used for collinear / near-collinear targets
+ * where the tangent-circle arc solve is ill-conditioned (near-infinite radius).
+ * Closes on the target exactly because the leg is aimed straight at it.
+ */
+function emitStraightToTarget(
+  input: WellPathDesignInput,
+  frame: PlaneFrame,
+  kickoffLengthM: number
+): SurveyRecord[] {
+  const { t0, up, x, y } = frame;
+  const dir = normalizeVector(add(scale(t0, x), scale(up, y)), t0);
+  const legLengthM = Math.hypot(x, y);
+  const totalLengthM = kickoffLengthM + legLengthM;
+  const startMd = input.startMd;
+  const interval = Math.max(1, input.surveyInterval);
+  const directionAt = (s: number): Vec3 => (s <= kickoffLengthM ? t0 : dir);
+
+  const records: SurveyRecord[] = [];
+  const pushAt = (s: number) => {
+    const aim = dipAzFromVector(directionAt(s));
+    records.push({ md: startMd + s, dip: aim.dip, azimuth: aim.azimuth });
+  };
+
+  const ensureStation = (atS: number) => {
+    const md = startMd + atS;
+    if (records.some((r) => Math.abs(r.md - md) < 1e-3)) return;
+    const aim = dipAzFromVector(directionAt(atS));
+    const idx = records.findIndex(
+      (r) => Math.abs(r.md - md) < 0.5 && Math.abs(r.md - startMd) > 1e-6
+    );
+    if (idx >= 0) records[idx] = { md, dip: aim.dip, azimuth: aim.azimuth };
+    else records.push({ md, dip: aim.dip, azimuth: aim.azimuth });
+  };
+
+  pushAt(0);
+  let s = interval;
+  while (s < totalLengthM - 1e-6) {
+    pushAt(s);
+    s += interval;
+  }
+  if (kickoffLengthM > 1e-6 && kickoffLengthM < totalLengthM - 1e-6) ensureStation(kickoffLengthM);
+  ensureStation(totalLengthM);
   return records.sort((a, b) => a.md - b.md);
 }
 
@@ -206,13 +273,17 @@ export function designWellPath(
     return fail("Target coincides with the curve start point — nothing to design.");
   }
 
-  if (frame.y < COLLINEAR_EPS) {
+  // Treat the target as collinear when its perpendicular offset is negligible
+  // relative to the along-axis distance. Below this the arc/tangent solve has a
+  // near-infinite turn radius and is numerically ill-conditioned, so a straight
+  // leg aimed at the target is both correct and exact.
+  if (frame.y < COLLINEAR_EPS || frame.y < 5e-3 * Math.abs(frame.x)) {
     if (frame.x <= 0) {
       return fail("Target lies behind the start direction — cannot design a forward path.");
     }
-    // Target already on the start direction: a straight plan is correct.
+    // Target effectively on the start direction: a straight plan is correct.
     warnings.push("Target is collinear with the start direction — generated a straight path.");
-    const records = emitRecords(input, frame, kickoffLengthM, 1, 0, frame.x);
+    const records = emitStraightToTarget(input, frame, kickoffLengthM);
     return {
       records,
       feasible: true,
